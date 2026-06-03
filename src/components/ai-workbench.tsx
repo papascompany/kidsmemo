@@ -50,41 +50,73 @@ export function AiWorkbench() {
   const [assistantResult, setAssistantResult] = useState(sampleAssistantResult);
   const [messageResult, setMessageResult] = useState(sampleMessageResult);
   const [eventName, setEventName] = useState("가족 운동회");
+  const [assistantStatus, setAssistantStatus] = useState<string | null>(null);
+  const [messageStatus, setMessageStatus] = useState<string | null>(null);
+  const [isGeneratingAssistant, setIsGeneratingAssistant] = useState(false);
+  const [isGeneratingMessages, setIsGeneratingMessages] = useState(false);
 
   async function generateAssistant() {
-    const response = await fetch("/api/ai/event-assistant", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventName,
-        ageGroup: "전체 원아",
-        preparationDays: 14,
-        budget: "중간 예산",
-        location: "실내 강당",
-        season: "여름",
-        mood: "밝고 활기찬"
-      })
-    });
+    setIsGeneratingAssistant(true);
+    setAssistantStatus(null);
 
-    const payload = (await response.json()) as EventAssistantResult;
-    setAssistantResult(payload);
+    try {
+      const response = await fetch("/api/ai/event-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventName,
+          ageGroup: "전체 원아",
+          preparationDays: 14,
+          budget: "중간 예산",
+          location: "실내 강당",
+          season: "여름",
+          mood: "밝고 활기찬"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const payload = unwrapData<EventAssistantResult>(await response.json());
+      setAssistantResult(payload);
+      setAssistantStatus("행사 계획서가 새로 생성되었습니다.");
+    } catch {
+      setAssistantStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
+    } finally {
+      setIsGeneratingAssistant(false);
+    }
   }
 
   async function generateMessages() {
-    const response = await fetch("/api/ai/parent-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        purpose: "event_notice",
-        tone: "warm",
-        eventName,
-        childContext: "행사 사진은 점보키즈 혜택 안내와 함께 전달됩니다.",
-        senderName: "햇살나무 어린이집"
-      })
-    });
+    setIsGeneratingMessages(true);
+    setMessageStatus(null);
 
-    const payload = (await response.json()) as ParentMessageResult;
-    setMessageResult(payload);
+    try {
+      const response = await fetch("/api/ai/parent-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          purpose: "event_notice",
+          tone: "warm",
+          eventName,
+          childContext: "행사 사진은 점보키즈 혜택 안내와 함께 전달됩니다.",
+          senderName: "햇살나무 어린이집"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const payload = unwrapData<ParentMessageResult>(await response.json());
+      setMessageResult(payload);
+      setMessageStatus("학부모 메시지 후보가 새로 생성되었습니다.");
+    } catch {
+      setMessageStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
+    } finally {
+      setIsGeneratingMessages(false);
+    }
   }
 
   return (
@@ -121,12 +153,18 @@ export function AiWorkbench() {
           <button
             type="button"
             onClick={generateAssistant}
-            className="flex items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white"
+            disabled={isGeneratingAssistant}
+            className="flex items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles size={17} aria-hidden />
-            생성
+            {isGeneratingAssistant ? "생성 중" : "생성"}
           </button>
         </div>
+        {assistantStatus ? (
+          <p className="no-print mt-3 rounded border border-line bg-white px-3 py-2 text-sm text-muted">
+            {assistantStatus}
+          </p>
+        ) : null}
 
         <div className="print-page mt-4 rounded border border-line bg-surface p-4">
           <h4 className="text-base font-semibold text-ink">{eventName} 계획서</h4>
@@ -179,11 +217,17 @@ export function AiWorkbench() {
           <button
             type="button"
             onClick={generateMessages}
-            className="no-print rounded bg-coral px-4 py-2 text-sm font-semibold text-white"
+            disabled={isGeneratingMessages}
+            className="no-print rounded bg-coral px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            생성
+            {isGeneratingMessages ? "생성 중" : "생성"}
           </button>
         </div>
+        {messageStatus ? (
+          <p className="no-print mt-3 rounded border border-line bg-surface px-3 py-2 text-sm text-muted">
+            {messageStatus}
+          </p>
+        ) : null}
 
         <div className="print-page mt-4 grid gap-3">
           {messageResult.candidates.map((message, index) => (
@@ -231,4 +275,17 @@ function ResultList({ title, items }: { title: string; items: string[] }) {
       </ul>
     </div>
   );
+}
+
+function unwrapData<T>(payload: unknown): T {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    (payload as { data?: unknown }).data
+  ) {
+    return (payload as { data: T }).data;
+  }
+
+  return payload as T;
 }

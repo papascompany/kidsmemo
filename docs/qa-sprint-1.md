@@ -325,10 +325,17 @@ Acceptance:
 - Event assistant returns `ideas`, `checklist`, `timeline`, `parentNoticeDraft`, and `shoppingRecommendations`.
 - Shopping recommendations include `title`, `priceLabel`, `mallName`, `url`, and `reason`.
 - Parent message endpoint returns exactly usable candidate messages and `safetyNotes`.
+- The AI workbench frontend unwraps normalized `{ ok: true, data }` responses before rendering generated results.
+- AI generate buttons show loading/status feedback and do not break the existing printable result panels after successful or failed requests.
 - Empty `eventName`, invalid `purpose`, invalid `tone`, or non-integer `preparationDays` are rejected.
 - With no external API keys, endpoints still return schema-valid fallback results.
 - With external API keys later configured, output must remain schema-compatible with the fallback shape.
 - Parent message output must avoid sensitive child information, purchase pressure, and exaggerated claims.
+
+Current status:
+
+- 2026-06-03 CTO fixed the AI workbench frontend response handling after QA/Frontend subagents found that the UI was treating normalized API envelopes as raw AI result payloads.
+- `npm run lint` and `npm run build` pass after the AI workbench fix.
 
 ## Responsive UI
 

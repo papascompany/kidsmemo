@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, and CTO subagent readiness review are complete. Supabase connection remains paused until explicit user approval.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, and AI workbench response fix are complete. Supabase connection remains paused until explicit user approval.
 
 ## Workstreams
 
@@ -12,10 +12,10 @@ Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC h
 | --- | --- | --- | --- | --- |
 | CTO | Main thread | `docs/sprint-1-cto-charter.md`, `docs/sprint-1-board.md`, integration decisions | Charter, board, review order, final merge plan | Complete for Sprint 1 mock/fallback checkpoint |
 | Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; Supabase auth/RLS/persistence pending |
-| Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; browser visual QA and mobile quick nav pending |
+| Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; first visual QA fix and AI workbench response fix complete; mobile quick nav pending |
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
-| QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat |
+| QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
 | Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Complete; Vercel link and Supabase login/link pending |
 
 ## CTO Review Order
@@ -47,13 +47,13 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
   - `git status`: clean on `main...origin/main`.
 - Subagent QA found most API smoke tests pass.
 - Reminder job currently returns `duplicate_job` because mock seed data already contains the target job. CTO must decide whether to update QA expectation or mock seed.
-- Browser visual QA is pending and should be done before starting Supabase persistence.
+- First browser visual QA pass found and fixed mobile clipping in the director workspace. Manual browser and print sign-off should still be done before starting Supabase persistence.
 
 ## Next CTO Queue Before Supabase
 
 1. Update QA expectation for reminder job duplicate behavior.
-2. Run browser QA for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`.
-3. Check 320/390/768/1440 responsive layouts and print preview.
+2. Complete manual browser QA for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`.
+3. Re-check 320/390/768/1440 responsive layouts, AI generate buttons, and print preview.
 4. Align frontend visual direction with the warm modern kindergarten-teacher concept:
    - Pretendard typography polish.
    - image-backed hero/content cards.
@@ -65,9 +65,10 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
    - organization-scoped AI event advice history.
    - organization-scoped coupon campaigns and sending settings.
    - clear current-organization indicator and optional organization switcher.
-6. Decide and implement mobile quick navigation if approved.
+6. Implement mobile quick navigation for director workflows.
 7. Prepare Vercel project link and environment variable inventory.
 8. Confirm Supabase login/project candidates without applying schema.
+9. Before any live persistence, add an explicit data-backend flag so Supabase env vars alone cannot switch repositories.
 
 ## Design Direction For Next Frontend Pass
 
@@ -133,6 +134,27 @@ Phase 3: persistence and release readiness.
   - Continue with frontend/QA hardening now.
   - Do not enable Supabase env or `supabase link/db push` yet.
   - Next backend implementation after approval must start with auth guard utilities, user-scoped repositories, service-role-only cron/webhook paths, and event route guards before coupons.
+
+## 2026-06-03 CTO Visual QA And Follow-Up Orchestration
+
+- Commit `0fbdd91` fixed the first mobile visual QA issue:
+  - Added mobile text wrapping and `min-w-0`/`overflow-x-hidden` safeguards to the dashboard, app shell, and director organization workspace.
+  - Production screenshots at 320, 390, 768, and 1440 px no longer showed the original director workspace clipping risk in code-level fixes.
+- QA and Frontend/UX subagents identified an AI workbench release blocker:
+  - The frontend was treating normalized `{ ok: true, data }` API responses as raw AI payloads.
+  - CTO fixed the AI workbench to unwrap `data`, show loading/status states, and preserve printable result panels.
+  - `npm run lint` and `npm run build` pass after the fix.
+- Backend/Auth subagent set the next Supabase gate:
+  - Supabase env vars alone must not activate live repositories.
+  - Add an explicit data backend flag, auth/session utilities, membership guards, and repository separation before `supabase link`, `db push`, or live CRUD.
+
+Next execution order:
+
+1. Manual browser QA and print QA on the current mock/fallback app.
+2. Mobile quick navigation for director workflows.
+3. AI workbench form-depth pass for age group, preparation days, budget, location, season, mood, message purpose/tone, and sender.
+4. Organization workspace action affordances and empty states.
+5. Backend live-readiness guard work only after explicit Supabase approval.
 
 ## Blocked Until Explicit Approval
 
