@@ -115,6 +115,25 @@ Phase 3: persistence and release readiness.
 - Persist reminder jobs and delivery records with idempotency.
 - Re-run lint, build, API smoke, browser responsive QA, and print QA before release.
 
+## 2026-06-03 CTO Orchestration Results
+
+- Frontend/UX subagent implemented the first director organization workspace UI slice.
+  - Added an image-backed, warm editorial "my kindergarten" workspace.
+  - Surfaced current organization context, institution profile, event schedule, AI advice history, coupon settings, and sending summary.
+  - Wired the workspace into the top dashboard while keeping the mock/fallback app path intact.
+- QA/Release subagent updated Sprint 1 QA documentation.
+  - Current-date reminder behavior on 2026-06-03 now expects empty arrays because no 2026-06-04 seeded event exists.
+  - Seeded duplicate reminder behavior is verified through an explicit `now: "2026-06-02T09:00:00+09:00"` fixture.
+  - Director organization workspace QA criteria were added.
+- Backend/Auth subagent found a critical sequencing risk.
+  - The current Supabase service-role repository path can bypass RLS if live env vars are enabled before route guards and repository separation.
+  - `coupon_campaigns` must become organization-owned before live coupon persistence.
+  - RLS policies must be expanded before live CRUD.
+- CTO integrated decision:
+  - Continue with frontend/QA hardening now.
+  - Do not enable Supabase env or `supabase link/db push` yet.
+  - Next backend implementation after approval must start with auth guard utilities, user-scoped repositories, service-role-only cron/webhook paths, and event route guards before coupons.
+
 ## Blocked Until Explicit Approval
 
 - `supabase link`

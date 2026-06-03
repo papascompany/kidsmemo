@@ -2,11 +2,12 @@
 
 ## Latest Verification
 
-Run date: 2026-06-02
+Run date: 2026-06-03
 
 - `npm run lint`: passed.
 - `npm run build`: passed.
-- Previous blocker resolved: `src/components/coupon-manager.tsx` is present and `src/app/page.tsx` imports both event and coupon manager components successfully.
+- Local dev/API smoke on `http://localhost:3000`: passed for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`, events list, coupon campaign list, validation error routes, and reminder job routes.
+- Previous blocker remains resolved: `src/components/coupon-manager.tsx` is present and `src/app/page.tsx` imports both event and coupon manager components successfully.
 - Current implementation status: Sprint 1 is integrated on mock/repository fallback data. Supabase connection and live provider credentials remain intentionally out of scope until the next phase.
 - New PC handoff verification is complete: GitHub push, local dependencies, lint/build, GitHub CLI, Vercel CLI, and Supabase CLI installation were checked by CTO.
 - CTO QA smoke subagent verified the core API suite in a worktree:
@@ -14,7 +15,9 @@ Run date: 2026-06-02
   - `/coupon/coupon-2` returned HTTP 200.
   - `/coupon/unknown-campaign` returned HTTP 404.
   - event CRUD, coupon campaign CRUD, coupon item/target/notice, AI fallback, and validation error shapes passed.
-- Reminder job caveat: `/api/jobs/send-reminders` returned HTTP 200 but skipped generation with `duplicate_job` because mock seed data already contains the target event/campaign/date job.
+- Reminder job current-date behavior on 2026-06-03: `/api/jobs/send-reminders` returns HTTP 200 with empty `generatedJobs`, `issuedBenefits`, and `jobSummaries` because no seeded event is scheduled for 2026-06-04.
+- Reminder job seeded duplicate fixture: posting `{ "now": "2026-06-02T09:00:00+09:00" }` returns HTTP 200 and skips generation with `duplicate_job` because mock seed data already contains the `event-3` / `coupon-1` job for 2026-06-02.
+- Browser automation status: in-app browser QA was attempted on 2026-06-03, but the browser runtime failed to attach in this workspace session. HTTP route smoke passed; visual responsive and print preview QA remain manual release checks.
 
 ## Release Gate
 
@@ -44,6 +47,24 @@ Supabase-ready checks once connected:
 - An owner can manage only their own organization data.
 - An admin can view cross-organization operational data.
 - RLS prevents direct access to another organization by changing ids in API requests.
+
+## Director Organization Workspace
+
+Manual checks:
+
+- Confirm the director experience is framed as "my kindergarten/nursery" workspace, not a generic account settings page.
+- Confirm the current organization name, region, and role are visible enough that directors know which organization they are operating.
+- Confirm organization-owned areas are grouped around the director's real work: event schedule, AI event advice/history, coupon campaigns, sending settings, and recent delivery status.
+- Confirm director and teacher UI copy does not imply cross-organization access unless the account has explicit multi-organization membership.
+- Confirm organization switching, when present, is deliberate and visible on desktop and mobile.
+
+Supabase-ready checks once connected:
+
+- Every organization workspace read/write includes `organization_id` or a membership-derived organization context.
+- Director/owner accounts can create and manage data only inside their own organization.
+- Teacher accounts can see assigned organization content but cannot access admin-only coupon or delivery controls unless granted.
+- Service admin views are visually and technically separate from director workspace views.
+- Events, coupon campaigns, AI generations, message jobs, delivery history, and sending settings are all scoped to the selected organization.
 
 ## Event CRUD
 
@@ -225,16 +246,25 @@ Smoke command:
 curl -sS -X POST http://localhost:3000/api/jobs/send-reminders
 ```
 
+Seeded duplicate fixture command:
+
+```bash
+curl -sS -X POST http://localhost:3000/api/jobs/send-reminders \
+  -H 'Content-Type: application/json' \
+  -d '{"now":"2026-06-02T09:00:00+09:00"}'
+```
+
 Acceptance:
 
 - The job returns `generatedJobs` and `issuedBenefits` arrays.
-- Current mock seed behavior on 2026-06-02:
+- Current-date mock behavior on 2026-06-03:
+  - No seeded event is scheduled for 2026-06-04.
+  - The route returns empty `generatedJobs`, `issuedBenefits`, and `jobSummaries` arrays.
+- Seeded duplicate fixture behavior with `now: "2026-06-02T09:00:00+09:00"`:
   - The event dated `2026-06-03` is found, but the seeded `messageJobs` already contain an `event-3` / `coupon-1` job for `2026-06-02`.
   - The route returns a `jobSummaries` entry with `status: "skipped"` and `reason: "duplicate_job"`.
   - `generatedJobs` and `issuedBenefits` are empty in this seeded duplicate scenario.
-- CTO decision needed:
-  - Option A: accept duplicate prevention as the Sprint 1 smoke expectation and update the release gate accordingly.
-  - Option B: adjust mock seed data or add a separate test fixture so fresh generation can verify `generatedJobs`, `issuedBenefits`, and channel order.
+- Sprint 1 QA expectation: accept duplicate prevention as the mock/fallback smoke expectation and use the explicit `now` payload above when verifying `duplicate_job`.
 - API-issued campaigns should produce `issuedBenefits.status: "issued"` when the adapter fallback succeeds in a non-duplicate scenario.
 - Manual campaigns should produce `issuedBenefits.status: "manual_ready"` and include manual code/link in a non-duplicate scenario.
 - Generated jobs should use channel order `alimtalk`, `sms`, `email` in a non-duplicate scenario.
@@ -323,9 +353,9 @@ Acceptance:
 
 Current status:
 
-- Source inspection and build verification indicate the responsive structure is ready for manual browser QA.
-- Browser visual QA remains pending after CTO orchestration because the delegated worktree could not keep a dev server alive through browser automation tooling, though foreground `npm run dev` reached Ready.
-- This is not considered a product blocker; it is a tooling/session limitation.
+- Source inspection, lint/build, and HTTP route smoke indicate the responsive structure is ready for manual browser QA.
+- Browser visual QA remains pending because the in-app browser runtime failed to attach during the 2026-06-03 QA session, while the local dev server and HTTP smoke checks succeeded.
+- This is a tooling/session limitation, but visual responsive sign-off should still be completed before release or before adding Supabase persistence complexity.
 
 ## Print Flow
 
@@ -387,9 +417,9 @@ Expected Sprint 1 release behavior:
 ## Known Sprint 1 Risks To Track
 
 - Current UI uses mock data and local client state for some create flows; persistence acceptance requires Supabase wiring.
-- Current reminder job uses mock data. It currently demonstrates duplicate skip behavior for the seeded event/campaign/date, but fresh generation and persisted idempotency still need separate verification.
+- Current reminder job uses mock data. It demonstrates empty current-date behavior and duplicate skip behavior for the explicit seeded event/campaign/date fixture, but fresh generation and persisted idempotency still need separate verification.
 - Live Kakao/SMS/email, Jumbokids, OpenAI, and Naver behavior is adapter-contract scope only until real credentials are connected.
 - Image notice upload is represented by URL storage in current contracts; Supabase Storage upload flow still needs end-to-end verification when implemented.
 - Frontend can create a campaign in local state, but follow-up item/target/notice calls may not persist across refresh until Supabase-backed repositories are connected.
 - Mobile quick navigation is still a UX improvement item from design review.
-- Browser visual QA for responsive and print flow remains pending.
+- Browser visual QA for responsive and print flow remains pending because browser automation could not attach in this QA session.
