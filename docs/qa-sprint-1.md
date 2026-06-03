@@ -349,6 +349,8 @@ Manual viewport matrix:
 Acceptance:
 
 - Navigation links remain usable and do not overlap.
+- Mobile quick navigation exposes dashboard, event, coupon, AI, message, and admin anchors.
+- Sticky mobile navigation does not hide section headings after anchor jumps.
 - Dashboard stat cards wrap cleanly.
 - Event list switches from table-like desktop layout to readable mobile articles.
 - Coupon creation controls remain tappable at mobile widths.
@@ -363,8 +365,10 @@ Current status:
 - 2026-06-03 CTO visual QA ran production build screenshots through local Chrome headless at 320, 390, 768, and 1440 px.
 - The first pass found mobile horizontal clipping in the director workspace headline and organization selector.
 - The app now includes `min-w-0`, `overflow-x-hidden`, and `text-wrap-anywhere` safeguards for the app shell, dashboard headline, and organization workspace hero text.
+- The mobile header now includes a horizontal quick navigation bar for director workflows, with section scroll offsets adjusted for the sticky header height.
+- `next start` served `/` with HTTP 200 during CTO verification, and the production HTML includes the mobile quick nav plus `scroll-mt-32` anchor offsets.
 - `npm run lint` and `npm run build` pass after the responsive fixes.
-- Manual browser sign-off is still recommended before release because Chrome headless had GPU/profile limitations in this workspace session.
+- Manual browser sign-off is still recommended before release because Chrome headless screenshot capture had GPU/profile/file-output limitations in this workspace session.
 
 ## Print Flow
 

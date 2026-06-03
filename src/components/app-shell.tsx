@@ -10,12 +10,12 @@ import {
 import Link from "next/link";
 
 const navItems = [
-  { href: "#dashboard", label: "대시보드", icon: LayoutDashboard },
-  { href: "#calendar", label: "연간 행사", icon: CalendarDays },
-  { href: "#coupons", label: "쿠폰발행 관리", icon: Gift },
-  { href: "#ai-helper", label: "AI 행사 도우미", icon: Bot },
-  { href: "#message-writer", label: "감동 문구", icon: MessageSquareText },
-  { href: "#admin", label: "관리 콘솔", icon: Settings }
+  { href: "#dashboard", label: "대시보드", mobileLabel: "홈", icon: LayoutDashboard },
+  { href: "#calendar", label: "연간 행사", mobileLabel: "행사", icon: CalendarDays },
+  { href: "#coupons", label: "쿠폰발행 관리", mobileLabel: "쿠폰", icon: Gift },
+  { href: "#ai-helper", label: "AI 행사 도우미", mobileLabel: "AI", icon: Bot },
+  { href: "#message-writer", label: "감동 문구", mobileLabel: "문구", icon: MessageSquareText },
+  { href: "#admin", label: "관리 콘솔", mobileLabel: "관리", icon: Settings }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -55,16 +55,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <header className="no-print sticky top-0 z-20 border-b border-line bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
-        <div className="flex items-center justify-between">
+      <header className="no-print sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur lg:hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div>
             <p className="text-xs font-semibold text-brand">점보키즈 연동</p>
             <h1 className="text-lg font-semibold">키즈메모</h1>
           </div>
-          <Link href="#coupons" className="rounded bg-brand px-3 py-2 text-sm font-semibold text-white">
-            쿠폰관리
-          </Link>
+          <div className="rounded border border-line bg-surface px-3 py-2 text-right text-xs font-semibold text-muted">
+            원장 워크스페이스
+          </div>
         </div>
+        <nav
+          aria-label="모바일 빠른 이동"
+          className="flex snap-x gap-2 overflow-x-auto px-4 pb-3"
+        >
+          {navItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex min-w-[4.5rem] snap-start flex-col items-center justify-center gap-1 rounded border border-line bg-white px-3 py-2 text-xs font-semibold text-muted shadow-sm transition hover:border-brand hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand/30"
+                aria-label={`${item.label}로 이동`}
+              >
+                <Icon size={17} aria-hidden />
+                <span>{item.mobileLabel}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </header>
 
       <main className="min-w-0 lg:pl-64">

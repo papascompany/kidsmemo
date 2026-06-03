@@ -31,7 +31,7 @@ export default function Home() {
 
   return (
     <AppShell>
-      <section id="dashboard" className="min-w-0 py-3">
+      <section id="dashboard" className="min-w-0 scroll-mt-32 py-3 lg:scroll-mt-6">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-brand">Director Workspace</p>
