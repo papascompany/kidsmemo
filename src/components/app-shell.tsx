@@ -20,7 +20,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen overflow-x-hidden bg-surface">
       <aside className="no-print fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-white px-5 py-6 lg:block">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded bg-brand text-white">
@@ -67,8 +67,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+      <main className="min-w-0 lg:pl-64">
+        <div className="mx-auto max-w-7xl min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</div>
       </main>
     </div>
   );

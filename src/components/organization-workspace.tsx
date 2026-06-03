@@ -72,25 +72,25 @@ export function OrganizationWorkspace() {
   );
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-5">
       <section
-        className="relative overflow-hidden rounded border border-line bg-ink text-white shadow-soft"
+        className="relative min-w-0 overflow-hidden rounded border border-line bg-ink text-white shadow-soft"
         style={{ backgroundImage: `url(${workspaceImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-ink/88 via-ink/62 to-ink/18" />
         <div className="relative grid min-h-[430px] content-between gap-8 p-5 sm:p-7 lg:grid-cols-[1fr_360px] lg:p-8">
-          <div className="flex max-w-3xl flex-col justify-between">
-            <div>
+          <div className="flex min-w-0 max-w-3xl flex-col justify-between">
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="green">현재 기관</Badge>
                 <span className="rounded border border-white/25 bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
                   원장 워크스페이스
                 </span>
               </div>
-              <h1 className="mt-5 max-w-2xl text-3xl font-semibold tracking-normal sm:text-4xl lg:text-5xl">
+              <h1 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight tracking-normal sm:text-4xl lg:text-5xl">
                 {currentOrganization.name} 운영실
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/86 sm:text-base">
+              <p className="text-wrap-anywhere mt-4 max-w-2xl text-sm leading-7 text-white/86 sm:text-base">
                 내 기관의 행사, AI 조언, 쿠폰 혜택, 발송 상태를 한 화면에서 확인합니다.
                 지금 선택된 기관 범위 안에서 필요한 운영 정보를 먼저 확인하고, 세부 관리는 아래 도구에서 이어갑니다.
               </p>
@@ -103,19 +103,21 @@ export function OrganizationWorkspace() {
             </div>
           </div>
 
-          <div className="self-end rounded border border-white/24 bg-white/16 p-4 backdrop-blur-md">
+          <div className="min-w-0 self-end rounded border border-white/24 bg-white/16 p-4 backdrop-blur-md">
             <p className="text-xs font-semibold text-white/75">기관 선택</p>
-            <div className="mt-3 flex items-start justify-between gap-3">
-              <div>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-lg font-semibold">{currentOrganization.name}</p>
                 <p className="mt-1 flex items-center gap-2 text-sm text-white/78">
                   <MapPin size={15} aria-hidden />
                   {currentOrganization.region}
                 </p>
               </div>
-              <Badge tone="blue">{currentOrganization.type === "daycare" ? "어린이집" : "유치원"}</Badge>
+              <div className="shrink-0 self-start">
+                <Badge tone="blue">{currentOrganization.type === "daycare" ? "어린이집" : "유치원"}</Badge>
+              </div>
             </div>
-            <div className="mt-4 rounded bg-white/14 p-3 text-sm leading-6 text-white/82">
+            <div className="text-wrap-anywhere mt-4 rounded bg-white/14 p-3 text-sm leading-6 text-white/82">
               여러 기관을 맡은 계정은 이 위치에서 기관을 전환합니다. 원장/교사 화면은
               선택한 기관의 정보만 표시합니다.
             </div>

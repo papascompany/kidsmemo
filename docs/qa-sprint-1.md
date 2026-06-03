@@ -353,9 +353,11 @@ Acceptance:
 
 Current status:
 
-- Source inspection, lint/build, and HTTP route smoke indicate the responsive structure is ready for manual browser QA.
-- Browser visual QA remains pending because the in-app browser runtime failed to attach during the 2026-06-03 QA session, while the local dev server and HTTP smoke checks succeeded.
-- This is a tooling/session limitation, but visual responsive sign-off should still be completed before release or before adding Supabase persistence complexity.
+- 2026-06-03 CTO visual QA ran production build screenshots through local Chrome headless at 320, 390, 768, and 1440 px.
+- The first pass found mobile horizontal clipping in the director workspace headline and organization selector.
+- The app now includes `min-w-0`, `overflow-x-hidden`, and `text-wrap-anywhere` safeguards for the app shell, dashboard headline, and organization workspace hero text.
+- `npm run lint` and `npm run build` pass after the responsive fixes.
+- Manual browser sign-off is still recommended before release because Chrome headless had GPU/profile limitations in this workspace session.
 
 ## Print Flow
 

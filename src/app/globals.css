@@ -53,6 +53,12 @@ select {
   font: inherit;
 }
 
+.text-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-break: anywhere;
+}
+
 @media print {
   body {
     background: #fff;
