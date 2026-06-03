@@ -8,6 +8,13 @@ Run date: 2026-06-02
 - `npm run build`: passed.
 - Previous blocker resolved: `src/components/coupon-manager.tsx` is present and `src/app/page.tsx` imports both event and coupon manager components successfully.
 - Current implementation status: Sprint 1 is integrated on mock/repository fallback data. Supabase connection and live provider credentials remain intentionally out of scope until the next phase.
+- New PC handoff verification is complete: GitHub push, local dependencies, lint/build, GitHub CLI, Vercel CLI, and Supabase CLI installation were checked by CTO.
+- CTO QA smoke subagent verified the core API suite in a worktree:
+  - `/` returned HTTP 200.
+  - `/coupon/coupon-2` returned HTTP 200.
+  - `/coupon/unknown-campaign` returned HTTP 404.
+  - event CRUD, coupon campaign CRUD, coupon item/target/notice, AI fallback, and validation error shapes passed.
+- Reminder job caveat: `/api/jobs/send-reminders` returned HTTP 200 but skipped generation with `duplicate_job` because mock seed data already contains the target event/campaign/date job.
 
 ## Release Gate
 
@@ -221,11 +228,37 @@ curl -sS -X POST http://localhost:3000/api/jobs/send-reminders
 Acceptance:
 
 - The job returns `generatedJobs` and `issuedBenefits` arrays.
-- With the seeded date context, the event dated `2026-06-03` should be included when the server date is `2026-06-02` in Asia/Seoul-aligned expectations.
-- API-issued campaigns produce `issuedBenefits.status: "issued"` when the adapter fallback succeeds.
-- Manual campaigns produce `issuedBenefits.status: "manual_ready"` and include manual code/link when their event is tomorrow.
-- Generated jobs use channel order `alimtalk`, `sms`, `email`.
-- Re-running the smoke command should be checked for duplicate prevention once persistence is added. Current mock-only behavior does not persist generated jobs, so duplicate detection is not enforceable yet.
+- Current mock seed behavior on 2026-06-02:
+  - The event dated `2026-06-03` is found, but the seeded `messageJobs` already contain an `event-3` / `coupon-1` job for `2026-06-02`.
+  - The route returns a `jobSummaries` entry with `status: "skipped"` and `reason: "duplicate_job"`.
+  - `generatedJobs` and `issuedBenefits` are empty in this seeded duplicate scenario.
+- CTO decision needed:
+  - Option A: accept duplicate prevention as the Sprint 1 smoke expectation and update the release gate accordingly.
+  - Option B: adjust mock seed data or add a separate test fixture so fresh generation can verify `generatedJobs`, `issuedBenefits`, and channel order.
+- API-issued campaigns should produce `issuedBenefits.status: "issued"` when the adapter fallback succeeds in a non-duplicate scenario.
+- Manual campaigns should produce `issuedBenefits.status: "manual_ready"` and include manual code/link in a non-duplicate scenario.
+- Generated jobs should use channel order `alimtalk`, `sms`, `email` in a non-duplicate scenario.
+- Full duplicate prevention still needs Supabase-backed persisted `message_jobs` and `message_deliveries`.
+
+Observed duplicate response:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "generatedJobs": [],
+    "issuedBenefits": [],
+    "jobSummaries": [
+      {
+        "eventId": "event-3",
+        "campaignId": "coupon-1",
+        "status": "skipped",
+        "reason": "duplicate_job"
+      }
+    ]
+  }
+}
+```
 
 ## AI Outputs
 
@@ -288,6 +321,12 @@ Acceptance:
 - `/coupon/coupon-2` coupon action buttons remain visible and readable on mobile.
 - No horizontal page scroll appears at 320 px width.
 
+Current status:
+
+- Source inspection and build verification indicate the responsive structure is ready for manual browser QA.
+- Browser visual QA remains pending after CTO orchestration because the delegated worktree could not keep a dev server alive through browser automation tooling, though foreground `npm run dev` reached Ready.
+- This is not considered a product blocker; it is a tooling/session limitation.
+
 ## Print Flow
 
 Manual checks:
@@ -305,6 +344,11 @@ Acceptance:
 - `#dashboard`, `#calendar`, `#coupons`, and `#admin` are hidden.
 - `.print-page` content remains visible and readable.
 - Korean text is rendered with Pretendard or acceptable fallback.
+
+Current status:
+
+- Print CSS is implemented to hide dashboard/calendar/coupon/admin operational surfaces and leave AI content printable.
+- Actual browser print preview is still pending.
 
 ## API Error Smoke Tests
 
@@ -343,8 +387,9 @@ Expected Sprint 1 release behavior:
 ## Known Sprint 1 Risks To Track
 
 - Current UI uses mock data and local client state for some create flows; persistence acceptance requires Supabase wiring.
-- Current reminder job uses mock data, so idempotency and duplicate prevention cannot be fully proven.
+- Current reminder job uses mock data. It currently demonstrates duplicate skip behavior for the seeded event/campaign/date, but fresh generation and persisted idempotency still need separate verification.
 - Live Kakao/SMS/email, Jumbokids, OpenAI, and Naver behavior is adapter-contract scope only until real credentials are connected.
 - Image notice upload is represented by URL storage in current contracts; Supabase Storage upload flow still needs end-to-end verification when implemented.
 - Frontend can create a campaign in local state, but follow-up item/target/notice calls may not persist across refresh until Supabase-backed repositories are connected.
 - Mobile quick navigation is still a UX improvement item from design review.
+- Browser visual QA for responsive and print flow remains pending.

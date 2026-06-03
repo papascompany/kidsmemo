@@ -10,6 +10,8 @@ Turn the current prototype into the first data-backed SaaS slice:
 - Manual coupon image/HTML notice storage flow
 - AI feature contracts ready for real provider integration
 - QA scenarios for the first end-to-end release path
+- Warm, modern, refined responsive UI direction for kindergarten and nursery operators
+- Organization-scoped my page/workspace where each director manages only their own kindergarten/nursery content
 
 ## Sprint Boundary
 
@@ -17,9 +19,11 @@ In scope:
 
 - Persistable schema/API contracts for organizations, profiles, memberships, events, coupon campaigns, coupon items, targets, message jobs, and AI generations.
 - Frontend forms and flows for event and coupon management using existing mock/API boundaries.
+- My page / organization workspace UX concept for directors and teachers.
 - OpenAI and Naver integration adapters with env-based fallback behavior.
 - UX review for nursery/kindergarten operators.
 - QA checklist and smoke-test coverage for the core user journey.
+- Design direction alignment: Pretendard typography, responsive control quality, warm modern tone, image-backed editorial cards for hero/content sections where appropriate.
 
 Out of scope for this sprint:
 
@@ -79,6 +83,14 @@ Notice types remain:
 - Manual coupon campaigns support at least one campaign with multiple coupon items.
 - AI endpoints return schema-valid results with and without external API keys.
 - QA checklist covers auth, event CRUD, coupon modes, manual notice, reminder job, AI outputs, responsive UI, and print flow.
+- Director and teacher workflows are scoped to the current organization.
+- My page/workspace UX makes it clear which kindergarten/nursery is currently being managed.
+- Events, coupon campaigns, AI generations, message jobs, and member settings are designed to be organization-owned data.
+- Live Supabase implementation must prevent one organization from reading or mutating another organization's data.
+- UI remains fully responsive across mobile, tablet, and desktop without text or control overlap.
+- Korean UI uses Pretendard and avoids cramped administrative styling.
+- Hero/content sections that need emotional context should prefer real photo/image cuts with readable text overlays over emoji/icon-heavy decoration.
+- The app should feel like a polished teacher-facing operations tool with a warm magazine-like visual rhythm, not a generic enterprise dashboard.
 
 ## Integration Order
 
