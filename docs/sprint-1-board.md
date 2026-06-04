@@ -4,19 +4,19 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, and organization workspace action/empty-state pass are complete. Supabase connection remains paused until explicit user approval.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, and mock data-backend safety flag are complete. Supabase connection remains paused until explicit user approval.
 
 ## Workstreams
 
 | Role | Agent | Ownership | Expected Output | Status |
 | --- | --- | --- | --- | --- |
 | CTO | Main thread | `docs/sprint-1-cto-charter.md`, `docs/sprint-1-board.md`, integration decisions | Charter, board, review order, final merge plan | Complete for Sprint 1 mock/fallback checkpoint |
-| Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; Supabase auth/RLS/persistence pending |
+| Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; explicit data-backend flag complete; Supabase auth/RLS/persistence pending |
 | Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; mobile quick nav, AI form depth, and workspace action/empty states complete |
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
 | QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
-| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Complete; Vercel link and Supabase login/link pending |
+| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Env inventory complete; Vercel project creation/link and Supabase login/link pending |
 
 ## CTO Review Order
 
@@ -65,9 +65,9 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
    - organization-scoped AI event advice history.
    - organization-scoped coupon campaigns and sending settings.
    - clear current-organization indicator and optional organization switcher.
-6. Prepare Vercel project link and environment variable inventory.
+6. Choose or create the intended Vercel project and run `vercel link`.
 7. Confirm Supabase login/project candidates without applying schema.
-8. Before any live persistence, add an explicit data-backend flag so Supabase env vars alone cannot switch repositories.
+8. Re-authenticate GitHub CLI if `gh` workflows are needed.
 
 ## Design Direction For Next Frontend Pass
 
@@ -150,7 +150,7 @@ Phase 3: persistence and release readiness.
 Next execution order:
 
 1. Manual browser QA and print QA on the current mock/fallback app.
-2. Vercel project link and environment variable inventory.
+2. Vercel project selection/link after user confirms the target project.
 3. Backend live-readiness guard work only after explicit Supabase approval.
 
 ## 2026-06-03 CTO Mobile Quick Navigation
@@ -185,6 +185,29 @@ Next execution order:
   - `npm run build`: passed after the integrated changes.
 - Remaining release check:
   - Manual browser visual QA and print preview remain required before release.
+
+## 2026-06-04 CTO QA And Deployment Inventory
+
+- Production route/API smoke:
+  - `/`: `200`
+  - `/coupon/coupon-2`: `200`
+  - `/coupon/unknown-campaign`: `404`
+  - `/api/ai/event-assistant`: `200 ok=true`, 3 ideas
+  - `/api/ai/parent-message`: `200 ok=true`, 3 candidates
+- Print check:
+  - Print CSS remains implemented.
+  - Chrome headless PDF output did not materialize a file, so manual print preview remains required.
+- Deployment inventory:
+  - Added `docs/deployment-env-inventory.md`.
+  - Vercel CLI `54.7.1`, account `papas-yohan`.
+  - `.vercel/project.json` is absent; Vercel project is not linked.
+  - Vercel project list did not include `kidsmemo`, so project creation/link requires user confirmation.
+  - Supabase CLI `2.104.0`; no `supabase link` or `db push` was run.
+  - GitHub CLI token is currently invalid for `gh auth status`, but git remote push has been working separately.
+- Safety flag:
+  - Added `KIDSMEMO_DATA_BACKEND=mock` to `.env.example`.
+  - Repository selection now stays on mock unless `KIDSMEMO_DATA_BACKEND=supabase` is explicitly set.
+  - With fake Supabase env vars and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200 ok=true` with mock events.
 
 ## Blocked Until Explicit Approval
 

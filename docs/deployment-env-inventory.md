@@ -1,0 +1,71 @@
+# Kidsmemo Deployment And Environment Inventory
+
+Run date: 2026-06-04
+
+## Current Deployment State
+
+- GitHub repository: `papascompany/kidsmemo`
+- Current branch: `main`
+- Vercel CLI: `54.7.1`
+- Vercel account: `papas-yohan`
+- Vercel local project link: not present. `.vercel/project.json` does not exist.
+- Vercel project candidate: no `kidsmemo` project was found in the current Vercel project list.
+- Supabase CLI: `2.104.0`
+- Supabase project link: not present and intentionally not started.
+- Production deployment: blocked until explicit approval.
+
+## Runtime And Build
+
+- Local Node observed through Vercel CLI: `24.14.0`
+- Vercel project list shows recent projects using Node `24.x`, `22.x`, and `20.x`.
+- Current app build command: `npm run build`
+- Current lint command: `npm run lint`
+- Next.js version: `16.2.7`
+
+## Environment Variables
+
+### Required For Safe Mock/Fallback Operation
+
+| Variable | Status | Notes |
+| --- | --- | --- |
+| `KIDSMEMO_DATA_BACKEND` | Added to `.env.example` | Keep as `mock` until Supabase approval. |
+
+### Supabase, Blocked Until Approval
+
+| Variable | Status | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Listed | Do not configure for live use until auth/RLS guards are ready. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Listed | Public client key, still blocked for live auth phase. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Listed | Server-only; must not be exposed to browser or used by normal user routes. |
+
+Safety check:
+
+- With fake Supabase URL/service key and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200` with mock data.
+- Supabase env vars alone no longer switch repositories to the service-role Supabase path.
+
+### AI Providers
+
+| Variable | Status | Notes |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Listed | Optional for Sprint 1 fallback; required for live OpenAI output. |
+| `OPENAI_MODEL` | Added to `.env.example` | Optional override; code falls back when absent. |
+| `NAVER_CLIENT_ID` | Listed | Optional for Sprint 1 fallback shopping recommendations. |
+| `NAVER_CLIENT_SECRET` | Listed | Optional for Sprint 1 fallback shopping recommendations. |
+
+### External Coupon And Message Providers
+
+| Variable | Status | Notes |
+| --- | --- | --- |
+| `JUMBOKIDS_API_BASE_URL` | Listed | Optional until live Jumbokids integration. |
+| `JUMBOKIDS_API_KEY` | Listed | Optional until live Jumbokids integration. |
+| `MESSAGE_PROVIDER_API_BASE_URL` | Listed | Future live message provider endpoint. |
+| `MESSAGE_PROVIDER_API_KEY` | Listed | Future live message provider credential. |
+
+## Follow-Up Gates
+
+1. Create or select a Vercel project for `kidsmemo`.
+2. Run `vercel link` only after choosing the intended project/team.
+3. Re-authenticate GitHub CLI if GitHub app workflows or `gh` commands are needed; `gh auth status` currently reports an invalid token.
+4. Keep `KIDSMEMO_DATA_BACKEND=mock` for Vercel preview until Supabase guards are implemented.
+5. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, implement auth/session guards, membership checks, repository separation, and complete RLS policies.
+6. Do not run `supabase link`, `supabase db push`, or production deployment without explicit approval.

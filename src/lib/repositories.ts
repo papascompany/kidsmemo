@@ -219,6 +219,16 @@ export const mockMessageJobRepository: MessageJobRepository = {
 };
 
 export function getRepositories(): RepositorySet {
+  const dataBackend = process.env.KIDSMEMO_DATA_BACKEND ?? "mock";
+
+  if (dataBackend !== "supabase") {
+    return {
+      events: mockEventRepository,
+      coupons: mockCouponRepository,
+      messageJobs: mockMessageJobRepository
+    };
+  }
+
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {

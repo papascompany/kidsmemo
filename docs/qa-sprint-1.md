@@ -2,11 +2,15 @@
 
 ## Latest Verification
 
-Run date: 2026-06-03
+Run date: 2026-06-04
 
 - `npm run lint`: passed.
 - `npm run build`: passed.
 - Local dev/API smoke on `http://localhost:3000`: passed for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`, events list, coupon campaign list, validation error routes, and reminder job routes.
+- CTO production route smoke on `http://127.0.0.1:3101`: `/` returned `200`, `/coupon/coupon-2` returned `200`, and `/coupon/unknown-campaign` returned `404`.
+- CTO AI API smoke on `http://127.0.0.1:3101`: event assistant returned `200 ok=true` with 3 ideas, and parent message returned `200 ok=true` with 3 candidates.
+- CTO print check: Chrome headless PDF output did not materialize a file in this workspace session, so actual browser print preview remains a manual release gate.
+- CTO repository safety check: with fake Supabase env vars and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200 ok=true` with mock events.
 - Previous blocker remains resolved: `src/components/coupon-manager.tsx` is present and `src/app/page.tsx` imports both event and coupon manager components successfully.
 - Current implementation status: Sprint 1 is integrated on mock/repository fallback data. Supabase connection and live provider credentials remain intentionally out of scope until the next phase.
 - New PC handoff verification is complete: GitHub push, local dependencies, lint/build, GitHub CLI, Vercel CLI, and Supabase CLI installation were checked by CTO.
@@ -17,7 +21,7 @@ Run date: 2026-06-03
   - event CRUD, coupon campaign CRUD, coupon item/target/notice, AI fallback, and validation error shapes passed.
 - Reminder job current-date behavior on 2026-06-03: `/api/jobs/send-reminders` returns HTTP 200 with empty `generatedJobs`, `issuedBenefits`, and `jobSummaries` because no seeded event is scheduled for 2026-06-04.
 - Reminder job seeded duplicate fixture: posting `{ "now": "2026-06-02T09:00:00+09:00" }` returns HTTP 200 and skips generation with `duplicate_job` because mock seed data already contains the `event-3` / `coupon-1` job for 2026-06-02.
-- Browser automation status: in-app browser QA was attempted on 2026-06-03, but the browser runtime failed to attach in this workspace session. HTTP route smoke passed; visual responsive and print preview QA remain manual release checks.
+- Browser automation status: in-app browser QA was attempted on 2026-06-03, but the browser runtime failed to attach in this workspace session. Chrome headless route/API checks were usable, but screenshot/PDF output remained unreliable; visual responsive and print preview QA remain manual release checks.
 
 ## Release Gate
 
@@ -396,7 +400,8 @@ Acceptance:
 Current status:
 
 - Print CSS is implemented to hide dashboard/calendar/coupon/admin operational surfaces and leave AI content printable.
-- Actual browser print preview is still pending.
+- Chrome headless PDF output did not create a file during 2026-06-04 CTO verification.
+- Actual browser print preview is still pending as a manual release check.
 
 ## API Error Smoke Tests
 
