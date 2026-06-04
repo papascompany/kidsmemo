@@ -2,7 +2,31 @@
 
 import { Bot, Copy, Printer, Sparkles } from "lucide-react";
 import { useState } from "react";
-import type { EventAssistantResult, ParentMessageResult } from "@/lib/types";
+import type {
+  EventAssistantRequest,
+  EventAssistantResult,
+  ParentMessageRequest,
+  ParentMessageResult
+} from "@/lib/types";
+
+const purposeOptions: Array<{ value: ParentMessageRequest["purpose"]; label: string }> = [
+  { value: "event_notice", label: "행사 안내" },
+  { value: "thanks", label: "감사 인사" },
+  { value: "growth_record", label: "성장 기록" },
+  { value: "participation", label: "참여 요청" },
+  { value: "apology", label: "양해/사과" }
+];
+
+const toneOptions: Array<{ value: ParentMessageRequest["tone"]; label: string }> = [
+  { value: "warm", label: "따뜻하게" },
+  { value: "formal", label: "정중하게" },
+  { value: "short", label: "짧고 명확하게" },
+  { value: "emotional", label: "감동적으로" }
+];
+
+const budgetOptions = ["낮은 예산", "중간 예산", "넉넉한 예산"];
+const seasonOptions = ["봄", "여름", "가을", "겨울", "실내 계절 무관"];
+const moodOptions = ["밝고 활기찬", "차분하고 따뜻한", "감동적인", "놀이 중심", "학부모 참여형"];
 
 const sampleAssistantResult: EventAssistantResult = {
   ideas: [
@@ -49,11 +73,44 @@ const sampleMessageResult: ParentMessageResult = {
 export function AiWorkbench() {
   const [assistantResult, setAssistantResult] = useState(sampleAssistantResult);
   const [messageResult, setMessageResult] = useState(sampleMessageResult);
-  const [eventName, setEventName] = useState("가족 운동회");
+  const [assistantForm, setAssistantForm] = useState<EventAssistantRequest>({
+    eventName: "가족 운동회",
+    ageGroup: "전체 원아",
+    preparationDays: 14,
+    budget: "중간 예산",
+    location: "실내 강당",
+    season: "여름",
+    mood: "밝고 활기찬"
+  });
+  const [messageForm, setMessageForm] = useState<ParentMessageRequest>({
+    purpose: "event_notice",
+    tone: "warm",
+    eventName: "가족 운동회",
+    childContext: "행사 사진은 점보키즈 혜택 안내와 함께 전달됩니다.",
+    senderName: "햇살나무 어린이집"
+  });
   const [assistantStatus, setAssistantStatus] = useState<string | null>(null);
   const [messageStatus, setMessageStatus] = useState<string | null>(null);
   const [isGeneratingAssistant, setIsGeneratingAssistant] = useState(false);
   const [isGeneratingMessages, setIsGeneratingMessages] = useState(false);
+
+  function updateAssistantField<Name extends keyof EventAssistantRequest>(
+    name: Name,
+    value: EventAssistantRequest[Name]
+  ) {
+    setAssistantForm((current) => ({ ...current, [name]: value }));
+
+    if (name === "eventName") {
+      setMessageForm((current) => ({ ...current, eventName: String(value) }));
+    }
+  }
+
+  function updateMessageField<Name extends keyof ParentMessageRequest>(
+    name: Name,
+    value: ParentMessageRequest[Name]
+  ) {
+    setMessageForm((current) => ({ ...current, [name]: value }));
+  }
 
   async function generateAssistant() {
     setIsGeneratingAssistant(true);
@@ -64,13 +121,11 @@ export function AiWorkbench() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventName,
-          ageGroup: "전체 원아",
-          preparationDays: 14,
-          budget: "중간 예산",
-          location: "실내 강당",
-          season: "여름",
-          mood: "밝고 활기찬"
+          ...assistantForm,
+          eventName: assistantForm.eventName.trim(),
+          ageGroup: assistantForm.ageGroup.trim(),
+          location: assistantForm.location.trim(),
+          preparationDays: Number(assistantForm.preparationDays)
         })
       });
 
@@ -97,11 +152,10 @@ export function AiWorkbench() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          purpose: "event_notice",
-          tone: "warm",
-          eventName,
-          childContext: "행사 사진은 점보키즈 혜택 안내와 함께 전달됩니다.",
-          senderName: "햇살나무 어린이집"
+          ...messageForm,
+          eventName: messageForm.eventName.trim(),
+          senderName: messageForm.senderName.trim(),
+          childContext: messageForm.childContext?.trim()
         })
       });
 
@@ -143,18 +197,92 @@ export function AiWorkbench() {
           </button>
         </div>
 
-        <div className="no-print mt-4 flex flex-col gap-2 sm:flex-row">
-          <input
-            value={eventName}
-            onChange={(event) => setEventName(event.target.value)}
-            className="min-w-0 flex-1 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-            aria-label="행사명"
-          />
+        <div className="no-print mt-4 grid gap-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="행사명" htmlFor="ai-event-name">
+              <input
+                id="ai-event-name"
+                value={assistantForm.eventName}
+                onChange={(event) => updateAssistantField("eventName", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </Field>
+            <Field label="연령/반" htmlFor="ai-age-group">
+              <input
+                id="ai-age-group"
+                value={assistantForm.ageGroup}
+                onChange={(event) => updateAssistantField("ageGroup", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </Field>
+            <Field label="준비기간" htmlFor="ai-preparation-days">
+              <input
+                id="ai-preparation-days"
+                type="number"
+                min={1}
+                value={assistantForm.preparationDays}
+                onChange={(event) =>
+                  updateAssistantField("preparationDays", Number(event.target.value))
+                }
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </Field>
+            <Field label="장소" htmlFor="ai-location">
+              <input
+                id="ai-location"
+                value={assistantForm.location}
+                onChange={(event) => updateAssistantField("location", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+            </Field>
+            <Field label="예산" htmlFor="ai-budget">
+              <select
+                id="ai-budget"
+                value={assistantForm.budget}
+                onChange={(event) => updateAssistantField("budget", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {budgetOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="계절" htmlFor="ai-season">
+              <select
+                id="ai-season"
+                value={assistantForm.season}
+                onChange={(event) => updateAssistantField("season", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {seasonOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="분위기" htmlFor="ai-mood">
+              <select
+                id="ai-mood"
+                value={assistantForm.mood}
+                onChange={(event) => updateAssistantField("mood", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {moodOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
           <button
             type="button"
             onClick={generateAssistant}
             disabled={isGeneratingAssistant}
-            className="flex items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
           >
             <Sparkles size={17} aria-hidden />
             {isGeneratingAssistant ? "생성 중" : "생성"}
@@ -167,7 +295,7 @@ export function AiWorkbench() {
         ) : null}
 
         <div className="print-page mt-4 rounded border border-line bg-surface p-4">
-          <h4 className="text-base font-semibold text-ink">{eventName} 계획서</h4>
+          <h4 className="text-base font-semibold text-ink">{assistantForm.eventName} 계획서</h4>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <ResultList title="아이디어" items={assistantResult.ideas} />
             <ResultList title="체크리스트" items={assistantResult.checklist} />
@@ -204,7 +332,7 @@ export function AiWorkbench() {
       </div>
 
       <div id="message-writer" className="rounded border border-line bg-white p-4 shadow-soft">
-        <div className="flex items-start justify-between gap-3">
+        <div>
           <div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
               <Sparkles size={20} aria-hidden />
@@ -214,20 +342,82 @@ export function AiWorkbench() {
               원장님과 선생님이 학부모에게 보낼 따뜻한 메시지 후보를 만듭니다.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={generateMessages}
-            disabled={isGeneratingMessages}
-            className="no-print rounded bg-coral px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isGeneratingMessages ? "생성 중" : "생성"}
-          </button>
         </div>
         {messageStatus ? (
           <p className="no-print mt-3 rounded border border-line bg-surface px-3 py-2 text-sm text-muted">
             {messageStatus}
           </p>
         ) : null}
+
+        <div className="no-print mt-4 grid gap-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="문구 목적" htmlFor="message-purpose">
+              <select
+                id="message-purpose"
+                value={messageForm.purpose}
+                onChange={(event) =>
+                  updateMessageField("purpose", event.target.value as ParentMessageRequest["purpose"])
+                }
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+              >
+                {purposeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="톤" htmlFor="message-tone">
+              <select
+                id="message-tone"
+                value={messageForm.tone}
+                onChange={(event) =>
+                  updateMessageField("tone", event.target.value as ParentMessageRequest["tone"])
+                }
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+              >
+                {toneOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="행사명" htmlFor="message-event-name">
+              <input
+                id="message-event-name"
+                value={messageForm.eventName}
+                onChange={(event) => updateMessageField("eventName", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+            </Field>
+            <Field label="발신자" htmlFor="message-sender">
+              <input
+                id="message-sender"
+                value={messageForm.senderName}
+                onChange={(event) => updateMessageField("senderName", event.target.value)}
+                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+            </Field>
+          </div>
+          <Field label="아이/행사 맥락" htmlFor="message-child-context">
+            <textarea
+              id="message-child-context"
+              value={messageForm.childContext ?? ""}
+              onChange={(event) => updateMessageField("childContext", event.target.value)}
+              rows={3}
+              className="min-w-0 resize-y rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-coral"
+            />
+          </Field>
+          <button
+            type="button"
+            onClick={generateMessages}
+            disabled={isGeneratingMessages}
+            className="rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
+          >
+            {isGeneratingMessages ? "생성 중" : "생성"}
+          </button>
+        </div>
 
         <div className="print-page mt-4 grid gap-3">
           {messageResult.candidates.map((message, index) => (
@@ -259,6 +449,23 @@ export function AiWorkbench() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label htmlFor={htmlFor} className="grid gap-1 text-sm">
+      <span className="text-xs font-semibold text-muted">{label}</span>
+      {children}
+    </label>
   );
 }
 

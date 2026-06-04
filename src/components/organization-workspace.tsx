@@ -3,6 +3,7 @@ import {
   ChevronRight,
   History,
   Image as ImageIcon,
+  type LucideIcon,
   Mail,
   MapPin,
   MessageCircle,
@@ -94,6 +95,12 @@ export function OrganizationWorkspace() {
                 내 기관의 행사, AI 조언, 쿠폰 혜택, 발송 상태를 한 화면에서 확인합니다.
                 지금 선택된 기관 범위 안에서 필요한 운영 정보를 먼저 확인하고, 세부 관리는 아래 도구에서 이어갑니다.
               </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <HeroAction href="#calendar" icon={CalendarDays} label="일정 관리" />
+                <HeroAction href="#coupons" icon={Settings2} label="쿠폰 설정" />
+                <HeroAction href="#ai-helper" icon={Sparkles} label="AI 조언 열기" />
+                <HeroAction href="#sending-status" icon={Send} label="발송 상태 보기" />
+              </div>
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -151,6 +158,18 @@ function HeroMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function HeroAction({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-white/24 bg-white/16 px-3 py-2 text-sm font-semibold text-white backdrop-blur transition hover:border-white/55 hover:bg-white/24"
+    >
+      <Icon size={16} aria-hidden />
+      {label}
+    </a>
+  );
+}
+
 function ProfileCard({
   director,
   organizationName
@@ -196,28 +215,38 @@ function ScheduleCard({ events: organizationEvents }: { events: typeof events })
         </a>
       </div>
       <div className="mt-4 grid gap-3">
-        {organizationEvents.map((event) => {
-          const campaign = getCampaignById(event.couponCampaignId);
+        {organizationEvents.length > 0 ? (
+          organizationEvents.map((event) => {
+            const campaign = getCampaignById(event.couponCampaignId);
 
-          return (
-            <div key={event.id} className="rounded border border-line bg-surface p-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-semibold text-ink">{event.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted">
-                    {formatDate(event.eventDate)} · {event.audience} · {event.classNames.join(", ")}
-                  </p>
+            return (
+              <div key={event.id} className="rounded border border-line bg-surface p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-ink">{event.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted">
+                      {formatDate(event.eventDate)} · {event.audience} · {event.classNames.join(", ")}
+                    </p>
+                  </div>
+                  <Badge tone={event.reminderStatus === "sent" ? "green" : "blue"}>
+                    {event.reminderStatus}
+                  </Badge>
                 </div>
-                <Badge tone={event.reminderStatus === "sent" ? "green" : "blue"}>
-                  {event.reminderStatus}
-                </Badge>
+                <p className="mt-2 text-sm text-muted">
+                  연결 혜택: <span className="font-semibold text-ink">{campaign?.name ?? "미연결"}</span>
+                </p>
               </div>
-              <p className="mt-2 text-sm text-muted">
-                연결 혜택: <span className="font-semibold text-ink">{campaign?.name ?? "미연결"}</span>
-              </p>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <EmptyState
+            icon={CalendarDays}
+            title="아직 등록된 행사가 없어요"
+            description="첫 행사 일정을 만들면 쿠폰 연결과 발송 준비 상태까지 이곳에서 함께 확인할 수 있습니다."
+            actionHref="#calendar"
+            actionLabel="일정 추가하기"
+          />
+        )}
       </div>
     </article>
   );
@@ -236,29 +265,39 @@ function AiHistoryCard() {
         </div>
       </div>
       <div className="grid gap-3 p-4">
-        {aiAdviceHistory.map((history) => (
-          <div key={history.id} className="rounded border border-line bg-surface p-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="flex items-center gap-2 font-semibold text-ink">
-                  <Sparkles size={17} className="text-coral" aria-hidden />
-                  {history.eventName}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-muted">{history.summary}</p>
+        {aiAdviceHistory.length > 0 ? (
+          aiAdviceHistory.map((history) => (
+            <div key={history.id} className="rounded border border-line bg-surface p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 font-semibold text-ink">
+                    <Sparkles size={17} className="text-coral" aria-hidden />
+                    {history.eventName}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-muted">{history.summary}</p>
+                </div>
+                <Badge tone="amber">{history.status}</Badge>
               </div>
-              <Badge tone="amber">{history.status}</Badge>
+              <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-muted">
+                <History size={14} aria-hidden />
+                {formatDateTime(history.createdAt)}
+              </p>
             </div>
-            <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-muted">
-              <History size={14} aria-hidden />
-              {formatDateTime(history.createdAt)}
-            </p>
-          </div>
-        ))}
+          ))
+        ) : (
+          <EmptyState
+            icon={Sparkles}
+            title="저장된 AI 조언이 없어요"
+            description="행사를 선택해 안내 문구, 준비물, 포토존 아이디어를 만들면 히스토리로 남습니다."
+            actionHref="#ai-helper"
+            actionLabel="AI 조언 시작"
+          />
+        )}
         <a
           href="#ai-helper"
           className="inline-flex items-center justify-center gap-2 rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white"
         >
-          AI 도우미 열기
+          AI 조언 열기
           <ChevronRight size={16} aria-hidden />
         </a>
       </div>
@@ -301,32 +340,42 @@ function CouponSendingCard({
           </div>
 
           <div className="grid gap-3">
-            {campaigns.map((campaign) => {
-              const items = getCampaignItems(campaign.id);
+            {campaigns.length > 0 ? (
+              campaigns.map((campaign) => {
+                const items = getCampaignItems(campaign.id);
 
-              return (
-                <div key={campaign.id} className="rounded border border-line bg-surface p-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-ink">{campaign.name}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted">
-                        {issueModeLabels[campaign.issueMode]} · {targetScopeLabels[campaign.targetScope]}
-                      </p>
+                return (
+                  <div key={campaign.id} className="rounded border border-line bg-surface p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-semibold text-ink">{campaign.name}</p>
+                        <p className="mt-1 text-sm leading-6 text-muted">
+                          {issueModeLabels[campaign.issueMode]} · {targetScopeLabels[campaign.targetScope]}
+                        </p>
+                      </div>
+                      <Badge tone={campaign.noticeType === "image" ? "blue" : "gray"}>
+                        {campaign.noticeType === "image" ? "이미지 안내" : "HTML 안내"}
+                      </Badge>
                     </div>
-                    <Badge tone={campaign.noticeType === "image" ? "blue" : "gray"}>
-                      {campaign.noticeType === "image" ? "이미지 안내" : "HTML 안내"}
-                    </Badge>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+                      <ImageIcon size={16} aria-hidden />
+                      등록 혜택 {items.length}개 · {formatDate(campaign.validUntil)}까지
+                    </p>
                   </div>
-                  <p className="mt-2 flex items-center gap-2 text-sm text-muted">
-                    <ImageIcon size={16} aria-hidden />
-                    등록 혜택 {items.length}개 · {formatDate(campaign.validUntil)}까지
-                  </p>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <EmptyState
+                icon={Settings2}
+                title="활성 쿠폰 캠페인이 없어요"
+                description="기관에 연결할 혜택을 만들면 행사 안내와 발송 작업에서 바로 선택할 수 있습니다."
+                actionHref="#coupons"
+                actionLabel="쿠폰 설정"
+              />
+            )}
           </div>
 
-          <div className="rounded border border-line bg-white p-3">
+          <div id="sending-status" className="scroll-mt-6 rounded border border-line bg-white p-3">
             <p className="text-sm font-semibold text-ink">기본 발송 우선순위</p>
             <p className="mt-1 text-sm leading-6 text-muted">
               {channelLabels.alimtalk} → {channelLabels.sms} → {channelLabels.email}
@@ -335,16 +384,29 @@ function CouponSendingCard({
               <p className="mt-2 text-xs font-semibold text-brand">
                 최근 예약: {formatDateTime(latestJob.scheduledFor)} · {latestJob.recipientCount}명
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-2 text-xs font-semibold text-muted">
+                아직 예약된 발송 작업이 없습니다. 행사 안내를 예약하면 채널별 상태가 이곳에 표시됩니다.
+              </p>
+            )}
           </div>
 
-          <a
-            href="#coupons"
-            className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
-          >
-            쿠폰 설정 관리
-            <ChevronRight size={16} aria-hidden />
-          </a>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <a
+              href="#coupons"
+              className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              쿠폰 설정 관리
+              <ChevronRight size={16} aria-hidden />
+            </a>
+            <a
+              href="#sending-status"
+              className="inline-flex items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+            >
+              발송 상태 보기
+              <Send size={16} aria-hidden />
+            </a>
+          </div>
         </div>
       </div>
     </article>
@@ -378,7 +440,7 @@ function TinyMetric({
   label,
   value
 }: {
-  icon: typeof CalendarDays;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {
@@ -387,6 +449,37 @@ function TinyMetric({
       <Icon size={17} className="text-brand" aria-hidden />
       <p className="mt-2 text-xs font-semibold text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  actionHref,
+  actionLabel
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  actionHref: string;
+  actionLabel: string;
+}) {
+  return (
+    <div className="rounded border border-dashed border-line bg-white p-4">
+      <div className="grid h-10 w-10 place-items-center rounded bg-surface text-brand">
+        <Icon size={18} aria-hidden />
+      </div>
+      <p className="mt-3 font-semibold text-ink">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
+      <a
+        href={actionHref}
+        className="mt-3 inline-flex items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+      >
+        {actionLabel}
+        <ChevronRight size={16} aria-hidden />
+      </a>
     </div>
   );
 }

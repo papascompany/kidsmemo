@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, and mobile quick navigation are complete. Supabase connection remains paused until explicit user approval.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, and organization workspace action/empty-state pass are complete. Supabase connection remains paused until explicit user approval.
 
 ## Workstreams
 
@@ -12,7 +12,7 @@ Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC h
 | --- | --- | --- | --- | --- |
 | CTO | Main thread | `docs/sprint-1-cto-charter.md`, `docs/sprint-1-board.md`, integration decisions | Charter, board, review order, final merge plan | Complete for Sprint 1 mock/fallback checkpoint |
 | Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; Supabase auth/RLS/persistence pending |
-| Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; first visual QA fix, AI workbench response fix, and mobile quick nav complete |
+| Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; mobile quick nav, AI form depth, and workspace action/empty states complete |
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
 | QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
@@ -65,11 +65,9 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
    - organization-scoped AI event advice history.
    - organization-scoped coupon campaigns and sending settings.
    - clear current-organization indicator and optional organization switcher.
-6. Expand AI workbench editable inputs for director workflow depth.
-7. Add organization workspace action affordances and empty states.
-8. Prepare Vercel project link and environment variable inventory.
-9. Confirm Supabase login/project candidates without applying schema.
-10. Before any live persistence, add an explicit data-backend flag so Supabase env vars alone cannot switch repositories.
+6. Prepare Vercel project link and environment variable inventory.
+7. Confirm Supabase login/project candidates without applying schema.
+8. Before any live persistence, add an explicit data-backend flag so Supabase env vars alone cannot switch repositories.
 
 ## Design Direction For Next Frontend Pass
 
@@ -152,9 +150,8 @@ Phase 3: persistence and release readiness.
 Next execution order:
 
 1. Manual browser QA and print QA on the current mock/fallback app.
-2. AI workbench form-depth pass for age group, preparation days, budget, location, season, mood, message purpose/tone, and sender.
-3. Organization workspace action affordances and empty states.
-4. Backend live-readiness guard work only after explicit Supabase approval.
+2. Vercel project link and environment variable inventory.
+3. Backend live-readiness guard work only after explicit Supabase approval.
 
 ## 2026-06-03 CTO Mobile Quick Navigation
 
@@ -169,6 +166,25 @@ Next execution order:
   - Production HTML includes `aria-label="모바일 빠른 이동"` and the adjusted section scroll offsets.
 - Remaining release check:
   - Manual in-browser visual sign-off and print preview are still required because headless Chrome screenshot file output was unreliable in this workspace session.
+
+## 2026-06-04 CTO AI And Workspace Orchestration
+
+- CTO implemented the AI workbench form-depth pass:
+  - Event advice inputs now include event name, age group, preparation days, budget, location, season, and mood.
+  - Parent message inputs now include purpose, tone, event name, sender, and child/event context.
+  - All AI responses still unwrap normalized `{ ok: true, data }` envelopes and preserve printable result panels.
+- Frontend worker implemented the organization workspace action/empty-state pass:
+  - Hero actions now expose 일정 관리, 쿠폰 설정, AI 조언 열기, and 발송 상태 보기.
+  - Workspace cards now show empty states for missing events, AI advice, campaigns, and scheduled sends.
+  - All data remains mock/local; no Supabase live connection was added.
+- QA explorer found and CTO fixed two follow-up issues:
+  - Select controls now use the same mobile-friendly input styling as text fields.
+  - Duplicate `calendar`, `coupons`, and `ai-helper` DOM ids were removed from workspace cards so anchor navigation remains stable.
+- Verification:
+  - `npm run lint`: passed after the integrated changes.
+  - `npm run build`: passed after the integrated changes.
+- Remaining release check:
+  - Manual browser visual QA and print preview remain required before release.
 
 ## Blocked Until Explicit Approval
 

@@ -326,6 +326,8 @@ Acceptance:
 - Shopping recommendations include `title`, `priceLabel`, `mallName`, `url`, and `reason`.
 - Parent message endpoint returns exactly usable candidate messages and `safetyNotes`.
 - The AI workbench frontend unwraps normalized `{ ok: true, data }` responses before rendering generated results.
+- The AI workbench exposes editable director inputs for event name, age group, preparation days, budget, location, season, mood, message purpose, tone, sender, and context.
+- AI input controls remain full-width and tappable on mobile, including select controls.
 - AI generate buttons show loading/status feedback and do not break the existing printable result panels after successful or failed requests.
 - Empty `eventName`, invalid `purpose`, invalid `tone`, or non-integer `preparationDays` are rejected.
 - With no external API keys, endpoints still return schema-valid fallback results.
@@ -335,7 +337,8 @@ Acceptance:
 Current status:
 
 - 2026-06-03 CTO fixed the AI workbench frontend response handling after QA/Frontend subagents found that the UI was treating normalized API envelopes as raw AI result payloads.
-- `npm run lint` and `npm run build` pass after the AI workbench fix.
+- 2026-06-04 CTO expanded the AI workbench form depth so directors can tune event advice and parent-message generation before requesting output.
+- `npm run lint` and `npm run build` pass after the AI workbench field expansion.
 
 ## Responsive UI
 
@@ -356,6 +359,8 @@ Acceptance:
 - Coupon creation controls remain tappable at mobile widths.
 - Coupon cards do not nest visually into confusing card stacks.
 - AI result panels stack on smaller screens.
+- Organization workspace hero actions link to stable page anchors without duplicate DOM ids.
+- Organization workspace cards show empty states for no events, no AI advice, no campaigns, and no scheduled sends.
 - Long Korean labels fit in buttons and badges.
 - `/coupon/coupon-2` coupon action buttons remain visible and readable on mobile.
 - No horizontal page scroll appears at 320 px width.
