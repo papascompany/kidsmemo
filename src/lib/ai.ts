@@ -90,9 +90,9 @@ function generateEventAssistantFallback(
     ],
     checklist: [
       `${input.preparationDays}일 전 행사 공지와 준비물 안내 발송`,
-      "전날 쿠폰/적립금 자동 발송 예약 확인",
+      "행사 후 사용할 점보키즈 교직원 쿠폰함 확인",
       "사진 촬영 동선, 포토존 배경, 학부모 안내 문구 최종 점검",
-      "행사 종료 후 점보키즈 사진 인화/포토북 안내 링크 재발송"
+      "행사 종료 후 사진 인화/포토북 정리 일정 확인"
     ],
     timeline: [
       "09:30 등원 및 이름표 확인",
@@ -100,7 +100,7 @@ function generateEventAssistantFallback(
       "10:20 메인 활동 및 반별 촬영",
       "11:30 마무리 인사와 가족 공유 사진 안내"
     ],
-    parentNoticeDraft: `안녕하세요. ${input.eventName} 행사가 ${input.location}에서 진행됩니다. ${input.mood} 분위기 속에서 아이들이 즐겁게 참여할 수 있도록 준비하고 있습니다. 행사 사진은 추후 점보키즈 혜택과 함께 안내드리겠습니다.`,
+    parentNoticeDraft: `안녕하세요. ${input.eventName} 행사가 ${input.location}에서 진행됩니다. ${input.mood} 분위기 속에서 아이들이 즐겁게 참여할 수 있도록 준비하고 있습니다. 행사 사진은 정리 후 별도로 안내드리겠습니다.`,
     shoppingRecommendations
   });
 }

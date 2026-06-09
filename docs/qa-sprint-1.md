@@ -2,16 +2,17 @@
 
 ## Latest Verification
 
-Run date: 2026-06-04
+Run date: 2026-06-09
 
 - `npm run lint`: passed.
 - `npm run build`: passed.
-- Local dev/API smoke on `http://localhost:3000`: passed for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`, events list, coupon campaign list, validation error routes, and reminder job routes.
-- CTO production route smoke on `http://127.0.0.1:3101`: `/` returned `200`, `/coupon/coupon-2` returned `200`, and `/coupon/unknown-campaign` returned `404`.
-- CTO AI API smoke on `http://127.0.0.1:3101`: event assistant returned `200 ok=true` with 3 ideas, and parent message returned `200 ok=true` with 3 candidates.
+- Coupon direction correction is implemented in code and docs.
+- In-app browser attachment failed in this workspace session, so visual browser QA remains a manual gate.
+- Previous 2026-06-04 local/API smoke passed for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`, events list, legacy coupon campaign routes, validation error routes, and reminder job routes.
+- Previous 2026-06-04 CTO AI API smoke on `http://127.0.0.1:3101`: event assistant returned `200 ok=true` with 3 ideas, and parent message returned `200 ok=true` with 3 candidates.
 - CTO print check: Chrome headless PDF output did not materialize a file in this workspace session, so actual browser print preview remains a manual release gate.
 - CTO repository safety check: with fake Supabase env vars and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200 ok=true` with mock events.
-- Previous blocker remains resolved: `src/components/coupon-manager.tsx` is present and `src/app/page.tsx` imports both event and coupon manager components successfully.
+- Coupon direction correction is complete: `src/app/page.tsx` imports `JumbokidsCouponWallet`, and `src/components/coupon-manager.tsx` is preserved as `LegacyParentCouponCampaignManager` for the archived parent-facing campaign flow.
 - Current implementation status: Sprint 1 is integrated on mock/repository fallback data. Supabase connection and live provider credentials remain intentionally out of scope until the next phase.
 - New PC handoff verification is complete: GitHub push, local dependencies, lint/build, GitHub CLI, Vercel CLI, and Supabase CLI installation were checked by CTO.
 - CTO QA smoke subagent verified the core API suite in a worktree:
@@ -28,7 +29,9 @@ Run date: 2026-06-04
 - Run `npm run lint` and confirm it exits with status `0`.
 - Run `npm run build` and confirm it exits with status `0`.
 - Start the app with `npm run dev` and verify `/` loads without console errors that block interaction.
-- Verify `/coupon/coupon-2` loads and shows the manual coupon image notice plus multiple coupon items.
+- Verify the `점보키즈 쿠폰함` section on `/` shows coupons provided by Jumbokids admins for directors/teachers, with copy and download controls.
+- Verify the coupon UI does not imply teachers are sending coupon campaigns to parents.
+- Verify `/coupon/coupon-2` still loads as a legacy/future parent-facing coupon landing route.
 - Confirm `/coupon/unknown-campaign` renders the Next.js not-found path.
 - Confirm every API smoke test below returns predictable JSON for valid requests.
 - Confirm invalid API payloads are rejected with the normalized API error shape: `{ "ok": false, "error": { "code": "...", "message": "...", "details": [...] } }`.
@@ -118,6 +121,29 @@ Acceptance:
 - On `/`, the annual event list shows event title, date, connected coupon, and reminder status on desktop and mobile.
 
 ## Coupon Campaigns
+
+Status: legacy/future flow. These API smoke checks remain useful for regression coverage, but the active director/teacher UI is the Jumbokids coupon wallet, not the parent-facing campaign builder.
+
+## Jumbokids Coupon Wallet
+
+Manual checks:
+
+- Confirm `/` shows the section title `점보키즈 쿠폰함`.
+- Confirm coupon cards explain that Jumbokids administrators provided the codes for directors/teachers.
+- Confirm each coupon card has a visible coupon/discount code.
+- Confirm `코드 복사` copies the code and changes to a copied state.
+- Confirm `쿠폰 다운로드` downloads a text file containing institution name, coupon title, code, benefit, valid date, and usable sites.
+- Confirm site buttons are labeled as Jumbokids or GodoMall use destinations.
+- Confirm the old campaign creation form is not visible in the main dashboard.
+
+Supabase-ready checks once connected:
+
+- Only coupons assigned to the current organization are returned.
+- Owner/teacher role-based coupon visibility is enforced server-side.
+- Download/copy history is stored under the current organization and user.
+- Jumbokids/GodoMall coupon URLs are provided by admin data, not hard-coded UI assumptions.
+
+## Legacy Coupon Campaigns
 
 Smoke commands:
 

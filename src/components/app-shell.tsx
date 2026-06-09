@@ -12,7 +12,7 @@ import Link from "next/link";
 const navItems = [
   { href: "#dashboard", label: "대시보드", mobileLabel: "홈", icon: LayoutDashboard },
   { href: "#calendar", label: "연간 행사", mobileLabel: "행사", icon: CalendarDays },
-  { href: "#coupons", label: "쿠폰발행 관리", mobileLabel: "쿠폰", icon: Gift },
+  { href: "#coupons", label: "점보키즈 쿠폰함", mobileLabel: "쿠폰", icon: Gift },
   { href: "#ai-helper", label: "AI 행사 도우미", mobileLabel: "AI", icon: Bot },
   { href: "#message-writer", label: "감동 문구", mobileLabel: "문구", icon: MessageSquareText },
   { href: "#admin", label: "관리 콘솔", mobileLabel: "관리", icon: Settings }
@@ -50,8 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="absolute bottom-6 left-5 right-5 rounded border border-line bg-surface p-4 text-sm text-muted">
-          <p className="font-semibold text-ink">발송 우선순위</p>
-          <p className="mt-1">카카오 알림톡 → SMS/LMS → 이메일</p>
+          <p className="font-semibold text-ink">쿠폰 사용처</p>
+          <p className="mt-1">점보키즈 · 고도몰</p>
         </div>
       </aside>
 

@@ -8,8 +8,8 @@ import {
 import { AiWorkbench } from "@/components/ai-workbench";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge";
-import { CouponManager } from "@/components/coupon-manager";
 import { EventManager } from "@/components/event-manager";
+import { JumbokidsCouponWallet } from "@/components/jumbokids-coupon-wallet";
 import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
 import { StatCard } from "@/components/stat-card";
@@ -40,7 +40,7 @@ export default function Home() {
             </h1>
             <p className="text-wrap-anywhere mt-3 max-w-3xl text-sm leading-6 text-muted">
               현재 기관 컨텍스트를 먼저 확인하고, 행사 일정, AI 조언 이력, 쿠폰 혜택,
-              발송 설정을 부드러운 운영 워크스페이스 안에서 이어서 관리합니다.
+              발송 상태를 부드러운 운영 워크스페이스 안에서 이어서 관리합니다.
             </p>
           </div>
           <div className="flex max-w-full flex-wrap gap-2">
@@ -70,7 +70,7 @@ export default function Home() {
           <StatCard
             label="활성 쿠폰"
             value={`${couponCampaigns.filter((campaign) => campaign.isActive).length}`}
-            note="API 발급과 수동발행 지원"
+            note="교직원 제공 혜택"
             icon={Gift}
           />
           <StatCard
@@ -86,7 +86,7 @@ export default function Home() {
         id="calendar"
         eyebrow="Calendar"
         title="연간 행사 일정"
-        description="원별 행사에 쿠폰 캠페인을 연결하고, 전날 배치가 발송 대상을 계산합니다."
+        description="원별 행사를 등록하고 준비물, 일정 상태, 행사 전 안내 작업을 한곳에서 점검합니다."
       >
         <div className="grid gap-4">
           <EventManager />
@@ -95,7 +95,7 @@ export default function Home() {
             <h3 className="text-lg font-semibold text-ink">내일 발송 점검</h3>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
-              <Metric label="활성 쿠폰 캠페인" value={`${health.activeCampaigns}개`} />
+              <Metric label="제공 쿠폰" value={`${health.activeCampaigns}개`} />
               <Metric label="발송 채널" value={health.providerOrder.join(" → ")} />
             </div>
           </aside>
@@ -105,10 +105,10 @@ export default function Home() {
       <Section
         id="coupons"
         eyebrow="Coupons"
-        title="쿠폰발행 관리"
-        description="캠페인 생성 시 점보키즈 API 발급 또는 수동발행을 선택합니다. 수동 쿠폰은 HTML 또는 단일 이미지 안내와 함께 하나의 랜딩 페이지로 묶입니다."
+        title="점보키즈 쿠폰함"
+        description="점보키즈 관리자가 원장님과 선생님께 제공한 쿠폰/할인코드를 다운로드하고, 점보키즈 또는 고도몰에서 사용할 수 있습니다."
       >
-        <CouponManager />
+        <JumbokidsCouponWallet />
       </Section>
 
       <Section

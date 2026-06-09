@@ -32,11 +32,11 @@ const sampleAssistantResult: EventAssistantResult = {
   ideas: [
     "행사장 입구에 반별 포토존을 만들고 스탬프 미션을 연결합니다.",
     "아이들이 직접 꾸민 감사 카드를 행사 후 사진 안내와 함께 전달합니다.",
-    "행사 사진을 테마별로 분류해 점보키즈 포토북 쿠폰 안내와 자연스럽게 연결합니다."
+    "행사 사진을 테마별로 분류해 점보키즈 포토북 제작 안내와 자연스럽게 연결합니다."
   ],
   checklist: [
     "행사 7일 전 준비물 안내",
-    "행사 전날 점보키즈 쿠폰 자동 발송 확인",
+    "행사 후 사용할 점보키즈 교직원 쿠폰함 확인",
     "포토존 배경, 단체 촬영 동선, 비상 연락망 점검",
     "행사 후 학부모 감사 메시지 발송"
   ],
@@ -86,7 +86,7 @@ export function AiWorkbench() {
     purpose: "event_notice",
     tone: "warm",
     eventName: "가족 운동회",
-    childContext: "행사 사진은 점보키즈 혜택 안내와 함께 전달됩니다.",
+    childContext: "행사 사진은 정리 후 별도 안내드립니다.",
     senderName: "햇살나무 어린이집"
   });
   const [assistantStatus, setAssistantStatus] = useState<string | null>(null);

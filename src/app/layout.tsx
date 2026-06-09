@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "키즈메모 | 점보키즈 행사 리마인드",
-  description: "어린이집과 유치원을 위한 행사 일정, 쿠폰 발송, AI 행사 도우미 SaaS"
+  description: "어린이집과 유치원을 위한 행사 일정, 점보키즈 쿠폰함, AI 행사 도우미 SaaS"
 };
 
 export default function RootLayout({

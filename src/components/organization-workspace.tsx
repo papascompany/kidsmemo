@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ChevronRight,
+  Download,
   History,
   Image as ImageIcon,
   type LucideIcon,
@@ -25,7 +26,7 @@ import {
   organizations,
   profiles
 } from "@/lib/mock-data";
-import { channelLabels, formatDate, formatDateTime, issueModeLabels, targetScopeLabels } from "@/lib/format";
+import { formatDate, formatDateTime, issueModeLabels, targetScopeLabels } from "@/lib/format";
 
 const workspaceImage =
   "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=85";
@@ -49,7 +50,7 @@ const aiAdviceHistory = [
     eventName: "졸업 발표회",
     createdAt: "2026-02-06T10:10:00+09:00",
     summary: "포토존 체크리스트와 졸업 앨범 안내 문구를 정리했습니다.",
-    status: "발송 문구 연결"
+    status: "안내 문구 저장"
   }
 ];
 
@@ -92,12 +93,12 @@ export function OrganizationWorkspace() {
                 {currentOrganization.name} 운영실
               </h1>
               <p className="text-wrap-anywhere mt-4 max-w-2xl text-sm leading-7 text-white/86 sm:text-base">
-                내 기관의 행사, AI 조언, 쿠폰 혜택, 발송 상태를 한 화면에서 확인합니다.
+                내 기관의 행사, AI 조언, 점보키즈 쿠폰함, 발송 상태를 한 화면에서 확인합니다.
                 지금 선택된 기관 범위 안에서 필요한 운영 정보를 먼저 확인하고, 세부 관리는 아래 도구에서 이어갑니다.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <HeroAction href="#calendar" icon={CalendarDays} label="일정 관리" />
-                <HeroAction href="#coupons" icon={Settings2} label="쿠폰 설정" />
+                <HeroAction href="#coupons" icon={Download} label="쿠폰 다운로드" />
                 <HeroAction href="#ai-helper" icon={Sparkles} label="AI 조언 열기" />
                 <HeroAction href="#sending-status" icon={Send} label="발송 상태 보기" />
               </div>
@@ -233,7 +234,7 @@ function ScheduleCard({ events: organizationEvents }: { events: typeof events })
                   </Badge>
                 </div>
                 <p className="mt-2 text-sm text-muted">
-                  연결 혜택: <span className="font-semibold text-ink">{campaign?.name ?? "미연결"}</span>
+                  참고 혜택: <span className="font-semibold text-ink">{campaign?.name ?? "미연결"}</span>
                 </p>
               </div>
             );
@@ -242,7 +243,7 @@ function ScheduleCard({ events: organizationEvents }: { events: typeof events })
           <EmptyState
             icon={CalendarDays}
             title="아직 등록된 행사가 없어요"
-            description="첫 행사 일정을 만들면 쿠폰 연결과 발송 준비 상태까지 이곳에서 함께 확인할 수 있습니다."
+            description="첫 행사 일정을 만들면 준비 상태와 안내 작업을 이곳에서 함께 확인할 수 있습니다."
             actionHref="#calendar"
             actionLabel="일정 추가하기"
           />
@@ -324,19 +325,19 @@ function CouponSendingCard({
           style={{ backgroundImage: `linear-gradient(180deg, rgba(23,32,51,0.06), rgba(23,32,51,0.78)), url(${couponImage})` }}
         >
           <div className="flex h-full min-h-56 flex-col justify-end">
-            <p className="text-sm font-semibold text-white/78">쿠폰과 발송</p>
-            <h2 className="mt-1 text-2xl font-semibold">쿠폰과 발송 설정</h2>
+            <p className="text-sm font-semibold text-white/78">점보키즈 쿠폰함</p>
+            <h2 className="mt-1 text-2xl font-semibold">쿠폰 다운로드와 사용처</h2>
             <p className="mt-3 text-sm leading-6 text-white/82">
-              점보키즈 혜택, 안내 이미지, 카카오 알림톡/SMS/이메일 우선순위를 함께 확인합니다.
+              점보키즈 관리자가 제공한 혜택과 사용 가능한 사이트, 다운로드 상태를 함께 확인합니다.
             </p>
           </div>
         </div>
 
         <div className="grid gap-4 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <TinyMetric icon={Settings2} label="활성 캠페인" value={`${campaigns.length}개`} />
-            <TinyMetric icon={Send} label="발송 작업" value={`${jobs.length}건`} />
-            <TinyMetric icon={MessageCircle} label="전송 레코드" value={`${deliveries.length}건`} />
+            <TinyMetric icon={Settings2} label="제공 혜택" value={`${campaigns.length}개`} />
+            <TinyMetric icon={Download} label="다운로드 이력" value={`${jobs.length}건`} />
+            <TinyMetric icon={MessageCircle} label="상태 레코드" value={`${deliveries.length}건`} />
           </div>
 
           <div className="grid gap-3">
@@ -367,26 +368,26 @@ function CouponSendingCard({
             ) : (
               <EmptyState
                 icon={Settings2}
-                title="활성 쿠폰 캠페인이 없어요"
-                description="기관에 연결할 혜택을 만들면 행사 안내와 발송 작업에서 바로 선택할 수 있습니다."
+                title="제공된 쿠폰이 없어요"
+                description="점보키즈 관리자가 기관에 쿠폰을 제공하면 이곳에서 복사와 다운로드 상태를 확인할 수 있습니다."
                 actionHref="#coupons"
-                actionLabel="쿠폰 설정"
+                actionLabel="쿠폰함 열기"
               />
             )}
           </div>
 
           <div id="sending-status" className="scroll-mt-6 rounded border border-line bg-white p-3">
-            <p className="text-sm font-semibold text-ink">기본 발송 우선순위</p>
+            <p className="text-sm font-semibold text-ink">사용 가능한 사이트</p>
             <p className="mt-1 text-sm leading-6 text-muted">
-              {channelLabels.alimtalk} → {channelLabels.sms} → {channelLabels.email}
+              점보키즈 → 고도몰
             </p>
             {latestJob ? (
               <p className="mt-2 text-xs font-semibold text-brand">
-                최근 예약: {formatDateTime(latestJob.scheduledFor)} · {latestJob.recipientCount}명
+                최근 상태 기록: {formatDateTime(latestJob.scheduledFor)} · {latestJob.recipientCount}건
               </p>
             ) : (
               <p className="mt-2 text-xs font-semibold text-muted">
-                아직 예약된 발송 작업이 없습니다. 행사 안내를 예약하면 채널별 상태가 이곳에 표시됩니다.
+                아직 다운로드 이력이 없습니다. 쿠폰을 내려받으면 상태가 이곳에 표시됩니다.
               </p>
             )}
           </div>
@@ -396,15 +397,15 @@ function CouponSendingCard({
               href="#coupons"
               className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
             >
-              쿠폰 설정 관리
+              쿠폰함 열기
               <ChevronRight size={16} aria-hidden />
             </a>
             <a
               href="#sending-status"
               className="inline-flex items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
             >
-              발송 상태 보기
-              <Send size={16} aria-hidden />
+              다운로드 상태 보기
+              <Download size={16} aria-hidden />
             </a>
           </div>
         </div>

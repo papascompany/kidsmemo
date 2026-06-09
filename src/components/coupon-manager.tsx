@@ -1,5 +1,10 @@
 "use client";
 
+// Legacy/future flow:
+// This component keeps the old institution-to-parent coupon campaign builder in source
+// for documentation and possible reactivation later. The current product direction is
+// Jumbokids-admin-provided coupons for directors/teachers, so this component is no
+// longer rendered from the main dashboard.
 import {
   Check,
   FileText,
@@ -75,7 +80,7 @@ const defaultItemDraft: ItemDraft = {
   jumbokidsBenefitType: "discount_coupon"
 };
 
-export function CouponManager() {
+export function LegacyParentCouponCampaignManager() {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [items, setItems] = useState(initialItems);
   const [form, setForm] = useState<CampaignFormState>(defaultCampaignForm);

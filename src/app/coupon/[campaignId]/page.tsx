@@ -4,6 +4,10 @@ import { buildManualCouponLanding } from "@/lib/coupons";
 import { couponCampaigns, getCampaignItems } from "@/lib/mock-data";
 import { formatDate, issueModeLabels } from "@/lib/format";
 
+// Legacy/future route:
+// This public landing page supports the old parent-facing coupon campaign flow.
+// It is intentionally not linked from the current dashboard while the product
+// focuses on Jumbokids-admin-provided coupons for directors and teachers.
 export default async function CouponLandingPage({
   params
 }: {

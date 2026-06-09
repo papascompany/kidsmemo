@@ -127,7 +127,7 @@ export function EventManager() {
               {editingId ? "행사 수정" : "행사 등록"}
             </h3>
             <p className="mt-1 text-sm leading-6 text-muted">
-              행사와 쿠폰 캠페인을 연결하면 전날 발송 배치의 대상이 됩니다.
+              행사 일정과 참고 혜택을 함께 기록해 원장님 워크스페이스에서 흐름을 확인합니다.
             </p>
           </div>
           {editingId ? <Badge tone="blue">수정 중</Badge> : <Badge tone="green">신규</Badge>}
@@ -190,7 +190,7 @@ export function EventManager() {
             />
           </Field>
 
-          <Field label="연결 쿠폰" htmlFor="event-coupon">
+          <Field label="참고 혜택" htmlFor="event-coupon">
             <select
               id="event-coupon"
               value={form.couponCampaignId}
@@ -261,7 +261,7 @@ export function EventManager() {
         <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_0.6fr_auto] border-b border-line bg-surface px-4 py-3 text-sm font-semibold text-muted max-lg:hidden">
           <span>행사</span>
           <span>일정</span>
-          <span>연결 쿠폰</span>
+          <span>참고 혜택</span>
           <span>상태</span>
           <span className="text-right">관리</span>
         </div>

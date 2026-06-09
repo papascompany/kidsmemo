@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, and mock data-backend safety flag are complete. Supabase connection remains paused until explicit user approval.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, and coupon direction correction are complete. Supabase connection remains paused until explicit user approval.
 
 ## Workstreams
 
@@ -48,6 +48,19 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
 - Subagent QA found most API smoke tests pass.
 - Reminder job currently returns `duplicate_job` because mock seed data already contains the target job. CTO must decide whether to update QA expectation or mock seed.
 - First browser visual QA pass found and fixed mobile clipping in the director workspace. Mobile quick navigation is implemented. Manual browser and print sign-off should still be done before starting Supabase persistence.
+
+## 2026-06-09 Coupon Direction Correction
+
+- Product intent was corrected: coupons are not currently for teachers to send to parents.
+- Active coupon feature is now the `점보키즈 쿠폰함`:
+  - Jumbokids administrators provide coupons or discount codes.
+  - Directors and teachers copy/download those codes.
+  - Codes are used on Jumbokids or GodoMall order flows.
+- Previous parent-facing coupon campaign work is preserved as legacy/future source:
+  - `src/components/coupon-manager.tsx` exports `LegacyParentCouponCampaignManager`.
+  - `src/app/coupon/[campaignId]/page.tsx` remains as a legacy public landing route.
+  - `docs/legacy-parent-coupon-campaign-flow.md` documents the old flow and reactivation conditions.
+- Main dashboard now imports `JumbokidsCouponWallet` instead of the parent campaign builder.
 
 ## Next CTO Queue Before Supabase
 
