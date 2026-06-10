@@ -16,7 +16,7 @@
 - 원장님/선생님은 키즈메모의 `점보키즈 쿠폰함`에서 제공된 쿠폰을 확인한다.
 - 쿠폰 코드를 복사하거나 다운로드한다.
 - 점보키즈 또는 고도몰 주문 과정에서 해당 코드를 사용한다.
-- 기존 학부모 발송형 쿠폰 캠페인 구현은 `docs/legacy-parent-coupon-campaign-flow.md`에 문서화하고, 소스에는 레거시 주석을 남겨 보존한다.
+- 원장이 쿠폰을 생성하거나 학부모에게 전송하는 플로우는 제품 범위에서 제거한다.
 
 목표:
 
@@ -152,7 +152,7 @@ UX 원칙:
 
 - 기관별 연간 행사 등록
 - 행사 등록/수정
-- 행사일, 대상 연령/반, 설명, 준비물, 참고 혜택 관리
+- 행사일, 대상 연령/반, 설명, 준비물 관리
 - 반복 행사 지원 예정
 - 행사 전날 reminder job 대상이 됨
 - 마이페이지에서는 자기 기관 일정만 조회/관리
@@ -176,19 +176,19 @@ UX 원칙:
 - 고도몰 쿠폰 코드 또는 점보키즈 혜택 코드 등록
 - 다운로드/사용 상태 추적
 
-레거시 보존:
+제거한 범위:
 
-- 기존 학부모 발송형 쿠폰 캠페인 생성 UI는 `src/components/coupon-manager.tsx`에 `LegacyParentCouponCampaignManager`로 남긴다.
-- 기존 공개 쿠폰 랜딩은 `src/app/coupon/[campaignId]/page.tsx`에 남긴다.
-- 상세 내용은 `docs/legacy-parent-coupon-campaign-flow.md`를 기준으로 한다.
+- 원장/교사 화면의 쿠폰 캠페인 생성 UI
+- 학부모 대상 공개 쿠폰 랜딩
+- `/api/admin/coupon-campaigns/**` API
+- 행사와 쿠폰 캠페인 연결 필드
 
 ### 자동 발송
 
-현재 자동 발송은 행사 안내/리마인더와 AI 메시지 흐름을 위한 백엔드 준비 영역이다. 쿠폰을 학부모에게 자동 발송하는 기능은 현재 활성 제품 범위가 아니며 레거시/추후 기능으로 보존한다.
+현재 자동 발송은 행사 안내/리마인더와 AI 메시지 흐름을 위한 백엔드 준비 영역이다. 쿠폰을 학부모에게 자동 발송하는 기능은 현재 제품 범위가 아니다.
 
 - 매일 오전 배치 또는 cron으로 다음 날 행사를 조회
 - 행사 안내/리마인더 대상과 상태를 확인
-- 학부모 발송형 쿠폰 캠페인은 재활성화 전 별도 승인, 수신동의, 메시지 템플릿 검토가 필요
 - 발송 채널 우선순위:
   - 카카오 알림톡
   - SMS/LMS
@@ -202,23 +202,20 @@ UX 원칙:
 - 점보키즈 관리자 쿠폰/할인코드 조회
 - 점보키즈 쿠폰 다운로드 이력 저장
 - 고도몰 쿠폰 코드/사용처 연결
-- 레거시 학부모 캠페인 재활성화 시에만 `POST /v1/coupons/issue`, `POST /v1/credits/grant`, `GET /v1/benefits/{benefitId}` 검토
 
 요청 필드 예:
 
 - `organizationId`
-- `eventId`
-- `benefitType`
-- `amount`
-- `expiresAt`
-- `recipientName`
-- `recipientPhone`
-- `recipientEmail`
+- `couponId`
+- `organizationId`
+- `profileId`
+- `downloadedAt`
 
 응답 필드 예:
 
 - `code`
-- `landingUrl`
+- `jumbokidsUrl`
+- `godomallUrl`
 - `expiresAt`
 - `status`
 
@@ -299,7 +296,6 @@ UX 원칙:
 - 운영 대시보드
 - 행사 관리 UI
 - 점보키즈 쿠폰함 UI
-- 레거시 수동 쿠폰 랜딩 페이지
 - AI 행사 도우미 UI
 - AI 감동 문구 생성기 UI
 - 관리자 콘솔 UI
@@ -409,12 +405,6 @@ Backend Sprint 1에서 API 응답 형식을 통일했다.
 - `POST /api/events`
 - `PATCH /api/events/:eventId`
 - `POST /api/events/import-year-plan`
-- `GET /api/admin/coupon-campaigns`
-- `POST /api/admin/coupon-campaigns`
-- `PATCH /api/admin/coupon-campaigns/:campaignId`
-- `POST /api/admin/coupon-campaigns/:campaignId/items`
-- `POST /api/admin/coupon-campaigns/:campaignId/targets`
-- `POST /api/admin/coupon-campaigns/:campaignId/notice`
 - `POST /api/ai/event-assistant`
 - `POST /api/ai/parent-message`
 - `POST /api/jobs/send-reminders`
@@ -487,9 +477,9 @@ Sprint 1 통합 순서:
 
 | Workstream | 목적 | 결과 |
 | --- | --- | --- |
-| Backend / Supabase readiness | schema, repository, API route, validation 점검 | Supabase 전환 구조는 준비됨. 인증/인가, RLS policy 확장, service-role 범위 분리, reminder idempotency 저장, 공개 쿠폰 랜딩 정책이 다음 핵심 리스크 |
-| Frontend / UX QA | main dashboard, coupon landing, responsive, print flow 점검 | `lint/build/dev Ready` 확인. 브라우저 visual QA는 pending. 모바일 quick nav, 긴 라벨 overflow, print preview 확인 필요 |
-| QA Smoke | Sprint 1 API smoke test 실행 | events/coupons/items/targets/notices/AI/coupon landing/not-found 대부분 PASS. reminder job은 mock seed의 duplicate job 때문에 `generatedJobs: []` |
+| Backend / Supabase readiness | schema, repository, API route, validation 점검 | Supabase 전환 구조는 준비됨. 인증/인가, RLS policy 확장, service-role 범위 분리, reminder idempotency 저장이 다음 핵심 리스크 |
+| Frontend / UX QA | main dashboard, responsive, print flow 점검 | `lint/build/dev Ready` 확인. 브라우저 visual QA는 pending. 모바일 quick nav, 긴 라벨 overflow, print preview 확인 필요 |
+| QA Smoke | Sprint 1 API smoke test 실행 | events/AI 중심 smoke는 대부분 PASS. 기존 coupon landing/items/targets/notices smoke는 2026-06-10 범위 정정으로 제거됨. reminder job은 mock seed의 duplicate job 때문에 `generatedJobs: []` |
 | Deployment / Ops | GitHub/Vercel/Supabase/Node/npm 환경 점검 | GitHub/Vercel 준비 양호. Supabase login/link 미확인. Node 24와 Next 16 배포 정합성은 배포 전 확인 필요 |
 
 CTO 통합 판정:
@@ -539,8 +529,6 @@ Supabase 연결 전에도 조심해야 할 작업:
    - reminder job smoke 기대값을 `duplicate_job` 기준으로 둘지, seed를 조정해 generated job을 검증할지 결정
 2. 현재 코드 기준 브라우저 QA
    - `/`
-   - `/coupon/coupon-2`
-   - `/coupon/unknown-campaign`
    - 320/390/768/1440 viewport
    - print preview
 3. 모바일 quick navigation 추가 여부 결정

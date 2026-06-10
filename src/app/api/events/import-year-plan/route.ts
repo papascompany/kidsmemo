@@ -16,7 +16,6 @@ export async function POST(request: Request) {
           classNames: [],
           description: event.description ?? "",
           supplies: [],
-          couponCampaignId: "",
           reminderStatus: "not_scheduled"
         })
       )

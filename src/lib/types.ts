@@ -1,14 +1,14 @@
 export type Role = "owner" | "manager" | "teacher" | "admin";
 
-export type BenefitIssueMode = "jumbokids_api" | "manual";
-
-export type TargetScope = "all_members" | "selected_members";
-
-export type NoticeType = "image" | "html";
-
 export type MessageChannel = "alimtalk" | "sms" | "email";
 
 export type DeliveryStatus = "queued" | "sent" | "failed" | "fallback";
+
+export type CouponUseSite = "jumbokids" | "godomall";
+
+export type StaffCouponStatus = "available" | "downloaded" | "used";
+
+export type StaffCouponAssignee = "owner" | "teacher" | "all_staff";
 
 export interface Organization {
   id: string;
@@ -36,63 +36,35 @@ export interface EventSchedule {
   classNames: string[];
   description: string;
   supplies: string[];
-  couponCampaignId: string;
   reminderStatus: "not_scheduled" | "scheduled" | "sent" | "failed";
   repeatRule?: "yearly";
 }
 
-export interface CouponCampaign {
+export interface StaffCoupon {
   id: string;
-  name: string;
-  description: string;
-  issueMode: BenefitIssueMode;
-  targetScope: TargetScope;
-  validFrom: string;
-  validUntil: string;
-  isActive: boolean;
-  noticeType: NoticeType;
-  noticeHtml?: string;
-  noticeImageUrl?: string;
-  createdBy: string;
-  selectedOrganizationIds: string[];
-  selectedProfileIds: string[];
-}
-
-export interface CouponItem {
-  id: string;
-  campaignId: string;
+  organizationId: string;
   title: string;
-  benefitType: "coupon" | "credit";
+  description: string;
+  code: string;
   amountLabel: string;
-  manualCode?: string;
-  manualUrl?: string;
-  jumbokidsBenefitType?: "discount_coupon" | "photo_credit" | "album_coupon";
+  validUntil: string;
+  assignedTo: StaffCouponAssignee;
+  status: StaffCouponStatus;
+  sites: CouponUseSite[];
+  siteUrls: Record<CouponUseSite, string>;
 }
 
 export interface MessageJob {
   id: string;
   eventId: string;
-  campaignId: string;
   scheduledFor: string;
   channels: MessageChannel[];
   status: DeliveryStatus;
   recipientCount: number;
-  landingUrl: string;
-}
-
-export interface IssuedBenefit {
-  campaignId: string;
-  itemId: string;
-  recipientProfileId?: string;
-  status: "issued" | "manual_ready" | "failed";
-  code?: string;
-  landingUrl?: string;
-  failureReason?: string;
 }
 
 export interface ReminderJobSummary {
   eventId: string;
-  campaignId?: string;
   status: "queued" | "skipped" | "failed";
   reason?: string;
 }
@@ -148,6 +120,5 @@ export interface ParentMessageResult {
 
 export interface ReminderRunResult {
   generatedJobs: MessageJob[];
-  issuedBenefits: IssuedBenefit[];
   jobSummaries: ReminderJobSummary[];
 }

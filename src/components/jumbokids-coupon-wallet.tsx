@@ -11,75 +11,13 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "./badge";
-import { organizations, profiles } from "@/lib/mock-data";
-
-type CouponUseSite = "jumbokids" | "godomall";
-
-type StaffCoupon = {
-  id: string;
-  title: string;
-  description: string;
-  code: string;
-  amountLabel: string;
-  validUntil: string;
-  assignedTo: "owner" | "teacher" | "all_staff";
-  status: "available" | "downloaded" | "used";
-  sites: CouponUseSite[];
-  siteUrls: Record<CouponUseSite, string>;
-};
+import { organizations, profiles, staffCoupons } from "@/lib/mock-data";
+import type { CouponUseSite, StaffCoupon } from "@/lib/types";
 
 const siteLabels: Record<CouponUseSite, string> = {
   jumbokids: "점보키즈",
   godomall: "고도몰"
 };
-
-const staffCoupons: StaffCoupon[] = [
-  {
-    id: "staff-coupon-1",
-    title: "원장님 포토북 제작 20% 할인",
-    description: "행사 사진을 포토북으로 정리할 때 원장님 계정에서 바로 사용할 수 있는 할인코드입니다.",
-    code: "JK-DIRECTOR-20",
-    amountLabel: "20% 할인",
-    validUntil: "2026-07-31",
-    assignedTo: "owner",
-    status: "available",
-    sites: ["jumbokids", "godomall"],
-    siteUrls: {
-      jumbokids: "https://jumbokids.example.com",
-      godomall: "https://godomall.example.com"
-    }
-  },
-  {
-    id: "staff-coupon-2",
-    title: "선생님 사진 인화 배송비 지원",
-    description: "반 행사 사진 인화 주문 시 교직원 계정에서 사용할 수 있는 배송비 지원 쿠폰입니다.",
-    code: "TEACHER-SHIP-3000",
-    amountLabel: "배송비 3,000원 지원",
-    validUntil: "2026-08-15",
-    assignedTo: "teacher",
-    status: "downloaded",
-    sites: ["jumbokids"],
-    siteUrls: {
-      jumbokids: "https://jumbokids.example.com/prints",
-      godomall: "https://godomall.example.com"
-    }
-  },
-  {
-    id: "staff-coupon-3",
-    title: "기관 공용 앨범 제작 10,000원 할인",
-    description: "유치원/어린이집 공용 주문에 적용할 수 있도록 점보키즈 관리자가 제공한 할인코드입니다.",
-    code: "CENTER-ALBUM-10000",
-    amountLabel: "10,000원 할인",
-    validUntil: "2026-09-30",
-    assignedTo: "all_staff",
-    status: "available",
-    sites: ["godomall"],
-    siteUrls: {
-      jumbokids: "https://jumbokids.example.com/albums",
-      godomall: "https://godomall.example.com/albums"
-    }
-  }
-];
 
 const assignedToLabels: Record<StaffCoupon["assignedTo"], string> = {
   owner: "원장님 전용",
@@ -96,14 +34,17 @@ const statusLabels: Record<StaffCoupon["status"], string> = {
 export function JumbokidsCouponWallet() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const currentOrganization = organizations[0];
+  const organizationCoupons = staffCoupons.filter(
+    (coupon) => coupon.organizationId === currentOrganization.id
+  );
   const staffCount = profiles.filter(
     (profile) =>
       profile.organizationId === currentOrganization.id &&
       (profile.role === "owner" || profile.role === "teacher" || profile.role === "manager")
   ).length;
   const availableCount = useMemo(
-    () => staffCoupons.filter((coupon) => coupon.status !== "used").length,
-    []
+    () => organizationCoupons.filter((coupon) => coupon.status !== "used").length,
+    [organizationCoupons]
   );
 
   async function copyCode(code: string) {
@@ -163,7 +104,7 @@ export function JumbokidsCouponWallet() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="grid gap-3">
-          {staffCoupons.map((coupon) => (
+          {organizationCoupons.map((coupon) => (
             <article key={coupon.id} className="rounded border border-line bg-white p-4 shadow-soft">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                 <div className="min-w-0">
@@ -245,7 +186,7 @@ export function JumbokidsCouponWallet() {
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-muted">
               <li>점보키즈 관리자가 발급하거나 등록한 쿠폰만 노출합니다.</li>
               <li>원장님/선생님은 쿠폰을 복사하거나 파일로 내려받아 사용합니다.</li>
-              <li>학부모 발송형 쿠폰 캠페인은 레거시 기능으로 보존되어 있습니다.</li>
+              <li>학부모 발송이나 캠페인 생성 기능은 현재 제품 범위에 포함하지 않습니다.</li>
             </ul>
           </div>
 

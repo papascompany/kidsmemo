@@ -10,7 +10,8 @@ export async function POST(request: Request) {
       benefitId: payload.benefitId,
       status: payload.status,
       code: payload.code,
-      landingUrl: payload.landingUrl
+      jumbokidsUrl: payload.jumbokidsUrl,
+      godomallUrl: payload.godomallUrl
     });
   } catch (error) {
     return handleApiError(error);

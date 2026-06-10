@@ -4,16 +4,6 @@ export const channelLabels = {
   email: "이메일"
 } as const;
 
-export const issueModeLabels = {
-  jumbokids_api: "점보키즈 API 발급",
-  manual: "수동발행"
-} as const;
-
-export const targetScopeLabels = {
-  all_members: "모든회원",
-  selected_members: "선택된회원"
-} as const;
-
 export function formatDate(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium"

@@ -1,11 +1,10 @@
 import type {
-  CouponCampaign,
-  CouponItem,
   EventSchedule,
   MessageDelivery,
   MessageJob,
   Organization,
-  Profile
+  Profile,
+  StaffCoupon
 } from "./types";
 
 export const organizations: Organization[] = [
@@ -52,67 +51,54 @@ export const profiles: Profile[] = [
   }
 ];
 
-export const couponCampaigns: CouponCampaign[] = [
+export const staffCoupons: StaffCoupon[] = [
   {
-    id: "coupon-1",
-    name: "봄 소풍 포토북 20% 쿠폰",
-    description: "봄 소풍 사진을 포토북으로 제작할 수 있는 점보키즈 할인 쿠폰",
-    issueMode: "jumbokids_api",
-    targetScope: "all_members",
-    validFrom: "2026-04-01",
-    validUntil: "2026-05-31",
-    isActive: true,
-    noticeType: "html",
-    noticeHtml:
-      "<h2>봄 소풍 사진을 오래 남겨보세요</h2><p>행사 다음 날 바로 사용할 수 있는 포토북 할인 쿠폰입니다.</p>",
-    createdBy: "user-3",
-    selectedOrganizationIds: [],
-    selectedProfileIds: []
-  },
-  {
-    id: "coupon-2",
-    name: "졸업 앨범 수동 쿠폰팩",
-    description: "관리자가 직접 등록한 앨범 제작 쿠폰과 인쇄 안내 이미지",
-    issueMode: "manual",
-    targetScope: "selected_members",
-    validFrom: "2026-02-01",
-    validUntil: "2026-03-15",
-    isActive: true,
-    noticeType: "image",
-    noticeImageUrl:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
-    createdBy: "user-3",
-    selectedOrganizationIds: ["org-1"],
-    selectedProfileIds: ["user-1"]
-  }
-];
-
-export const couponItems: CouponItem[] = [
-  {
-    id: "item-1",
-    campaignId: "coupon-1",
-    title: "점보키즈 포토북 20% 할인",
-    benefitType: "coupon",
+    id: "staff-coupon-1",
+    organizationId: "org-1",
+    title: "원장님 포토북 제작 20% 할인",
+    description: "행사 사진을 포토북으로 정리할 때 원장님 계정에서 바로 사용할 수 있는 할인코드입니다.",
+    code: "JK-DIRECTOR-20",
     amountLabel: "20% 할인",
-    jumbokidsBenefitType: "discount_coupon"
+    validUntil: "2026-07-31",
+    assignedTo: "owner",
+    status: "available",
+    sites: ["jumbokids", "godomall"],
+    siteUrls: {
+      jumbokids: "https://jumbokids.example.com",
+      godomall: "https://godomall.example.com"
+    }
   },
   {
-    id: "item-2",
-    campaignId: "coupon-2",
-    title: "졸업 앨범 제작 10,000원 쿠폰",
-    benefitType: "coupon",
+    id: "staff-coupon-2",
+    organizationId: "org-1",
+    title: "선생님 사진 인화 배송비 지원",
+    description: "반 행사 사진 인화 주문 시 교직원 계정에서 사용할 수 있는 배송비 지원 쿠폰입니다.",
+    code: "TEACHER-SHIP-3000",
+    amountLabel: "배송비 3,000원 지원",
+    validUntil: "2026-08-15",
+    assignedTo: "teacher",
+    status: "downloaded",
+    sites: ["jumbokids"],
+    siteUrls: {
+      jumbokids: "https://jumbokids.example.com/prints",
+      godomall: "https://godomall.example.com"
+    }
+  },
+  {
+    id: "staff-coupon-3",
+    organizationId: "org-1",
+    title: "기관 공용 앨범 제작 10,000원 할인",
+    description: "유치원/어린이집 공용 주문에 적용할 수 있도록 점보키즈 관리자가 제공한 할인코드입니다.",
+    code: "CENTER-ALBUM-10000",
     amountLabel: "10,000원 할인",
-    manualCode: "GRAD-ALBUM-10000",
-    manualUrl: "https://jumbokids.example.com/coupons/grad-album"
-  },
-  {
-    id: "item-3",
-    campaignId: "coupon-2",
-    title: "사진 인화 배송비 지원",
-    benefitType: "credit",
-    amountLabel: "배송비 적립금 3,000원",
-    manualCode: "PRINT-SHIP-3000",
-    manualUrl: "https://jumbokids.example.com/coupons/print-ship"
+    validUntil: "2026-09-30",
+    assignedTo: "all_staff",
+    status: "available",
+    sites: ["godomall"],
+    siteUrls: {
+      jumbokids: "https://jumbokids.example.com/albums",
+      godomall: "https://godomall.example.com/albums"
+    }
   }
 ];
 
@@ -126,7 +112,6 @@ export const events: EventSchedule[] = [
     classNames: ["햇살반", "나무반"],
     description: "근교 숲 체험과 단체 사진 촬영",
     supplies: ["이름표", "돗자리", "간식", "비상약"],
-    couponCampaignId: "coupon-1",
     reminderStatus: "scheduled",
     repeatRule: "yearly"
   },
@@ -139,7 +124,6 @@ export const events: EventSchedule[] = [
     classNames: ["열매반"],
     description: "졸업 공연, 가족 사진 촬영, 앨범 안내",
     supplies: ["무대 의상", "초대장", "포토존 배너"],
-    couponCampaignId: "coupon-2",
     reminderStatus: "sent"
   },
   {
@@ -151,7 +135,6 @@ export const events: EventSchedule[] = [
     classNames: ["전체"],
     description: "운동장 가족 참여 행사와 즉석 사진 촬영",
     supplies: ["팀 조끼", "스티커", "응급 키트", "생수"],
-    couponCampaignId: "coupon-1",
     reminderStatus: "not_scheduled"
   }
 ];
@@ -160,22 +143,18 @@ export const messageJobs: MessageJob[] = [
   {
     id: "job-1",
     eventId: "event-2",
-    campaignId: "coupon-2",
     scheduledFor: "2026-02-19T09:00:00+09:00",
     channels: ["alimtalk", "sms", "email"],
     status: "sent",
-    recipientCount: 1,
-    landingUrl: "https://kidsmemo.example.com/coupon/coupon-2"
+    recipientCount: 1
   },
   {
     id: "job-2",
     eventId: "event-3",
-    campaignId: "coupon-1",
     scheduledFor: "2026-06-02T09:00:00+09:00",
     channels: ["alimtalk", "sms", "email"],
     status: "queued",
-    recipientCount: 118,
-    landingUrl: "https://kidsmemo.example.com/coupon/coupon-1"
+    recipientCount: 118
   }
 ];
 
@@ -196,14 +175,6 @@ export const messageDeliveries: MessageDelivery[] = [
     status: "queued"
   }
 ];
-
-export function getCampaignItems(campaignId: string) {
-  return couponItems.filter((item) => item.campaignId === campaignId);
-}
-
-export function getCampaignById(campaignId: string) {
-  return couponCampaigns.find((campaign) => campaign.id === campaignId);
-}
 
 export function getOrganizationById(organizationId: string) {
   return organizations.find((organization) => organization.id === organizationId);

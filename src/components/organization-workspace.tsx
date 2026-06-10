@@ -3,30 +3,27 @@ import {
   ChevronRight,
   Download,
   History,
-  Image as ImageIcon,
   type LucideIcon,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
   Send,
-  Settings2,
   Sparkles,
   UserRound,
   Users
 } from "lucide-react";
 import { Badge } from "./badge";
 import {
-  couponCampaigns,
   events,
-  getCampaignById,
-  getCampaignItems,
   messageDeliveries,
   messageJobs,
   organizations,
-  profiles
+  profiles,
+  staffCoupons
 } from "@/lib/mock-data";
-import { formatDate, formatDateTime, issueModeLabels, targetScopeLabels } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
+import type { StaffCoupon } from "@/lib/types";
 
 const workspaceImage =
   "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=85";
@@ -62,10 +59,8 @@ export function OrganizationWorkspace() {
   const organizationEvents = events
     .filter((event) => event.organizationId === currentOrganization.id)
     .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-  const organizationCampaigns = couponCampaigns.filter(
-    (campaign) =>
-      campaign.targetScope === "all_members" ||
-      campaign.selectedOrganizationIds.includes(currentOrganization.id)
+  const organizationCoupons = staffCoupons.filter(
+    (coupon) => coupon.organizationId === currentOrganization.id
   );
   const organizationEventIds = new Set(organizationEvents.map((event) => event.id));
   const organizationJobs = messageJobs.filter((job) => organizationEventIds.has(job.eventId));
@@ -140,8 +135,8 @@ export function OrganizationWorkspace() {
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <AiHistoryCard />
-        <CouponSendingCard
-          campaigns={organizationCampaigns}
+        <CouponStatusCard
+          coupons={organizationCoupons}
           jobs={organizationJobs}
           deliveries={organizationDeliveries}
         />
@@ -217,28 +212,21 @@ function ScheduleCard({ events: organizationEvents }: { events: typeof events })
       </div>
       <div className="mt-4 grid gap-3">
         {organizationEvents.length > 0 ? (
-          organizationEvents.map((event) => {
-            const campaign = getCampaignById(event.couponCampaignId);
-
-            return (
-              <div key={event.id} className="rounded border border-line bg-surface p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-ink">{event.title}</p>
-                    <p className="mt-1 text-sm leading-6 text-muted">
-                      {formatDate(event.eventDate)} · {event.audience} · {event.classNames.join(", ")}
-                    </p>
-                  </div>
-                  <Badge tone={event.reminderStatus === "sent" ? "green" : "blue"}>
-                    {event.reminderStatus}
-                  </Badge>
+          organizationEvents.map((event) => (
+            <div key={event.id} className="rounded border border-line bg-surface p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-semibold text-ink">{event.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    {formatDate(event.eventDate)} · {event.audience} · {event.classNames.join(", ")}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm text-muted">
-                  참고 혜택: <span className="font-semibold text-ink">{campaign?.name ?? "미연결"}</span>
-                </p>
+                <Badge tone={event.reminderStatus === "sent" ? "green" : "blue"}>
+                  {event.reminderStatus}
+                </Badge>
               </div>
-            );
-          })
+            </div>
+          ))
         ) : (
           <EmptyState
             icon={CalendarDays}
@@ -306,12 +294,18 @@ function AiHistoryCard() {
   );
 }
 
-function CouponSendingCard({
-  campaigns,
+const assignedToLabels: Record<StaffCoupon["assignedTo"], string> = {
+  owner: "원장님 전용",
+  teacher: "선생님 전용",
+  all_staff: "기관 교직원"
+};
+
+function CouponStatusCard({
+  coupons,
   jobs,
   deliveries
 }: {
-  campaigns: typeof couponCampaigns;
+  coupons: StaffCoupon[];
   jobs: typeof messageJobs;
   deliveries: typeof messageDeliveries;
 }) {
@@ -335,39 +329,34 @@ function CouponSendingCard({
 
         <div className="grid gap-4 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <TinyMetric icon={Settings2} label="제공 혜택" value={`${campaigns.length}개`} />
-            <TinyMetric icon={Download} label="다운로드 이력" value={`${jobs.length}건`} />
+            <TinyMetric icon={Download} label="제공 쿠폰" value={`${coupons.length}개`} />
+            <TinyMetric icon={Send} label="행사 알림" value={`${jobs.length}건`} />
             <TinyMetric icon={MessageCircle} label="상태 레코드" value={`${deliveries.length}건`} />
           </div>
 
           <div className="grid gap-3">
-            {campaigns.length > 0 ? (
-              campaigns.map((campaign) => {
-                const items = getCampaignItems(campaign.id);
-
-                return (
-                  <div key={campaign.id} className="rounded border border-line bg-surface p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-semibold text-ink">{campaign.name}</p>
-                        <p className="mt-1 text-sm leading-6 text-muted">
-                          {issueModeLabels[campaign.issueMode]} · {targetScopeLabels[campaign.targetScope]}
-                        </p>
-                      </div>
-                      <Badge tone={campaign.noticeType === "image" ? "blue" : "gray"}>
-                        {campaign.noticeType === "image" ? "이미지 안내" : "HTML 안내"}
-                      </Badge>
+            {coupons.length > 0 ? (
+              coupons.map((coupon) => (
+                <div key={coupon.id} className="rounded border border-line bg-surface p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-ink">{coupon.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-muted">
+                        {assignedToLabels[coupon.assignedTo]} · {coupon.amountLabel}
+                      </p>
                     </div>
-                    <p className="mt-2 flex items-center gap-2 text-sm text-muted">
-                      <ImageIcon size={16} aria-hidden />
-                      등록 혜택 {items.length}개 · {formatDate(campaign.validUntil)}까지
-                    </p>
+                    <Badge tone={coupon.status === "available" ? "green" : "blue"}>
+                      {coupon.status === "available" ? "사용 가능" : "다운로드 완료"}
+                    </Badge>
                   </div>
-                );
-              })
+                  <p className="mt-2 text-sm text-muted">
+                    {formatDate(coupon.validUntil)}까지 · {coupon.sites.map((site) => site === "jumbokids" ? "점보키즈" : "고도몰").join(", ")}
+                  </p>
+                </div>
+              ))
             ) : (
               <EmptyState
-                icon={Settings2}
+                icon={Download}
                 title="제공된 쿠폰이 없어요"
                 description="점보키즈 관리자가 기관에 쿠폰을 제공하면 이곳에서 복사와 다운로드 상태를 확인할 수 있습니다."
                 actionHref="#coupons"

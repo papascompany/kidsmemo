@@ -3,13 +3,8 @@
 import { CalendarPlus, CheckCircle2, Pencil, RotateCcw, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "./badge";
-import {
-  couponCampaigns,
-  events as initialEvents,
-  getCampaignById,
-  organizations
-} from "@/lib/mock-data";
-import { formatDate, issueModeLabels } from "@/lib/format";
+import { events as initialEvents, organizations } from "@/lib/mock-data";
+import { formatDate } from "@/lib/format";
 import type { EventSchedule } from "@/lib/types";
 
 type EventFormState = {
@@ -20,7 +15,6 @@ type EventFormState = {
   classNames: string;
   description: string;
   supplies: string;
-  couponCampaignId: string;
 };
 
 const emptyForm: EventFormState = {
@@ -30,8 +24,7 @@ const emptyForm: EventFormState = {
   audience: "전체 원아",
   classNames: "전체",
   description: "",
-  supplies: "",
-  couponCampaignId: couponCampaigns[0]?.id ?? ""
+  supplies: ""
 };
 
 export function EventManager() {
@@ -61,8 +54,7 @@ export function EventManager() {
       audience: event.audience,
       classNames: event.classNames.join(", "),
       description: event.description,
-      supplies: event.supplies.join(", "),
-      couponCampaignId: event.couponCampaignId
+      supplies: event.supplies.join(", ")
     });
   }
 
@@ -83,8 +75,7 @@ export function EventManager() {
       audience: form.audience.trim(),
       classNames: splitList(form.classNames),
       description: form.description.trim(),
-      supplies: splitList(form.supplies),
-      couponCampaignId: form.couponCampaignId
+      supplies: splitList(form.supplies)
     };
 
     try {
@@ -127,7 +118,7 @@ export function EventManager() {
               {editingId ? "행사 수정" : "행사 등록"}
             </h3>
             <p className="mt-1 text-sm leading-6 text-muted">
-              행사 일정과 참고 혜택을 함께 기록해 원장님 워크스페이스에서 흐름을 확인합니다.
+              행사 일정, 대상, 준비물을 기록해 원장님 워크스페이스에서 흐름을 확인합니다.
             </p>
           </div>
           {editingId ? <Badge tone="blue">수정 중</Badge> : <Badge tone="green">신규</Badge>}
@@ -190,21 +181,6 @@ export function EventManager() {
             />
           </Field>
 
-          <Field label="참고 혜택" htmlFor="event-coupon">
-            <select
-              id="event-coupon"
-              value={form.couponCampaignId}
-              onChange={(event) => updateField("couponCampaignId", event.target.value)}
-              className="w-full rounded border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
-            >
-              {couponCampaigns.map((campaign) => (
-                <option key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-
           <Field label="행사 설명" htmlFor="event-description">
             <textarea
               id="event-description"
@@ -258,21 +234,18 @@ export function EventManager() {
       </div>
 
       <div className="overflow-hidden rounded border border-line bg-white shadow-soft">
-        <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_0.6fr_auto] border-b border-line bg-surface px-4 py-3 text-sm font-semibold text-muted max-lg:hidden">
+        <div className="grid grid-cols-[1.4fr_0.8fr_0.6fr_auto] border-b border-line bg-surface px-4 py-3 text-sm font-semibold text-muted max-lg:hidden">
           <span>행사</span>
           <span>일정</span>
-          <span>참고 혜택</span>
           <span>상태</span>
           <span className="text-right">관리</span>
         </div>
         <div className="divide-y divide-line">
           {sortedEvents.map((event) => {
-            const campaign = getCampaignById(event.couponCampaignId);
-
             return (
               <article
                 key={event.id}
-                className="grid gap-3 px-4 py-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.6fr_auto]"
+                className="grid gap-3 px-4 py-4 lg:grid-cols-[1.4fr_0.8fr_0.6fr_auto]"
               >
                 <div>
                   <h3 className="font-semibold text-ink">{event.title}</h3>
@@ -281,14 +254,6 @@ export function EventManager() {
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-ink">{formatDate(event.eventDate)}</p>
-                <p className="text-sm text-muted">
-                  {campaign?.name ?? "미연결"}
-                  {campaign ? (
-                    <span className="mt-1 block text-xs text-brand">
-                      {issueModeLabels[campaign.issueMode]}
-                    </span>
-                  ) : null}
-                </p>
                 <div>
                   <Badge tone={getReminderTone(event.reminderStatus)}>{event.reminderStatus}</Badge>
                 </div>
@@ -345,7 +310,6 @@ function normalizeEvent(
     classNames: string[];
     supplies: string[];
     organizationId: string;
-    couponCampaignId: string;
   }
 ): EventSchedule {
   return {
@@ -355,7 +319,6 @@ function normalizeEvent(
     audience: event.audience ?? fallback.audience,
     description: event.description ?? fallback.description,
     organizationId: event.organizationId ?? fallback.organizationId,
-    couponCampaignId: event.couponCampaignId ?? fallback.couponCampaignId,
     classNames: Array.isArray(event.classNames) ? event.classNames : fallback.classNames,
     supplies: Array.isArray(event.supplies) ? event.supplies : fallback.supplies
   };

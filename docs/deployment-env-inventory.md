@@ -72,5 +72,5 @@ Safety check:
 4. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, implement auth/session guards, membership checks, repository separation, and complete RLS policies.
 5. Convert `supabase/schema.sql` into reviewed migrations that match the corrected coupon direction:
    - active flow: Jumbokids admin-provided staff coupon wallet
-   - legacy/future flow: parent-facing coupon campaign and landing
+   - removed flow: parent-facing coupon campaign and landing
 6. Do not run `supabase db push`, apply `supabase/schema.sql`, or enable live Supabase repositories until the migration/RLS review is complete.

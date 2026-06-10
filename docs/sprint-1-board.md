@@ -12,7 +12,7 @@ Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC h
 | --- | --- | --- | --- | --- |
 | CTO | Main thread | `docs/sprint-1-cto-charter.md`, `docs/sprint-1-board.md`, integration decisions | Charter, board, review order, final merge plan | Complete for Sprint 1 mock/fallback checkpoint |
 | Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; explicit data-backend flag complete; Supabase auth/RLS/persistence pending |
-| Frontend | Raman | Frontend components and limited page integration | Event/coupon forms wired to API routes, responsive improvements | First pass complete; mobile quick nav, AI form depth, and workspace action/empty states complete |
+| Frontend | Raman | Frontend components and limited page integration | Event forms, coupon wallet, responsive improvements | First pass complete; mobile quick nav, AI form depth, workspace action/empty states, and coupon wallet correction complete |
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
 | QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
@@ -28,7 +28,7 @@ Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC h
 
 ## Merge Rules
 
-- Do not accept changes that remove the existing working dashboard, coupon landing, or mock fallback behavior.
+- Do not accept changes that remove the existing working dashboard or mock fallback behavior.
 - Keep the app usable without Supabase, OpenAI, Naver, Jumbokids, or messaging API keys.
 - Reject broad rewrites that touch unrelated workstreams.
 - Every accepted implementation change must pass `npm run lint` and `npm run build`.
@@ -56,16 +56,17 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
   - Jumbokids administrators provide coupons or discount codes.
   - Directors and teachers copy/download those codes.
   - Codes are used on Jumbokids or GodoMall order flows.
-- Previous parent-facing coupon campaign work is preserved as legacy/future source:
-  - `src/components/coupon-manager.tsx` exports `LegacyParentCouponCampaignManager`.
-  - `src/app/coupon/[campaignId]/page.tsx` remains as a legacy public landing route.
-  - `docs/legacy-parent-coupon-campaign-flow.md` documents the old flow and reactivation conditions.
+- Parent-facing coupon campaign work was removed from the active source because it was not part of the original product scope.
+  - Removed legacy coupon campaign UI.
+  - Removed public coupon landing route.
+  - Removed `/api/admin/coupon-campaigns/**`.
+  - Removed event-to-coupon-campaign coupling.
 - Main dashboard now imports `JumbokidsCouponWallet` instead of the parent campaign builder.
 
 ## Next CTO Queue Before Supabase
 
 1. Update QA expectation for reminder job duplicate behavior.
-2. Complete manual browser QA for `/`, `/coupon/coupon-2`, `/coupon/unknown-campaign`.
+2. Complete manual browser QA for `/`.
 3. Re-check 320/390/768/1440 responsive layouts, AI generate buttons, and print preview.
 4. Align frontend visual direction with the warm modern kindergarten-teacher concept:
    - Pretendard typography polish.
@@ -76,7 +77,7 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
    - director's own kindergarten profile.
    - organization-scoped event schedule.
    - organization-scoped AI event advice history.
-   - organization-scoped coupon campaigns and sending settings.
+   - organization-scoped staff coupon wallet and sending settings.
    - clear current-organization indicator and optional organization switcher.
 6. Choose or create the intended Vercel project and run `vercel link`.
 7. Confirm Supabase login/project candidates without applying schema.
@@ -140,7 +141,7 @@ Phase 3: persistence and release readiness.
   - Director organization workspace QA criteria were added.
 - Backend/Auth subagent found a critical sequencing risk.
   - The current Supabase service-role repository path can bypass RLS if live env vars are enabled before route guards and repository separation.
-  - `coupon_campaigns` must become organization-owned before live coupon persistence.
+  - At the time, `coupon_campaigns` needed organization ownership before live coupon persistence. This was superseded by the 2026-06-10 staff coupon wallet model.
   - RLS policies must be expanded before live CRUD.
 - CTO integrated decision:
   - Continue with frontend/QA hardening now.
@@ -201,12 +202,11 @@ Next execution order:
 
 ## 2026-06-04 CTO QA And Deployment Inventory
 
-- Production route/API smoke:
+- Production route/API smoke at that checkpoint:
   - `/`: `200`
-  - `/coupon/coupon-2`: `200`
-  - `/coupon/unknown-campaign`: `404`
   - `/api/ai/event-assistant`: `200 ok=true`, 3 ideas
   - `/api/ai/parent-message`: `200 ok=true`, 3 candidates
+- The old `/coupon/*` checks from this checkpoint were removed from the active product contract on 2026-06-10.
 - Print check:
   - Print CSS remains implemented.
   - Chrome headless PDF output did not materialize a file, so manual print preview remains required.
@@ -231,9 +231,17 @@ Next execution order:
 - `supabase/config.toml` was generated by `supabase init`.
 - `.temp` link metadata is intentionally ignored by `supabase/.gitignore`.
 - Do not run `supabase db push` yet:
-  - `supabase/schema.sql` still reflects the older coupon campaign/parent-send flow.
-  - RLS policies are incomplete for live CRUD.
+  - `supabase/schema.sql` is a reviewed draft target, not a timestamped migration yet.
+  - RLS policies need live CRUD review before production use.
   - Auth/session guards and user-scoped repositories are not implemented yet.
+
+## 2026-06-10 Legacy Coupon Removal
+
+- Removed the parent-facing coupon campaign source from the active app.
+- Removed `/coupon/[campaignId]` and `/api/admin/coupon-campaigns/**`.
+- Removed event-to-coupon-campaign coupling from types, mock data, event forms, repositories, and reminder jobs.
+- Updated `supabase/schema.sql` draft around `staff_coupons` and `staff_coupon_downloads`.
+- Current browser QA target is `/`; old `/coupon/coupon-2` route is no longer part of the product contract.
 
 ## Blocked Until Migration/RLS Review
 

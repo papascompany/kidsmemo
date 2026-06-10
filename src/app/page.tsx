@@ -14,12 +14,12 @@ import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
 import { StatCard } from "@/components/stat-card";
 import {
-  couponCampaigns,
   events,
   messageDeliveries,
   messageJobs,
   organizations,
-  profiles
+  profiles,
+  staffCoupons
 } from "@/lib/mock-data";
 import { formatDateTime } from "@/lib/format";
 import { getReminderHealth } from "@/lib/reminders";
@@ -69,7 +69,7 @@ export default function Home() {
           />
           <StatCard
             label="활성 쿠폰"
-            value={`${couponCampaigns.filter((campaign) => campaign.isActive).length}`}
+            value={`${staffCoupons.filter((coupon) => coupon.status !== "used").length}`}
             note="교직원 제공 혜택"
             icon={Gift}
           />
@@ -95,7 +95,7 @@ export default function Home() {
             <h3 className="text-lg font-semibold text-ink">내일 발송 점검</h3>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
-              <Metric label="제공 쿠폰" value={`${health.activeCampaigns}개`} />
+              <Metric label="제공 쿠폰" value={`${health.availableStaffCoupons}개`} />
               <Metric label="발송 채널" value={health.providerOrder.join(" → ")} />
             </div>
           </aside>
