@@ -525,7 +525,10 @@ Supabase 연결 전 허용되는 작업:
 Supabase 연결 전에도 조심해야 할 작업:
 
 - `vercel link`는 허용 가능하지만 실제 production 배포는 별도 승인 후 진행한다.
-- `supabase login`과 `supabase projects list`는 허용 가능하지만 `supabase link`, `supabase db push`, schema 적용은 별도 승인 후 진행한다.
+- Supabase 프로젝트 링크는 2026-06-10 완료되었다.
+  - Project URL: `https://fhakjrppirmjdgqlljzd.supabase.co`
+  - Project ref: `fhakjrppirmjdgqlljzd`
+- `supabase db push`, schema 적용, live repository 활성화는 migration/RLS 검토 후 진행한다.
 - mock repository를 유지해야 하며, 외부 API 키가 없어도 앱이 동작해야 한다.
 
 ## 8. 다음 작업 계획
@@ -558,8 +561,8 @@ Supabase 연결 전에도 조심해야 할 작업:
 ### Supabase 연결 승인 후 작업
 
 1. Supabase 프로젝트 생성/연결
-2. `supabase/config.toml`/migration 구조 정리 여부 결정
-3. `supabase/schema.sql` 적용
+2. 기존 `supabase/schema.sql`을 제품 방향에 맞는 migration으로 재정리
+3. 점보키즈 제공 쿠폰함 중심의 쿠폰 테이블/RLS 설계
 4. Kakao/Google OAuth 설정
 5. `.env.local` 구성
 6. request cookie/session 기반 `requireUser`, `requireOrgRole` 유틸 추가

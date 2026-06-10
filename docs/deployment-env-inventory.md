@@ -1,6 +1,6 @@
 # Kidsmemo Deployment And Environment Inventory
 
-Run date: 2026-06-04
+Run date: 2026-06-10
 
 ## Current Deployment State
 
@@ -11,7 +11,10 @@ Run date: 2026-06-04
 - Vercel local project link: not present. `.vercel/project.json` does not exist.
 - Vercel project candidate: no `kidsmemo` project was found in the current Vercel project list.
 - Supabase CLI: `2.104.0`
-- Supabase project link: not present and intentionally not started.
+- Supabase project link: present.
+  - Project URL: `https://fhakjrppirmjdgqlljzd.supabase.co`
+  - Project ref: `fhakjrppirmjdgqlljzd`
+  - Project name from CLI link metadata: `kidsmemo Project`
 - Production deployment: blocked until explicit approval.
 
 ## Runtime And Build
@@ -34,7 +37,7 @@ Run date: 2026-06-04
 
 | Variable | Status | Notes |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Listed | Do not configure for live use until auth/RLS guards are ready. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Listed | Project URL is `https://fhakjrppirmjdgqlljzd.supabase.co`; keep backend mode as `mock` until auth/RLS guards are ready. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Listed | Public client key, still blocked for live auth phase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Listed | Server-only; must not be exposed to browser or used by normal user routes. |
 
@@ -65,7 +68,9 @@ Safety check:
 
 1. Create or select a Vercel project for `kidsmemo`.
 2. Run `vercel link` only after choosing the intended project/team.
-3. Re-authenticate GitHub CLI if GitHub app workflows or `gh` commands are needed; `gh auth status` currently reports an invalid token.
-4. Keep `KIDSMEMO_DATA_BACKEND=mock` for Vercel preview until Supabase guards are implemented.
-5. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, implement auth/session guards, membership checks, repository separation, and complete RLS policies.
-6. Do not run `supabase link`, `supabase db push`, or production deployment without explicit approval.
+3. Keep `KIDSMEMO_DATA_BACKEND=mock` for Vercel preview until Supabase guards are implemented.
+4. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, implement auth/session guards, membership checks, repository separation, and complete RLS policies.
+5. Convert `supabase/schema.sql` into reviewed migrations that match the corrected coupon direction:
+   - active flow: Jumbokids admin-provided staff coupon wallet
+   - legacy/future flow: parent-facing coupon campaign and landing
+6. Do not run `supabase db push`, apply `supabase/schema.sql`, or enable live Supabase repositories until the migration/RLS review is complete.
