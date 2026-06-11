@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, runtime mode status card, coupon direction correction, and Supabase project link are complete. Supabase DB schema application remains paused until migration/RLS review.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, runtime mode status card, auth/session guard skeleton, coupon direction correction, and Supabase project link are complete. Supabase DB schema application remains paused until migration/RLS review.
 
 ## Workstreams
 

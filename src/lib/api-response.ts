@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { AccessControlError } from "./access-control";
 
 export interface ApiErrorBody {
   ok: false;
@@ -51,6 +52,10 @@ export function handleApiError(error: unknown) {
 
   if (error instanceof SyntaxError) {
     return apiError("invalid_json_body", "JSON 요청 본문이 필요합니다.");
+  }
+
+  if (error instanceof AccessControlError) {
+    return apiError(error.code, error.message, error.status, error.details);
   }
 
   if (error instanceof Error) {
