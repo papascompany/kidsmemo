@@ -511,6 +511,7 @@ Supabase 연결 전 허용되는 작업:
 - 인쇄 flow QA
 - Vercel 프로젝트 링크 준비 및 환경 변수 목록 정리
 - Supabase 로그인 상태 확인과 프로젝트 후보 확인
+- live repository 우발 활성화를 막는 안전 가드 추가
 
 Supabase 연결 전에도 조심해야 할 작업:
 

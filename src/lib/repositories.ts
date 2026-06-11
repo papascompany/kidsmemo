@@ -1,4 +1,5 @@
 import { events, messageJobs } from "./mock-data";
+import { isEnabledEnvFlag } from "./env-flags";
 import { isTomorrow } from "./format";
 import { createSupabaseServiceClient } from "./supabase";
 import type { EventSchedule, MessageJob } from "./types";
@@ -73,8 +74,9 @@ export const mockMessageJobRepository: MessageJobRepository = {
 
 export function getRepositories(): RepositorySet {
   const dataBackend = process.env.KIDSMEMO_DATA_BACKEND ?? "mock";
+  const allowLiveSupabase = isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_LIVE_SUPABASE);
 
-  if (dataBackend !== "supabase") {
+  if (dataBackend !== "supabase" || !allowLiveSupabase) {
     return {
       events: mockEventRepository,
       messageJobs: mockMessageJobRepository

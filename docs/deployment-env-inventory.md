@@ -32,6 +32,7 @@ Run date: 2026-06-10
 | Variable | Status | Notes |
 | --- | --- | --- |
 | `KIDSMEMO_DATA_BACKEND` | Added to `.env.example` | Keep as `mock` until Supabase approval. |
+| `KIDSMEMO_ALLOW_LIVE_SUPABASE` | Added to `.env.example` | Keep `false` until the live Supabase transition is explicitly approved. |
 
 ### Supabase, Blocked Until Approval
 
@@ -45,6 +46,7 @@ Safety check:
 
 - With fake Supabase URL/service key and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200` with mock data.
 - Supabase env vars alone no longer switch repositories to the service-role Supabase path.
+- Even with `KIDSMEMO_DATA_BACKEND=supabase`, the app stays on mock repositories unless `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` is also set.
 
 ### AI Providers
 
@@ -69,7 +71,7 @@ Safety check:
 1. Create or select a Vercel project for `kidsmemo`.
 2. Run `vercel link` only after choosing the intended project/team.
 3. Keep `KIDSMEMO_DATA_BACKEND=mock` for Vercel preview until Supabase guards are implemented.
-4. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, implement auth/session guards, membership checks, repository separation, and complete RLS policies.
+4. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, set `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` only after auth/session guards, membership checks, repository separation, and complete RLS policies are ready.
 5. Convert `supabase/schema.sql` into reviewed migrations that match the corrected coupon direction:
    - active flow: Jumbokids admin-provided staff coupon wallet
    - removed flow: parent-facing coupon campaign and landing

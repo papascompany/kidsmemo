@@ -159,6 +159,7 @@ Phase 3: persistence and release readiness.
   - `npm run lint` and `npm run build` pass after the fix.
 - Backend/Auth subagent set the next Supabase gate:
   - Supabase env vars alone must not activate live repositories.
+  - Live Supabase should also require an explicit opt-in flag so preview environments stay on mock data.
   - Add an explicit data backend flag, auth/session utilities, membership guards, and repository separation before `supabase link`, `db push`, or live CRUD.
 
 Next execution order:
