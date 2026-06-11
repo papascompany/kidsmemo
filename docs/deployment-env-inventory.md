@@ -47,6 +47,7 @@ Safety check:
 - With fake Supabase URL/service key and `KIDSMEMO_DATA_BACKEND=mock`, `/api/events` returned `200` with mock data.
 - Supabase env vars alone no longer switch repositories to the service-role Supabase path.
 - Even with `KIDSMEMO_DATA_BACKEND=supabase`, the app stays on mock repositories unless `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` is also set.
+- The dashboard now exposes a runtime mode card so operators can see whether the app is locked to mock mode or armed for live Supabase.
 
 ### AI Providers
 

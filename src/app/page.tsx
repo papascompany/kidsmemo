@@ -23,11 +23,13 @@ import {
 } from "@/lib/mock-data";
 import { formatDateTime } from "@/lib/format";
 import { getReminderHealth } from "@/lib/reminders";
+import { getRuntimeBackendState } from "@/lib/runtime-state";
 
 export default function Home() {
   const queuedJobs = messageJobs.filter((job) => job.status === "queued");
   const sentDeliveries = messageDeliveries.filter((delivery) => delivery.status === "sent");
   const health = getReminderHealth();
+  const runtimeState = getRuntimeBackendState();
 
   return (
     <AppShell>
@@ -161,6 +163,25 @@ export default function Home() {
                   <Badge tone={profile.role === "admin" ? "amber" : "gray"}>{profile.role}</Badge>
                 </div>
               ))}
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-4 shadow-soft">
+            <h3 className="text-lg font-semibold text-ink">런타임 모드</h3>
+            <div className="mt-3 grid gap-3 text-sm">
+              <div className="rounded border border-line bg-surface p-3">
+                <p className="font-semibold text-ink">{runtimeState.modeLabel}</p>
+                <p className="mt-1 text-muted">현재 데이터 백엔드가 실제 Supabase로 전환되지 않았습니다.</p>
+              </div>
+              <div className="flex items-center justify-between rounded border border-line bg-surface px-3 py-2">
+                <span className="text-muted">Supabase 전환 잠금</span>
+                <Badge tone={runtimeState.liveSupabaseArmed ? "green" : "amber"}>
+                  {runtimeState.lockLabel}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between rounded border border-line bg-surface px-3 py-2">
+                <span className="text-muted">요청 백엔드</span>
+                <span className="font-semibold text-ink">{runtimeState.requestedBackend}</span>
+              </div>
             </div>
           </div>
         </div>
