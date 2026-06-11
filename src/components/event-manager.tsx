@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { events as initialEvents, organizations } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
+import { getPrimaryOrganizationId } from "@/lib/organization-context";
 import type { EventSchedule } from "@/lib/types";
 
 type EventFormState = {
@@ -18,7 +19,7 @@ type EventFormState = {
 };
 
 const emptyForm: EventFormState = {
-  organizationId: organizations[0]?.id ?? "",
+  organizationId: getPrimaryOrganizationId(),
   title: "",
   eventDate: "2026-06-03",
   audience: "전체 원아",

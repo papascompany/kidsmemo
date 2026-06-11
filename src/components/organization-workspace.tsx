@@ -14,16 +14,10 @@ import {
   Users
 } from "lucide-react";
 import { Badge } from "./badge";
-import {
-  events,
-  messageDeliveries,
-  messageJobs,
-  organizations,
-  profiles,
-  staffCoupons
-} from "@/lib/mock-data";
+import { messageDeliveries, messageJobs } from "@/lib/mock-data";
 import { formatDate, formatDateTime } from "@/lib/format";
-import type { StaffCoupon } from "@/lib/types";
+import { getOrganizationContext } from "@/lib/organization-context";
+import type { EventSchedule, Profile, StaffCoupon } from "@/lib/types";
 
 const workspaceImage =
   "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=85";
@@ -52,16 +46,8 @@ const aiAdviceHistory = [
 ];
 
 export function OrganizationWorkspace() {
-  const currentOrganization = organizations[0];
-  const director = profiles.find(
-    (profile) => profile.organizationId === currentOrganization.id && profile.role === "owner"
-  );
-  const organizationEvents = events
-    .filter((event) => event.organizationId === currentOrganization.id)
-    .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-  const organizationCoupons = staffCoupons.filter(
-    (coupon) => coupon.organizationId === currentOrganization.id
-  );
+  const { organization: currentOrganization, director, events: organizationEvents, coupons: organizationCoupons } =
+    getOrganizationContext();
   const organizationEventIds = new Set(organizationEvents.map((event) => event.id));
   const organizationJobs = messageJobs.filter((job) => organizationEventIds.has(job.eventId));
   const organizationDeliveries = messageDeliveries.filter((delivery) =>
@@ -170,7 +156,7 @@ function ProfileCard({
   director,
   organizationName
 }: {
-  director?: (typeof profiles)[number];
+  director?: Profile;
   organizationName: string;
 }) {
   return (
@@ -194,7 +180,7 @@ function ProfileCard({
   );
 }
 
-function ScheduleCard({ events: organizationEvents }: { events: typeof events }) {
+function ScheduleCard({ events: organizationEvents }: { events: EventSchedule[] }) {
   return (
     <article className="rounded border border-line bg-white p-4 shadow-soft">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">

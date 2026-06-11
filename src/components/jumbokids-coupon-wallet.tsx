@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "./badge";
-import { organizations, profiles, staffCoupons } from "@/lib/mock-data";
+import { profiles } from "@/lib/mock-data";
+import { getOrganizationContext } from "@/lib/organization-context";
 import type { CouponUseSite, StaffCoupon } from "@/lib/types";
 
 const siteLabels: Record<CouponUseSite, string> = {
@@ -33,10 +34,7 @@ const statusLabels: Record<StaffCoupon["status"], string> = {
 
 export function JumbokidsCouponWallet() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const currentOrganization = organizations[0];
-  const organizationCoupons = staffCoupons.filter(
-    (coupon) => coupon.organizationId === currentOrganization.id
-  );
+  const { organization: currentOrganization, coupons: organizationCoupons } = getOrganizationContext();
   const staffCount = profiles.filter(
     (profile) =>
       profile.organizationId === currentOrganization.id &&
