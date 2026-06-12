@@ -8,7 +8,8 @@ export async function POST(request: Request) {
     assertRoleScope(access, ["admin"]);
     const payload = (await request.json().catch(() => ({}))) as { now?: string };
     const result = await runReminderJob({
-      now: payload.now ? new Date(payload.now) : undefined
+      now: payload.now ? new Date(payload.now) : undefined,
+      access
     });
 
     return ok(result);

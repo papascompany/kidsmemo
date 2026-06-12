@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { apiError, handleApiError, ok } from "@/lib/api-response";
+import { assertRoleScope, getRequestAccessContext } from "@/lib/access-control";
 import { generateEventAssistantPlan } from "@/lib/ai";
 
 const schema = z.object({
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
     }
 
     const payload = schema.parse(body.value);
+    const access = getRequestAccessContext(request);
+    assertRoleScope(access, ["owner", "manager", "teacher"]);
     const result = await generateEventAssistantPlan(payload);
 
     return ok(result);

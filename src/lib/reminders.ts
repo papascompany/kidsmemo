@@ -1,4 +1,5 @@
 import { events, staffCoupons } from "./mock-data";
+import type { RequestAccessContext } from "./access-control";
 import { isTomorrow } from "./format";
 import { sendMessageWithFallback } from "./messages";
 import {
@@ -12,11 +13,12 @@ interface RunReminderJobOptions {
   now?: Date;
   eventRepository?: EventRepository;
   messageJobRepository?: MessageJobRepository;
+  access?: RequestAccessContext;
 }
 
 export async function runReminderJob(options: RunReminderJobOptions = {}): Promise<ReminderRunResult> {
   const now = options.now ?? new Date();
-  const repositories = getRepositories();
+  const repositories = getRepositories(options.access);
   const eventRepository = options.eventRepository ?? repositories.events;
   const messageJobRepository = options.messageJobRepository ?? repositories.messageJobs;
   const generatedJobs: MessageJob[] = [];
