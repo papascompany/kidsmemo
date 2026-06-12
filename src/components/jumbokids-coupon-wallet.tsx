@@ -6,8 +6,7 @@ import {
   Download,
   ExternalLink,
   ShieldCheck,
-  Store,
-  TicketCheck
+  Store
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "./badge";
@@ -112,11 +111,11 @@ export function JumbokidsCouponWallet() {
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-ink/88 via-ink/66 to-ink/18" />
-        <div className="relative grid min-h-[320px] content-end gap-5 p-5 sm:p-7 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
+        <div className="relative grid min-h-[220px] content-end gap-5 p-5 sm:p-7 lg:min-h-[320px] lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
           <div className="max-w-2xl">
             <Badge tone="green">점보키즈 제공 혜택</Badge>
             <h3 className="text-wrap-anywhere mt-4 text-2xl font-semibold leading-tight tracking-normal sm:text-4xl">
-              원장님과 선생님이 직접 사용할 쿠폰과 할인코드를 모았습니다.
+              바로 복사해서 쓰는 교직원 쿠폰함입니다.
             </h3>
             <p className="mt-4 text-sm leading-7 text-white/84">
               학부모 발송용 캠페인이 아니라, 점보키즈 관리자가 기관 교직원에게 제공한
@@ -158,7 +157,7 @@ export function JumbokidsCouponWallet() {
                     <button
                       type="button"
                       onClick={() => copyCode(coupon.code)}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
                     >
                       {copiedCode === coupon.code ? (
                         <Check size={17} aria-hidden />
@@ -180,7 +179,7 @@ export function JumbokidsCouponWallet() {
                   <button
                     type="button"
                     onClick={() => void downloadCoupon(coupon)}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
                   >
                     <Download size={17} aria-hidden />
                     쿠폰 다운로드
@@ -195,7 +194,7 @@ export function JumbokidsCouponWallet() {
                     href={coupon.siteUrls[site]}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-line bg-white px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
                   >
                     <Store size={16} aria-hidden />
                     {siteLabels[site]}에서 사용
@@ -208,28 +207,17 @@ export function JumbokidsCouponWallet() {
         </div>
 
         <aside className="grid content-start gap-3">
-          <div className="rounded border border-line bg-white p-4 shadow-soft">
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
+          <details className="rounded border border-line bg-white p-4 shadow-soft">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-lg font-semibold text-ink">
               <ShieldCheck size={20} aria-hidden />
-              운영 기준
-            </h3>
+              운영 안내
+            </summary>
             <ul className="mt-3 grid gap-2 text-sm leading-6 text-muted">
               <li>점보키즈 관리자가 발급하거나 등록한 쿠폰만 노출합니다.</li>
               <li>원장님/선생님은 쿠폰을 복사하거나 파일로 내려받아 사용합니다.</li>
-              <li>학부모 발송이나 캠페인 생성 기능은 현재 제품 범위에 포함하지 않습니다.</li>
+              <li>다운로드 이력은 기관과 사용자 기준으로 기록됩니다.</li>
             </ul>
-          </div>
-
-          <div className="rounded border border-line bg-white p-4 shadow-soft">
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
-              <TicketCheck size={20} aria-hidden />
-              다음 연동
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              실제 운영에서는 점보키즈 관리자 콘솔, 고도몰 쿠폰 API, Supabase Storage의
-              다운로드 이력을 연결해 기관별로 제공된 쿠폰만 표시합니다.
-            </p>
-          </div>
+          </details>
         </aside>
       </div>
     </div>

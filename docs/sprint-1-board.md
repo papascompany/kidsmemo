@@ -244,6 +244,15 @@ Next execution order:
 - Updated `supabase/schema.sql` draft around `staff_coupons` and `staff_coupon_downloads`.
 - Current browser QA target is `/`; old `/coupon/coupon-2` route is no longer part of the product contract.
 
+## 2026-06-12 Teacher Usability Pass
+
+- CTO orchestrated parallel UX audits for overall workflow, navigation information architecture, and mobile usability.
+- Primary navigation was reduced to four daily workflow items: today, schedule, coupon, AI.
+- Dashboard now starts with three quick actions instead of broad feature/status inventory.
+- Event registration now prioritizes title, date, and audience, with templates and optional detail fields.
+- Coupon wallet now emphasizes code copy, shortens the mobile hero, and collapses operational guidance.
+- AI workbench now uses a two-option tool switch so teachers choose either event planning or message generation first.
+
 ## Blocked Until Migration/RLS Review
 
 - `supabase db push`

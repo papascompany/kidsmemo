@@ -71,6 +71,7 @@ const sampleMessageResult: ParentMessageResult = {
 };
 
 export function AiWorkbench() {
+  const [activeTool, setActiveTool] = useState<"assistant" | "message">("assistant");
   const [assistantResult, setAssistantResult] = useState(sampleAssistantResult);
   const [messageResult, setMessageResult] = useState(sampleMessageResult);
   const [assistantForm, setAssistantForm] = useState<EventAssistantRequest>({
@@ -174,8 +175,32 @@ export function AiWorkbench() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <div id="event-assistant-panel" className="rounded border border-line bg-white p-4 shadow-soft">
+    <div className="grid gap-4">
+      <div className="no-print grid grid-cols-2 gap-2 rounded border border-line bg-white p-2 shadow-soft">
+        <button
+          type="button"
+          onClick={() => setActiveTool("assistant")}
+          className={`min-h-11 rounded px-3 text-sm font-semibold transition ${
+            activeTool === "assistant" ? "bg-brand text-white" : "bg-surface text-muted"
+          }`}
+        >
+          행사 도우미
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTool("message")}
+          className={`min-h-11 rounded px-3 text-sm font-semibold transition ${
+            activeTool === "message" ? "bg-coral text-white" : "bg-surface text-muted"
+          }`}
+        >
+          문구 생성기
+        </button>
+      </div>
+
+      <div
+        id="event-assistant-panel"
+        className={`${activeTool === "assistant" ? "block" : "hidden"} rounded border border-line bg-white p-4 shadow-soft`}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
@@ -189,7 +214,7 @@ export function AiWorkbench() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="no-print rounded border border-line p-2 text-muted hover:text-ink"
+            className="no-print grid min-h-11 min-w-11 place-items-center rounded border border-line text-muted hover:text-ink"
             aria-label="행사 계획서 인쇄"
             title="행사 계획서 인쇄"
           >
@@ -282,7 +307,7 @@ export function AiWorkbench() {
             type="button"
             onClick={generateAssistant}
             disabled={isGeneratingAssistant}
-            className="flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
+            className="flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
           >
             <Sparkles size={17} aria-hidden />
             {isGeneratingAssistant ? "생성 중" : "생성"}
@@ -331,7 +356,10 @@ export function AiWorkbench() {
         </div>
       </div>
 
-      <div id="message-writer" className="rounded border border-line bg-white p-4 shadow-soft">
+      <div
+        id="message-writer"
+        className={`${activeTool === "message" ? "block" : "hidden"} rounded border border-line bg-white p-4 shadow-soft`}
+      >
         <div>
           <div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
@@ -413,7 +441,7 @@ export function AiWorkbench() {
             type="button"
             onClick={generateMessages}
             disabled={isGeneratingMessages}
-            className="rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
+            className="min-h-11 rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
           >
             {isGeneratingMessages ? "생성 중" : "생성"}
           </button>
@@ -427,7 +455,7 @@ export function AiWorkbench() {
                 <button
                   type="button"
                   onClick={() => navigator.clipboard?.writeText(message)}
-                  className="no-print rounded border border-line p-2 text-muted hover:text-ink"
+                  className="no-print grid min-h-11 min-w-11 place-items-center rounded border border-line text-muted hover:text-ink"
                   aria-label="문구 복사"
                   title="문구 복사"
                 >

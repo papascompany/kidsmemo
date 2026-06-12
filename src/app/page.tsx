@@ -1,9 +1,9 @@
 import {
+  ArrowRight,
   CalendarDays,
+  ClipboardCheck,
   Gift,
-  MessageCircle,
   ShieldCheck,
-  Users
 } from "lucide-react";
 import { AiWorkbench } from "@/components/ai-workbench";
 import { AppShell } from "@/components/app-shell";
@@ -12,14 +12,10 @@ import { EventManager } from "@/components/event-manager";
 import { JumbokidsCouponWallet } from "@/components/jumbokids-coupon-wallet";
 import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
-import { StatCard } from "@/components/stat-card";
 import {
-  events,
   messageDeliveries,
   messageJobs,
-  organizations,
   profiles,
-  staffCoupons
 } from "@/lib/mock-data";
 import { formatDateTime } from "@/lib/format";
 import { getReminderHealth } from "@/lib/reminders";
@@ -36,51 +32,51 @@ export default function Home() {
       <section id="dashboard" className="min-w-0 scroll-mt-32 py-3 lg:scroll-mt-6">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-brand">Director Workspace</p>
+            <p className="text-sm font-semibold text-brand">오늘의 운영</p>
             <h1 className="text-wrap-anywhere mt-2 max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl md:text-4xl">
-              원장님의 기관 운영을 한눈에 보는 키즈메모 마이페이지입니다.
+              바쁜 원장님과 선생님을 위한 3단계 업무 화면입니다.
             </h1>
             <p className="text-wrap-anywhere mt-3 max-w-3xl text-sm leading-6 text-muted">
-              현재 기관 컨텍스트를 먼저 확인하고, 행사 일정, AI 조언 이력, 쿠폰 혜택,
-              발송 상태를 부드러운 운영 워크스페이스 안에서 이어서 관리합니다.
+              행사 확인, 쿠폰 저장, 학부모 문구 생성만 먼저 보이게 정리했습니다.
+              세부 설정과 운영 상태는 필요할 때만 아래에서 확인합니다.
             </p>
           </div>
           <div className="flex max-w-full flex-wrap gap-2">
-            <Badge tone="green">Kakao · Google · 직접가입</Badge>
-            <Badge tone="blue">Pretendard</Badge>
-            <Badge tone="amber">반응형 웹</Badge>
+            <Badge tone="green">클릭 동선 축소</Badge>
+            <Badge tone="blue">모바일 우선</Badge>
+            <Badge tone="amber">Mock Fallback</Badge>
           </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <QuickAction
+            href="#calendar"
+            icon={CalendarDays}
+            title="행사 하나 등록"
+            description="행사명과 날짜만 먼저 적고 저장합니다."
+          />
+          <QuickAction
+            href="#coupons"
+            icon={Gift}
+            title="쿠폰 코드 저장"
+            description="점보키즈 쿠폰을 복사하거나 내려받습니다."
+          />
+          <QuickAction
+            href="#ai-helper"
+            icon={ClipboardCheck}
+            title="안내 문구 만들기"
+            description="행사명만 넣고 바로 초안을 만듭니다."
+          />
         </div>
 
         <div className="mt-6">
           <OrganizationWorkspace />
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="등록 기관"
-            value={`${organizations.length}`}
-            note="어린이집/유치원 멀티테넌트"
-            icon={Users}
-          />
-          <StatCard
-            label="연간 행사"
-            value={`${events.length}`}
-            note="반복/단발 일정 포함"
-            icon={CalendarDays}
-          />
-          <StatCard
-            label="활성 쿠폰"
-            value={`${staffCoupons.filter((coupon) => coupon.status !== "used").length}`}
-            note="교직원 제공 혜택"
-            icon={Gift}
-          />
-          <StatCard
-            label="발송 대기"
-            value={`${queuedJobs.length}`}
-            note="알림톡 → SMS/LMS → 이메일"
-            icon={MessageCircle}
-          />
+        <div className="mt-6 grid gap-3 rounded border border-line bg-white p-4 shadow-soft md:grid-cols-3">
+          <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
+          <Metric label="사용 가능 쿠폰" value={`${health.availableStaffCoupons}개`} />
+          <Metric label="발송 대기" value={`${queuedJobs.length}건`} />
         </div>
       </section>
 
@@ -198,5 +194,39 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-semibold text-muted">{label}</p>
       <p className="mt-1 text-base font-semibold text-ink">{value}</p>
     </div>
+  );
+}
+
+function QuickAction({
+  href,
+  icon: Icon,
+  title,
+  description
+}: {
+  href: string;
+  icon: typeof CalendarDays;
+  title: string;
+  description: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="group flex min-h-28 items-center justify-between gap-4 rounded border border-line bg-white p-4 shadow-soft transition hover:border-brand"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded bg-surface text-brand">
+          <Icon size={21} aria-hidden />
+        </div>
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-ink">{title}</p>
+          <p className="mt-1 text-sm leading-5 text-muted">{description}</p>
+        </div>
+      </div>
+      <ArrowRight
+        size={18}
+        className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand"
+        aria-hidden
+      />
+    </a>
   );
 }

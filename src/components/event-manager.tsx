@@ -28,10 +28,38 @@ const emptyForm: EventFormState = {
   supplies: ""
 };
 
+const eventTemplates = [
+  {
+    title: "소풍",
+    audience: "전체 원아",
+    description: "근교 야외활동과 반별 사진 촬영",
+    supplies: "이름표, 돗자리, 간식"
+  },
+  {
+    title: "운동회",
+    audience: "전체 원아",
+    description: "가족 참여 활동과 단체 촬영",
+    supplies: "명찰, 물, 구급함"
+  },
+  {
+    title: "생일잔치",
+    audience: "해당 월 생일 원아",
+    description: "생일 축하 활동과 기념 사진",
+    supplies: "생일 모자, 포토존 소품"
+  },
+  {
+    title: "졸업식",
+    audience: "졸업반",
+    description: "수료/졸업 발표와 가족 사진 촬영",
+    supplies: "꽃다발, 안내문, 포토월"
+  }
+];
+
 export function EventManager() {
   const [events, setEvents] = useState(initialEvents);
   const [form, setForm] = useState<EventFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -48,6 +76,7 @@ export function EventManager() {
   function startEdit(event: EventSchedule) {
     setEditingId(event.id);
     setStatus(null);
+    setShowDetails(true);
     setForm({
       organizationId: event.organizationId,
       title: event.title,
@@ -62,7 +91,23 @@ export function EventManager() {
   function resetForm() {
     setEditingId(null);
     setStatus(null);
+    setShowDetails(false);
     setForm(emptyForm);
+  }
+
+  function applyTemplate(template: {
+    title: string;
+    audience: string;
+    description: string;
+    supplies: string;
+  }) {
+    setForm((current) => ({
+      ...current,
+      title: template.title,
+      audience: template.audience,
+      description: template.description,
+      supplies: template.supplies
+    }));
   }
 
   async function saveEvent() {
@@ -119,28 +164,26 @@ export function EventManager() {
               {editingId ? "행사 수정" : "행사 등록"}
             </h3>
             <p className="mt-1 text-sm leading-6 text-muted">
-              행사 일정, 대상, 준비물을 기록해 원장님 워크스페이스에서 흐름을 확인합니다.
+              행사명, 날짜, 대상만 먼저 저장하고 필요할 때 상세를 덧붙입니다.
             </p>
           </div>
           {editingId ? <Badge tone="blue">수정 중</Badge> : <Badge tone="green">신규</Badge>}
         </div>
 
-        <div className="mt-4 grid gap-3">
-          <Field label="기관" htmlFor="event-organization">
-            <select
-              id="event-organization"
-              value={form.organizationId}
-              onChange={(event) => updateField("organizationId", event.target.value)}
-              className="w-full rounded border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+        <div className="mt-4 flex flex-wrap gap-2">
+          {eventTemplates.map((template) => (
+            <button
+              key={template.title}
+              type="button"
+              onClick={() => applyTemplate(template)}
+              className="min-h-10 rounded border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
             >
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+              {template.title}
+            </button>
+          ))}
+        </div>
 
+        <div className="mt-4 grid gap-3">
           <Field label="행사명" htmlFor="event-title">
             <input
               id="event-title"
@@ -172,36 +215,60 @@ export function EventManager() {
             </Field>
           </div>
 
-          <Field label="반/학급" htmlFor="event-classes">
-            <input
-              id="event-classes"
-              value={form.classNames}
-              onChange={(event) => updateField("classNames", event.target.value)}
-              placeholder="쉼표로 구분"
-              className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-            />
-          </Field>
+          <button
+            type="button"
+            onClick={() => setShowDetails((current) => !current)}
+            className="min-h-11 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+          >
+            {showDetails ? "상세 입력 접기" : "반/준비물 상세 입력"}
+          </button>
 
-          <Field label="행사 설명" htmlFor="event-description">
-            <textarea
-              id="event-description"
-              value={form.description}
-              onChange={(event) => updateField("description", event.target.value)}
-              rows={3}
-              placeholder="행사 내용과 촬영 포인트를 적어주세요."
-              className="w-full resize-none rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-brand"
-            />
-          </Field>
-
-          <Field label="준비물" htmlFor="event-supplies">
-            <input
-              id="event-supplies"
-              value={form.supplies}
-              onChange={(event) => updateField("supplies", event.target.value)}
-              placeholder="쉼표로 구분"
-              className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-            />
-          </Field>
+          {showDetails ? (
+            <div className="grid gap-3 rounded border border-line bg-surface p-3">
+              <Field label="기관" htmlFor="event-organization">
+                <select
+                  id="event-organization"
+                  value={form.organizationId}
+                  onChange={(event) => updateField("organizationId", event.target.value)}
+                  className="w-full rounded border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                >
+                  {organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="반/학급" htmlFor="event-classes">
+                <input
+                  id="event-classes"
+                  value={form.classNames}
+                  onChange={(event) => updateField("classNames", event.target.value)}
+                  placeholder="쉼표로 구분"
+                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </Field>
+              <Field label="행사 설명" htmlFor="event-description">
+                <textarea
+                  id="event-description"
+                  value={form.description}
+                  onChange={(event) => updateField("description", event.target.value)}
+                  rows={3}
+                  placeholder="행사 내용과 촬영 포인트를 적어주세요."
+                  className="w-full resize-none rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-brand"
+                />
+              </Field>
+              <Field label="준비물" htmlFor="event-supplies">
+                <input
+                  id="event-supplies"
+                  value={form.supplies}
+                  onChange={(event) => updateField("supplies", event.target.value)}
+                  placeholder="쉼표로 구분"
+                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </Field>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -209,7 +276,7 @@ export function EventManager() {
             type="button"
             onClick={saveEvent}
             disabled={isSaving || !form.title.trim()}
-            className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {editingId ? <Save size={18} aria-hidden /> : <CalendarPlus size={18} aria-hidden />}
             {isSaving ? "저장 중" : editingId ? "수정 저장" : "행사 등록"}
@@ -218,7 +285,7 @@ export function EventManager() {
             <button
               type="button"
               onClick={resetForm}
-              className="inline-flex items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted"
             >
               <RotateCcw size={18} aria-hidden />
               신규 등록으로 전환
@@ -228,9 +295,7 @@ export function EventManager() {
 
         {status ? <p className="mt-3 text-sm font-semibold text-muted">{status}</p> : null}
         {editingEvent ? (
-          <p className="mt-2 text-xs leading-5 text-muted">
-            현재 API 계약상 삭제는 백엔드 스프린트 범위에 포함되지 않았습니다.
-          </p>
+          <p className="mt-2 text-xs leading-5 text-muted">수정 후 저장하면 행사 목록에 바로 반영됩니다.</p>
         ) : null}
       </div>
 
@@ -262,7 +327,7 @@ export function EventManager() {
                   <button
                     type="button"
                     onClick={() => startEdit(event)}
-                    className="inline-flex h-9 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                    className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
                   >
                     <Pencil size={16} aria-hidden />
                     수정

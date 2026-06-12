@@ -3,19 +3,15 @@ import {
   CalendarDays,
   Gift,
   LayoutDashboard,
-  MessageSquareText,
-  Settings,
   ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 
 const navItems = [
-  { href: "#dashboard", label: "대시보드", mobileLabel: "홈", icon: LayoutDashboard },
-  { href: "#calendar", label: "연간 행사", mobileLabel: "행사", icon: CalendarDays },
-  { href: "#coupons", label: "점보키즈 쿠폰함", mobileLabel: "쿠폰", icon: Gift },
-  { href: "#ai-helper", label: "AI 행사 도우미", mobileLabel: "AI", icon: Bot },
-  { href: "#message-writer", label: "감동 문구", mobileLabel: "문구", icon: MessageSquareText },
-  { href: "#admin", label: "관리 콘솔", mobileLabel: "관리", icon: Settings }
+  { href: "#dashboard", label: "오늘 할 일", mobileLabel: "오늘", icon: LayoutDashboard },
+  { href: "#calendar", label: "행사 일정", mobileLabel: "일정", icon: CalendarDays },
+  { href: "#coupons", label: "쿠폰함", mobileLabel: "쿠폰", icon: Gift },
+  { href: "#ai-helper", label: "AI 도움", mobileLabel: "AI", icon: Bot }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -50,8 +46,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="absolute bottom-6 left-5 right-5 rounded border border-line bg-surface p-4 text-sm text-muted">
-          <p className="font-semibold text-ink">쿠폰 사용처</p>
-          <p className="mt-1">점보키즈 · 고도몰</p>
+          <p className="font-semibold text-ink">빠른 흐름</p>
+          <p className="mt-1">행사 확인 → 쿠폰 저장 → 문구 생성</p>
         </div>
       </aside>
 

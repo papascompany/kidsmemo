@@ -79,9 +79,7 @@ export function OrganizationWorkspace() {
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <HeroAction href="#calendar" icon={CalendarDays} label="일정 관리" />
-                <HeroAction href="#coupons" icon={Download} label="쿠폰 다운로드" />
-                <HeroAction href="#ai-helper" icon={Sparkles} label="AI 조언 열기" />
-                <HeroAction href="#sending-status" icon={Send} label="발송 상태 보기" />
+                <HeroAction href="#ai-helper" icon={Sparkles} label="AI 도움" />
               </div>
             </div>
 
