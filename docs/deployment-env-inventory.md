@@ -49,6 +49,7 @@ Safety check:
 - Even with `KIDSMEMO_DATA_BACKEND=supabase`, the app stays on mock repositories unless `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` is also set.
 - The dashboard now exposes a runtime mode card so operators can see whether the app is locked to mock mode or armed for live Supabase.
 - Reserved request headers for the next auth/session layer: `x-kidmemo-profile-id`, `x-kidmemo-organization-id`, `x-kidmemo-role`.
+- Those headers now gate the event, reminder job, and staff coupon download skeleton routes when a session is present.
 
 ### AI Providers
 

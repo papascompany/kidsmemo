@@ -34,15 +34,17 @@ const statusLabels: Record<StaffCoupon["status"], string> = {
 
 export function JumbokidsCouponWallet() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const { organization: currentOrganization, coupons: organizationCoupons } = getOrganizationContext();
+  const { organization: currentOrganization, director, members, coupons: organizationCoupons } =
+    getOrganizationContext();
+  const [coupons, setCoupons] = useState(() => organizationCoupons);
   const staffCount = profiles.filter(
     (profile) =>
       profile.organizationId === currentOrganization.id &&
       (profile.role === "owner" || profile.role === "teacher" || profile.role === "manager")
   ).length;
   const availableCount = useMemo(
-    () => organizationCoupons.filter((coupon) => coupon.status !== "used").length,
-    [organizationCoupons]
+    () => coupons.filter((coupon) => coupon.status !== "used").length,
+    [coupons]
   );
 
   async function copyCode(code: string) {
@@ -50,7 +52,7 @@ export function JumbokidsCouponWallet() {
     setCopiedCode(code);
   }
 
-  function downloadCoupon(coupon: StaffCoupon) {
+  async function downloadCoupon(coupon: StaffCoupon) {
     const content = [
       "키즈메모 점보키즈 쿠폰",
       `기관: ${currentOrganization.name}`,
@@ -68,6 +70,36 @@ export function JumbokidsCouponWallet() {
     anchor.download = `${coupon.code}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
+
+    const profileId = director?.id ?? members[0]?.id;
+    if (!profileId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/staff-coupons/${coupon.id}/download`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          organizationId: currentOrganization.id,
+          profileId
+        })
+      });
+
+      if (response.ok) {
+        setCoupons((current) =>
+          current.map((item) =>
+            item.id === coupon.id && item.status === "available"
+              ? { ...item, status: "downloaded" }
+              : item
+          )
+        );
+      }
+    } catch {
+      // Download 기록은 보조 작업이므로 파일 저장을 방해하지 않는다.
+    }
   }
 
   return (
@@ -102,7 +134,7 @@ export function JumbokidsCouponWallet() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="grid gap-3">
-          {organizationCoupons.map((coupon) => (
+          {coupons.map((coupon) => (
             <article key={coupon.id} className="rounded border border-line bg-white p-4 shadow-soft">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                 <div className="min-w-0">
@@ -147,7 +179,7 @@ export function JumbokidsCouponWallet() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => downloadCoupon(coupon)}
+                    onClick={() => void downloadCoupon(coupon)}
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-white"
                   >
                     <Download size={17} aria-hidden />

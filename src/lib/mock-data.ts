@@ -4,6 +4,7 @@ import type {
   MessageJob,
   Organization,
   Profile,
+  StaffCouponDownload,
   StaffCoupon
 } from "./types";
 
@@ -176,6 +177,12 @@ export const messageDeliveries: MessageDelivery[] = [
   }
 ];
 
+export const staffCouponDownloads: StaffCouponDownload[] = [];
+
 export function getOrganizationById(organizationId: string) {
   return organizations.find((organization) => organization.id === organizationId);
+}
+
+export function getStaffCouponById(couponId: string) {
+  return staffCoupons.find((coupon) => coupon.id === couponId);
 }

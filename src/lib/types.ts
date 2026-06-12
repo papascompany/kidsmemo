@@ -54,6 +54,14 @@ export interface StaffCoupon {
   siteUrls: Record<CouponUseSite, string>;
 }
 
+export interface StaffCouponDownload {
+  id: string;
+  couponId: string;
+  organizationId: string;
+  profileId: string;
+  downloadedAt: string;
+}
+
 export interface MessageJob {
   id: string;
   eventId: string;
