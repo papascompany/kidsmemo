@@ -93,7 +93,7 @@ Acceptance:
 
 Manual checks:
 
-- Confirm `/` shows the section title `점보키즈 쿠폰함`.
+- Confirm `/app` shows the section title `점보키즈 쿠폰함`.
 - Confirm coupon cards explain that Jumbokids administrators provided the codes for directors/teachers.
 - Confirm each coupon card has a visible coupon/discount code.
 - Confirm `코드 복사` copies the code and changes to a copied state.
@@ -165,7 +165,46 @@ Acceptance:
 
 Manual checks:
 
-- Verify `/` at 320, 390, 768, and 1440 px widths.
+- Verify `/` at 320, 390, 768, and 1440 px widths as the public landing.
+- Verify `/app` at 320, 390, 768, and 1440 px widths as the operational dashboard.
 - Confirm text, buttons, cards, and quick navigation do not overlap or overflow.
 - Confirm image-backed cards retain readable contrast.
 - Confirm print preview keeps AI content printable and hides operational dashboard chrome.
+
+## Public Landing And Auth Entry
+
+Manual checks:
+
+- Confirm `/` is a public landing page and does not render institution mock data, staff coupon codes, member lists, or runtime admin details.
+- Confirm `/` has clear CTA paths to `/signup`, `/login`, `/signup/jumbokids`, and `/app`.
+- Confirm `/app` renders the existing institution dashboard and keeps these anchors working:
+  - `/app#dashboard`
+  - `/app#calendar`
+  - `/app#coupons`
+  - `/app#ai-helper`
+- Confirm transitional redirects work:
+  - `/dashboard` redirects to `/app`
+  - `/calendar` redirects to `/app#calendar`
+  - `/coupons` redirects to `/app#coupons`
+  - `/ai-helper` redirects to `/app#ai-helper`
+- Confirm `/login` explains Kakao, Google, and email login without implying live auth is already enabled.
+- Confirm `/signup` explains simple signup and routes users toward Jumbokids verification and onboarding.
+- Confirm `/signup/jumbokids` captures the intended Jumbokids ID verification states without calling a live Jumbokids API.
+- Confirm `/onboarding` explains institution creation, invite-code participation, and selected-organization readiness.
+
+## Platform Admin Console
+
+Manual checks:
+
+- Confirm `/admin` is visually separated from the teacher/director dashboard.
+- Confirm `/admin` includes institution coupon/code setup fields:
+  - institution
+  - coupon or discount code
+  - benefit label
+  - valid-until date
+  - role target
+  - Jumbokids URL
+  - GodoMall URL
+- Confirm `/admin` does not reintroduce parent-facing coupon campaigns or public coupon landing language.
+- Confirm `/admin` surfaces Jumbokids verification state as a managed platform-admin concept.
+- Confirm `/admin` still labels the current build as mock/fallback until Supabase live guards and RLS are complete.

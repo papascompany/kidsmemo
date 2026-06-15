@@ -259,3 +259,29 @@ Next execution order:
 - applying `supabase/schema.sql`
 - replacing mock repositories with live Supabase repositories
 - production deployment
+
+## 2026-06-15 Public Landing / Auth Entry / Admin Console
+
+- CTO orchestration updated the product entry structure:
+  - `/` is now the public service landing page.
+  - `/app` preserves the existing mock/fallback director and teacher dashboard.
+  - `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding` define the auth and institution onboarding skeleton.
+  - `/admin` defines the platform operator console skeleton for institution coupons, codes, links, Jumbokids verification, and download history.
+- Existing dashboard anchors remain under `/app`:
+  - `/app#dashboard`
+  - `/app#calendar`
+  - `/app#coupons`
+  - `/app#ai-helper`
+- Transitional redirects were added for older intent routes:
+  - `/dashboard` -> `/app`
+  - `/calendar` -> `/app#calendar`
+  - `/coupons` -> `/app#coupons`
+  - `/ai-helper` -> `/app#ai-helper`
+- Product policy:
+  - The public landing must not expose mock institution data or staff coupon codes.
+  - The staff coupon product remains Jumbokids-admin-provided coupons for directors and teachers.
+  - Parent-facing coupon campaign creation and public coupon landing remain out of active scope.
+- Supabase remains locked:
+  - Auth pages are UI/IA skeletons only.
+  - They must not be treated as real session enforcement.
+  - Live persistence still requires reviewed session guards, role separation, and RLS completion.
