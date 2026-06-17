@@ -4,11 +4,15 @@ import { getRepositories } from "@/lib/repositories";
 import { eventCreateSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
-  const access = await resolveRequestAccessContext(request);
-  const repositories = getRepositories(access);
-  const events = await repositories.events.list();
+  try {
+    const access = await resolveRequestAccessContext(request);
+    const repositories = getRepositories(access);
+    const events = await repositories.events.list();
 
-  return ok(events);
+    return ok(events);
+  } catch (error) {
+    return handleApiError(error);
+  }
 }
 
 export async function POST(request: Request) {

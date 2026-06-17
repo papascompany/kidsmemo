@@ -7,16 +7,16 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
-  const { eventId } = await params;
-  const access = await resolveRequestAccessContext(request);
-  const repositories = getRepositories(access);
-  const event = await repositories.events.findById(eventId);
-
-  if (!event) {
-    return notFound("행사를 찾을 수 없습니다.");
-  }
-
   try {
+    const { eventId } = await params;
+    const access = await resolveRequestAccessContext(request);
+    const repositories = getRepositories(access);
+    const event = await repositories.events.findById(eventId);
+
+    if (!event) {
+      return notFound("행사를 찾을 수 없습니다.");
+    }
+
     assertOrganizationScope(access, event.organizationId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
     const payload = eventUpdateSchema.parse(await request.json());
