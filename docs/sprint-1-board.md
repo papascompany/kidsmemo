@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, runtime mode status card, auth/session guard skeleton, AI/webhook guard skeletons, coupon direction correction, and Supabase project link are complete. Supabase DB schema application remains paused until migration/RLS review.
+Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, runtime mode status card, auth/session guard skeleton, AI/webhook guard skeletons, coupon direction correction, Supabase project link, frontend browser/print QA planning pass, RLS hardening, first Supabase DB migration push, live session resolver, and user-scoped repository split are complete. Live app CRUD remains gated behind test-user RLS smoke and explicit env opt-in.
 
 ## Workstreams
 
@@ -16,7 +16,7 @@ Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC h
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
 | QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
-| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Env inventory complete; Vercel project creation/link and Supabase login/link pending |
+| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Env inventory refreshed 2026-06-17; Vercel project creation/link pending; Supabase project ref documented but local `.temp` link metadata absent; `db push` blocked |
 
 ## CTO Review Order
 
@@ -253,12 +253,63 @@ Next execution order:
 - Coupon wallet now emphasizes code copy, shortens the mobile hero, and collapses operational guidance.
 - AI workbench now uses a two-option tool switch so teachers choose either event planning or message generation first.
 
-## Blocked Until Migration/RLS Review
+## Blocked Until Live App Guard Review
 
-- `supabase db push`
-- applying `supabase/schema.sql`
 - replacing mock repositories with live Supabase repositories
 - production deployment
+
+## 2026-06-17 Ops/DB Readiness Refresh
+
+- Ops/DB worker performed a documentation-only readiness check.
+- No `supabase db push`, production deployment, `vercel link`, or Supabase local start was run.
+- Read-only/local checks:
+  - Node `v24.14.0`
+  - npm `11.11.0`
+  - npm registry `https://registry.npmjs.org/`
+  - Vercel CLI `54.7.1`
+  - Supabase CLI `2.104.0`
+  - `.vercel/project.json` absent
+  - `supabase/.temp` absent
+- Supabase config notes:
+  - `supabase/config.toml` exists with `project_id = "kidsmemo"` and DB major version `17`.
+  - `db.migrations.enabled = true`, and `supabase/migrations/20260617073000_initial_schema.sql` is present as the first reviewed migration.
+  - `db.seed.enabled = true`, and `supabase/seed.sql` is present as an intentional empty placeholder.
+  - `supabase/schema.sql` remains the human-readable draft target; the timestamped migration is the push target.
+- Current DB readiness risks for CTO:
+  - remote migration `20260617073000` is applied and must be verified with Supabase Studio or `psql`;
+  - live user repositories are now user-scoped, but need test-user RLS smoke before env opt-in;
+  - Vercel is linked to the existing `kidsmemo` project, but env rollout and deploy remain separate approval steps.
+
+## 2026-06-17 Supabase DB Push
+
+- CTO created `supabase/migrations/20260617073000_initial_schema.sql` from the reviewed Sprint 1 schema.
+- Added `supabase/seed.sql` as an intentional empty placeholder so local reset matches `supabase/config.toml`.
+- Revalidated Supabase link for project ref `fhakjrppirmjdgqlljzd`.
+- Ran `supabase db push`; migration `20260617073000_initial_schema.sql` applied successfully.
+- Ran `supabase migration list`; local and remote both show `20260617073000`.
+- Ran `supabase db lint --linked --fail-on error`; no schema errors found.
+- The app remains mock/fallback by default. Live repository use still requires both `KIDSMEMO_DATA_BACKEND=supabase` and `KIDSMEMO_ALLOW_LIVE_SUPABASE=true`.
+
+## 2026-06-17 Session Guard And Repository Split
+
+- Added live-mode Supabase Bearer token verification in access control.
+- API routes now use the async verified access context.
+- Live user repositories now use anon-key user clients with the verified token so RLS applies.
+- Service-role access is separated into `getServiceRepositories()` for explicit server-side jobs.
+- Mock/fallback behavior remains unchanged when live flags are off.
+- Verification:
+  - `npm run lint`: passed.
+  - `npx tsc --noEmit`: passed.
+  - `npm run build`: passed.
+  - `supabase db lint --linked --fail-on error`: passed.
+  - `npm run dev`: foreground Ready confirmed at `http://localhost:3000`.
+
+## 2026-06-17 Vercel Link
+
+- `npx vercel project ls` confirmed the existing `kidsmemo` project.
+- `npx vercel link --yes --project kidsmemo` linked the local workspace.
+- Vercel CLI wrote `.vercel/repo.json`; `.gitignore` now excludes `.vercel`.
+- No deploy or env var mutation was performed.
 
 ## 2026-06-15 Public Landing / Auth Entry / Admin Console
 
@@ -285,3 +336,14 @@ Next execution order:
   - Auth pages are UI/IA skeletons only.
   - They must not be treated as real session enforcement.
   - Live persistence still requires reviewed session guards, role separation, and RLS completion.
+
+## 2026-06-17 Frontend QA Planning Pass
+
+- Frontend/QA worker completed a static planning pass for `/`, `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding`.
+- `docs/qa-sprint-1.md` now includes:
+  - route-specific responsive checks at 320, 390, 768, and 1440 px.
+  - static findings for public landing separation, app anchors, admin console scope, auth skeleton copy, and print CSS intent.
+  - print preview checks for `/app#ai-helper`.
+  - open browser-signoff risks for remote images, clipboard/download behavior, and admin table overflow.
+- No Supabase start, `supabase db push`, or code changes were performed in this pass.
+- Lint/build were not rerun because the pass was documentation-only.

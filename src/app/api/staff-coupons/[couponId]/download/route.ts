@@ -2,8 +2,9 @@ import { z } from "zod";
 import { handleApiError, ok } from "@/lib/api-response";
 import {
   assertOrganizationScope,
+  assertProfileScope,
   assertRoleScope,
-  getRequestAccessContext
+  resolveRequestAccessContext
 } from "@/lib/access-control";
 import {
   getStaffCouponById,
@@ -23,7 +24,7 @@ export async function POST(
   try {
     const { couponId } = await params;
     const payload = schema.parse(await request.json());
-    const access = getRequestAccessContext(request);
+    const access = await resolveRequestAccessContext(request);
     const coupon = getStaffCouponById(couponId);
 
     if (!coupon) {
@@ -34,6 +35,7 @@ export async function POST(
     }
 
     assertOrganizationScope(access, payload.organizationId);
+    assertProfileScope(access, payload.profileId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
 
     if (coupon.organizationId !== payload.organizationId) {

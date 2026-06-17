@@ -1,0 +1,2 @@
+-- Sprint 1 has no required seed data yet.
+-- Keep this file so `supabase db reset` matches `supabase/config.toml`.

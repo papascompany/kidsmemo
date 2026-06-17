@@ -1,5 +1,5 @@
 import { handleApiError, notFound, ok } from "@/lib/api-response";
-import { assertOrganizationScope, assertRoleScope, getRequestAccessContext } from "@/lib/access-control";
+import { assertOrganizationScope, assertRoleScope, resolveRequestAccessContext } from "@/lib/access-control";
 import { getRepositories } from "@/lib/repositories";
 import { eventUpdateSchema } from "@/lib/validation";
 
@@ -8,7 +8,8 @@ export async function PATCH(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   const { eventId } = await params;
-  const repositories = getRepositories();
+  const access = await resolveRequestAccessContext(request);
+  const repositories = getRepositories(access);
   const event = await repositories.events.findById(eventId);
 
   if (!event) {
@@ -16,7 +17,6 @@ export async function PATCH(
   }
 
   try {
-    const access = getRequestAccessContext(request);
     assertOrganizationScope(access, event.organizationId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
     const payload = eventUpdateSchema.parse(await request.json());

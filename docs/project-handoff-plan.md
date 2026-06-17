@@ -352,7 +352,7 @@ C:\Users\yohan\OneDrive\Desktop\codex project\kidsmemo
 - Git: `2.54.0.windows.1`
 - GitHub CLI: 설치됨, `papascompany` 인증 확인
 - Vercel CLI: 설치됨, `papas-yohan` 로그인 확인
-- Supabase CLI: 설치됨, 프로젝트 로그인/링크는 아직 확인 필요
+- Supabase CLI: 설치됨. 2026-06-10 프로젝트 링크가 문서화되었고, 2026-06-17 현재 체크아웃에는 `supabase/.temp` link metadata가 없어 push 전 재확인이 필요함
 
 새 PC에서 재검증:
 
@@ -371,7 +371,7 @@ C:\Users\yohan\OneDrive\Desktop\codex project\kidsmemo
 
 - GitHub 이메일 privacy protection 때문에 로컬 git email은 `papascompany@users.noreply.github.com`로 설정되어 있다.
 - Vercel 프로젝트 링크는 아직 이 repo에 고정하지 않았다. 배포 전 `vercel link`가 필요하다.
-- Supabase 프로젝트 연결은 hold point 때문에 아직 하지 않는다.
+- Supabase 프로젝트 연결은 2026-06-10에 한 차례 완료되었으나, 현재 체크아웃에는 ignored link metadata인 `supabase/.temp`가 없다. 실제 `db push` 전에는 프로젝트 ref를 재확인하고 link metadata를 다시 확인해야 한다.
 
 ## 5. API 응답 규칙
 
@@ -519,8 +519,69 @@ Supabase 연결 전에도 조심해야 할 작업:
 - Supabase 프로젝트 링크는 2026-06-10 완료되었다.
   - Project URL: `https://fhakjrppirmjdgqlljzd.supabase.co`
   - Project ref: `fhakjrppirmjdgqlljzd`
+- 현재 체크아웃에는 `supabase/.temp`가 없으므로, 이 링크 정보는 문서 기준 상태다. `supabase db push` 전에는 link 상태를 다시 확인한다.
 - `supabase db push`, schema 적용, live repository 활성화는 migration/RLS 검토 후 진행한다.
 - mock repository를 유지해야 하며, 외부 API 키가 없어도 앱이 동작해야 한다.
+
+### 2026-06-17 Ops/DB Readiness Check
+
+Supabase project link를 재확인했고, 첫 timestamped migration을 원격 DB에 적용했다. production deploy와 `vercel link`는 실행하지 않았다.
+
+확인된 로컬 상태:
+
+- Node: `v24.14.0`
+- npm: `11.11.0`
+- npm registry: `https://registry.npmjs.org/`
+- Vercel CLI: `54.7.1`
+- `.vercel/repo.json`: 있음, `kidsmemo` 프로젝트에 링크됨
+- Vercel project ID: `prj_qXXriKQQOX60Gy90Dmbq7vKPmAYg`
+- Vercel org/team ID: `team_dOpgsAqfLyl4qNlVgSiFVm6B`
+- Supabase CLI: `2.104.0`
+- `supabase/config.toml`: 있음, local `project_id = "kidsmemo"`, DB major version `17`
+- `supabase/.temp`: `supabase link --project-ref fhakjrppirmjdgqlljzd`로 재생성됨
+- `supabase/schema.sql`: 사람이 검토하는 draft schema
+- `supabase/migrations/20260617073000_initial_schema.sql`: `supabase db push` 대상 timestamped migration
+- `supabase/seed.sql`: Sprint 1은 필수 seed가 없으므로 빈 placeholder로 둠
+- 원격 migration: local/remote 모두 `20260617073000`
+- 원격 DB lint: `supabase db lint --linked --fail-on error` 통과, schema error 없음
+- Vercel link: `npx vercel link --yes --project kidsmemo` 완료, production deploy는 실행하지 않음
+
+완료된 DB 작업:
+
+1. Supabase project ref `fhakjrppirmjdgqlljzd` link 재확인.
+2. `supabase/migrations/20260617073000_initial_schema.sql` 생성.
+3. `supabase db push`로 hosted DB에 첫 migration 적용.
+4. `supabase migration list`로 local/remote migration 일치 확인.
+
+남은 live 전환 조건:
+
+1. table/enum/index/function/RLS enabled 상태를 읽기 전용으로 확인한다.
+2. 서로 다른 두 organization 사용자와 platform admin으로 RLS select/insert/update/delete 권한을 검증한다.
+3. Vercel env는 먼저 preview에서만 켜고, `KIDSMEMO_DATA_BACKEND=mock` 상태를 유지한 채 app guard smoke를 끝낸다.
+4. live 전환은 `KIDSMEMO_DATA_BACKEND=supabase`와 `KIDSMEMO_ALLOW_LIVE_SUPABASE=true`를 함께 설정하는 별도 승인 단계로 둔다.
+
+### 2026-06-17 Session Guard / Repository Split
+
+완료:
+
+- live 모드에서 `Authorization: Bearer <token>`을 Supabase Auth로 검증하는 async access resolver 추가.
+- live 모드의 사용자 API는 `memberships`에서 organization/role을 확인한다.
+- 기존 `x-kidmemo-*` 헤더는 mock/development fallback 용도로만 유지한다.
+- API routes는 verified access context를 사용하도록 전환했다.
+- 일반 live repository는 anon key + verified bearer token client를 사용해 RLS가 적용되도록 했다.
+- service-role repository 접근은 `getServiceRepositories()`로 분리했다.
+
+검증:
+
+- `npm run lint`: 통과
+- `npx tsc --noEmit`: 통과
+- `npm run build`: 통과
+- `supabase db lint --linked --fail-on error`: 통과
+
+남은 조건:
+
+- 실제 Supabase test user 2개 기관 + platform admin 계정으로 RLS smoke test를 해야 한다.
+- Vercel preview/prod env live 전환은 별도 승인 단계로 둔다.
 
 ## 8. 다음 작업 계획
 

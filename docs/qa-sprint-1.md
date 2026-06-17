@@ -2,14 +2,61 @@
 
 ## Latest Verification
 
-Run date: 2026-06-10
+Run date: 2026-06-17
 
 - `npm run lint`: passed after legacy coupon removal.
 - `npm run build`: passed after legacy coupon removal.
 - Supabase project link is complete for `fhakjrppirmjdgqlljzd`.
 - Active coupon product surface is the `점보키즈 쿠폰함`.
 - Parent-facing coupon campaign creation, public coupon landing, and `/api/admin/coupon-campaigns/**` are removed from the active source.
+- Frontend QA planning pass completed for `/`, `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding` by static route/code inspection.
+- `npm run dev` foreground check reached Next.js Ready at `http://localhost:3000`.
 - Browser visual QA and print preview remain manual release gates.
+
+## 2026-06-17 Frontend QA Planning Pass
+
+Scope:
+
+- Public entry: `/`
+- App workspace: `/app`
+- Platform console: `/admin`
+- Auth and onboarding skeletons: `/login`, `/signup`, `/signup/jumbokids`, `/onboarding`
+- Transitional redirects: `/dashboard`, `/calendar`, `/coupons`, `/ai-helper`
+
+Static findings:
+
+- `/` is a public landing page and links to `/signup`, `/login`, `/signup/jumbokids`, and `/app`.
+- `/` does not import mock institution data, coupon codes, member lists, runtime state, or admin details.
+- `/app` still renders the mock/fallback dashboard through `KidsmemoDashboard` and preserves the `dashboard`, `calendar`, `coupons`, and `ai-helper` anchors.
+- `next.config.ts` keeps transitional redirects from legacy intent routes to `/app` anchors.
+- `/admin` is visually and structurally separate from the teacher/director dashboard and labels the current surface as a mock Supabase-pre-live skeleton.
+- `/admin` includes institution, coupon/discount code, benefit, valid date, role target, Jumbokids URL, and GodoMall URL fields.
+- Auth pages describe Kakao, Google, and email paths as UI/IA skeletons or "ready/preparing" flows rather than live auth.
+- Print CSS hides dashboard chrome and operational sections while keeping `#ai-helper` and `.print-page` content printable.
+
+Responsive browser matrix for the next manual pass:
+
+| Route | 320 px | 390 px | 768 px | 1440 px | Priority focus |
+| --- | --- | --- | --- | --- | --- |
+| `/` | Header CTAs fit; hero text wraps; feature cards stack | Hero and CTA spacing | Editorial cards and signup flow | Hero first viewport shows next section hint | Public page must not leak mock operational data |
+| `/app` | Sticky mobile quick nav, quick actions, coupon cards, AI form fields | Coupon copy/download state | Dashboard grid and AI panels | Sidebar nav, workspace, tables/cards | Check anchor offsets for `#calendar`, `#coupons`, `#ai-helper` |
+| `/admin` | Header badges wrap; table scrolls horizontally | Coupon form and panels stack | Metrics and admin panels | Two-column coupon setup layout | Table overflow must remain intentional, not page overflow |
+| `/login` | Login method buttons and email form fit | Buttons preserve icon/text alignment | Two-column transition begins cleanly | Left auth card and right status panel balance | Copy must not imply live auth is enabled |
+| `/signup` | Signup option cards fit | CTA and next-step card stack | Main/signup panels readable | Two-column signup layout | OAuth copy remains skeleton-safe |
+| `/signup/jumbokids` | Verification form fits | State cards stack | Form and state panel spacing | Two-column verification layout | No live Jumbokids API behavior implied |
+| `/onboarding` | Form controls fit | Completion checklist readable | Cards/grid spacing | Onboarding card and form layout | Institution membership copy remains organization-scoped |
+
+Print manual pass:
+
+- On `/app#ai-helper`, generate or keep sample AI results, open print preview, and confirm sidebar, mobile nav, dashboard metrics, calendar, coupons, forms, and buttons are hidden.
+- Confirm event assistant result sections, parent notice draft, shopping recommendation text, message candidates, and safety notes print legibly without clipped content.
+- Confirm print preview does not include coupon codes unless the user intentionally prints from the coupon area outside the release print flow.
+
+Open risks for browser sign-off:
+
+- Remote image URLs on `/` and `/app` must be visually confirmed for contrast and load behavior in the target deployment environment.
+- Clipboard and download interactions require real browser verification because static inspection cannot confirm browser permission behavior.
+- `/admin` table uses a deliberate horizontal scroll at small widths; manual QA should confirm the page itself does not create a second unintended horizontal scroll.
 
 ## Release Gate
 

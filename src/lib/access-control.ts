@@ -1,12 +1,20 @@
 import type { Role } from "./types";
+import { isLiveSupabaseMode } from "./env-flags";
+import { createSupabaseUserClient } from "./supabase";
 
-export type RequestAccessSource = "anonymous" | "session";
+type MembershipRow = {
+  organization_id: string;
+  role: Role;
+};
+
+export type RequestAccessSource = "anonymous" | "header" | "session";
 
 export interface RequestAccessContext {
   profileId: string | null;
   organizationId: string | null;
   role: Role | null;
   source: RequestAccessSource;
+  accessToken?: string;
 }
 
 const ACCESS_HEADER_PREFIX = "x-kidmemo-";
@@ -44,7 +52,50 @@ export function getRequestAccessContext(request: Request): RequestAccessContext 
     profileId,
     organizationId,
     role,
-    source: "session"
+    source: "header"
+  };
+}
+
+export async function resolveRequestAccessContext(request: Request): Promise<RequestAccessContext> {
+  if (!isLiveSupabaseMode()) {
+    return getRequestAccessContext(request);
+  }
+
+  const accessToken = getBearerToken(request);
+  if (!accessToken) {
+    return anonymousAccess();
+  }
+
+  const supabase = createSupabaseUserClient(accessToken);
+  if (!supabase) {
+    throw new AccessControlError("supabase_not_configured", "Supabase 인증 설정이 필요합니다.", 500);
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+  if (userError || !userData.user) {
+    return anonymousAccess();
+  }
+
+  const requestedOrganizationId = normalizeHeader(request.headers.get(`${ACCESS_HEADER_PREFIX}organization-id`));
+  let query = supabase.from("memberships").select("organization_id, role").eq("profile_id", userData.user.id);
+
+  if (requestedOrganizationId) {
+    query = query.eq("organization_id", requestedOrganizationId);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: true }).limit(1);
+  if (error) {
+    throw error;
+  }
+
+  const membership = (data?.[0] ?? null) as MembershipRow | null;
+
+  return {
+    profileId: userData.user.id,
+    organizationId: membership?.organization_id ?? requestedOrganizationId,
+    role: membership?.role ?? null,
+    source: "session",
+    accessToken
   };
 }
 
@@ -54,6 +105,9 @@ export function assertOrganizationScope(
   message = "선택한 기관에 접근할 권한이 없습니다."
 ) {
   if (access.source === "anonymous" || !access.organizationId) {
+    if (isLiveSupabaseMode()) {
+      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+    }
     return;
   }
 
@@ -71,6 +125,9 @@ export function assertRoleScope(
   message = "이 작업을 수행할 권한이 없습니다."
 ) {
   if (access.source === "anonymous" || !access.role) {
+    if (isLiveSupabaseMode()) {
+      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+    }
     return;
   }
 
@@ -82,9 +139,47 @@ export function assertRoleScope(
   }
 }
 
+export function assertProfileScope(
+  access: RequestAccessContext,
+  profileId: string,
+  message = "선택한 사용자로 작업할 권한이 없습니다."
+) {
+  if (access.source === "anonymous" || !access.profileId) {
+    if (isLiveSupabaseMode()) {
+      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+    }
+    return;
+  }
+
+  if (access.profileId !== profileId) {
+    throw new AccessControlError("forbidden_profile", message, 403, {
+      requestedProfileId: profileId,
+      sessionProfileId: access.profileId
+    });
+  }
+}
+
 function normalizeHeader(value: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function anonymousAccess(): RequestAccessContext {
+  return {
+    profileId: null,
+    organizationId: null,
+    role: null,
+    source: "anonymous"
+  };
+}
+
+function getBearerToken(request: Request) {
+  const authorization = normalizeHeader(request.headers.get("authorization"));
+  if (!authorization?.toLowerCase().startsWith("bearer ")) {
+    return null;
+  }
+
+  return authorization.slice("bearer ".length).trim() || null;
 }
 
 function parseRole(value: string | null): Role | null {

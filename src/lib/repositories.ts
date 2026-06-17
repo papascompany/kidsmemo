@@ -1,8 +1,8 @@
 import { events, messageJobs } from "./mock-data";
-import { isEnabledEnvFlag } from "./env-flags";
+import { isLiveSupabaseMode } from "./env-flags";
 import { isTomorrow } from "./format";
-import type { RequestAccessContext } from "./access-control";
-import { createSupabaseServiceClient } from "./supabase";
+import { AccessControlError, type RequestAccessContext } from "./access-control";
+import { createSupabaseServiceClient, createSupabaseUserClient } from "./supabase";
 import type { EventSchedule, MessageJob } from "./types";
 
 type Row = Record<string, unknown>;
@@ -75,35 +75,56 @@ export const mockMessageJobRepository: MessageJobRepository = {
 
 export function getRepositories(_access?: RequestAccessContext): RepositorySet {
   const dataBackend = process.env.KIDSMEMO_DATA_BACKEND ?? "mock";
-  const allowLiveSupabase = isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_LIVE_SUPABASE);
 
-  if (dataBackend !== "supabase" || !allowLiveSupabase) {
+  if (dataBackend !== "supabase" || !isLiveSupabaseMode()) {
     return {
       events: mockEventRepository,
       messageJobs: mockMessageJobRepository
     };
   }
 
+  const supabase =
+    _access?.accessToken && _access.source === "session" ? createSupabaseUserClient(_access.accessToken) : null;
+
+  if (!supabase) {
+    throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+  }
+
+  return createSupabaseRepositories(supabase, _access);
+}
+
+export function getServiceRepositories(): RepositorySet {
   const supabase = createSupabaseServiceClient();
 
   if (!supabase) {
-    return {
-      events: mockEventRepository,
-      messageJobs: mockMessageJobRepository
-    };
+    throw new Error("Supabase service client is not configured.");
   }
 
-  return createSupabaseRepositories(supabase);
+  return createSupabaseRepositories(supabase, {
+    profileId: null,
+    organizationId: null,
+    role: "admin",
+    source: "session"
+  });
 }
 
-function createSupabaseRepositories(supabase: ReturnType<typeof createSupabaseServiceClient>): RepositorySet {
+function createSupabaseRepositories(
+  supabase: ReturnType<typeof createSupabaseServiceClient>,
+  access?: RequestAccessContext
+): RepositorySet {
   if (!supabase) {
     throw new Error("Supabase service client is not configured.");
   }
 
   const eventRepository: EventRepository = {
     async list() {
-      const { data, error } = await supabase.from("events").select("*").order("event_date", { ascending: true });
+      const organizationId = getReadableOrganizationId(access);
+      if (organizationId === null) {
+        return [];
+      }
+
+      const query = supabase.from("events").select("*").order("event_date", { ascending: true });
+      const { data, error } = await (organizationId ? query.eq("organization_id", organizationId) : query);
       if (error) throw error;
       return (data as Row[]).map(mapEvent);
     },
@@ -113,10 +134,16 @@ function createSupabaseRepositories(supabase: ReturnType<typeof createSupabaseSe
       return data ? mapEvent(data as Row) : undefined;
     },
     async findTomorrow(now) {
+      const organizationId = getReadableOrganizationId(access);
+      if (organizationId === null) {
+        return [];
+      }
+
       const tomorrow = new Date(now);
       tomorrow.setDate(now.getDate() + 1);
       const date = tomorrow.toISOString().slice(0, 10);
-      const { data, error } = await supabase.from("events").select("*").eq("event_date", date);
+      const query = supabase.from("events").select("*").eq("event_date", date);
+      const { data, error } = await (organizationId ? query.eq("organization_id", organizationId) : query);
       if (error) throw error;
       return (data as Row[]).map(mapEvent);
     },
@@ -157,6 +184,14 @@ function createSupabaseRepositories(supabase: ReturnType<typeof createSupabaseSe
     events: eventRepository,
     messageJobs: messageJobRepository
   };
+}
+
+function getReadableOrganizationId(access?: RequestAccessContext) {
+  if (access?.role === "admin") {
+    return undefined;
+  }
+
+  return access?.organizationId ?? null;
 }
 
 function mapEvent(row: Row): EventSchedule {

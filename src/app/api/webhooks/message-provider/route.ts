@@ -1,11 +1,11 @@
 import { handleApiError, ok } from "@/lib/api-response";
-import { assertRoleScope, getRequestAccessContext } from "@/lib/access-control";
+import { assertRoleScope, resolveRequestAccessContext } from "@/lib/access-control";
 import { messageProviderWebhookSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
     const payload = messageProviderWebhookSchema.parse(await request.json());
-    const access = getRequestAccessContext(request);
+    const access = await resolveRequestAccessContext(request);
     assertRoleScope(access, ["admin"]);
 
     return ok({
