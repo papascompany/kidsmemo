@@ -1,21 +1,18 @@
-import { ArrowRight, KeyRound, Mail, MessageCircle } from "lucide-react";
+import { AuthEmailForm } from "@/components/auth-email-form";
+import { AuthProviderOption } from "@/components/auth-provider-option";
+import { ArrowRight, KeyRound, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 const loginMethods = [
   {
     title: "카카오로 로그인",
-    description: "원장님과 선생님이 가장 익숙한 계정으로 빠르게 시작합니다.",
+    description: "OAuth 앱 설정이 완료되면 활성화됩니다.",
     icon: MessageCircle
   },
   {
     title: "구글로 로그인",
-    description: "기관 업무용 Google 계정이 있는 사용자를 위한 경로입니다.",
+    description: "기관 업무용 Google OAuth 연동을 준비 중입니다.",
     icon: KeyRound
-  },
-  {
-    title: "이메일로 로그인",
-    description: "이메일과 비밀번호 기반 로그인을 위한 기본 경로입니다.",
-    icon: Mail
   }
 ];
 
@@ -37,53 +34,18 @@ export default function LoginPage() {
 
           <div className="mt-6 grid gap-3">
             {loginMethods.map((method) => {
-              const Icon = method.icon;
-
               return (
-                <button
+                <AuthProviderOption
                   key={method.title}
-                  type="button"
-                  className="flex items-center justify-between gap-4 rounded border border-line bg-surface p-4 text-left transition hover:border-brand hover:bg-white"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded bg-brand/10 text-brand">
-                      <Icon size={20} aria-hidden />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-semibold text-ink">{method.title}</span>
-                      <span className="mt-1 block text-sm leading-5 text-muted">{method.description}</span>
-                    </span>
-                  </span>
-                  <ArrowRight size={18} className="shrink-0 text-muted" aria-hidden />
-                </button>
+                  description={method.description}
+                  icon={method.icon}
+                  title={method.title}
+                />
               );
             })}
           </div>
 
-          <form className="mt-6 grid gap-3 rounded border border-line bg-surface p-4">
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              이메일
-              <input
-                className="rounded border border-line bg-white px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="director@example.com"
-                type="email"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              비밀번호
-              <input
-                className="rounded border border-line bg-white px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                placeholder="비밀번호"
-                type="password"
-              />
-            </label>
-            <button
-              type="button"
-              className="rounded bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand/90"
-            >
-              로그인 준비 중
-            </button>
-          </form>
+          <AuthEmailForm mode="login" />
 
           <p className="mt-5 text-sm text-muted">
             아직 계정이 없다면{" "}

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "./badge";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 import { profiles } from "@/lib/mock-data";
 import { getOrganizationContext } from "@/lib/organization-context";
 import type { CouponUseSite, StaffCoupon } from "@/lib/types";
@@ -76,8 +77,9 @@ export function JumbokidsCouponWallet() {
     }
 
     try {
-      const response = await fetch(`/api/staff-coupons/${coupon.id}/download`, {
+      const response = await authenticatedFetch(`/api/staff-coupons/${coupon.id}/download`, {
         method: "POST",
+        organizationId: currentOrganization.id,
         headers: {
           "Content-Type": "application/json"
         },

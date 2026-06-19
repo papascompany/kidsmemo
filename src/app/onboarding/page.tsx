@@ -1,3 +1,4 @@
+import { OnboardingSessionNotice } from "@/components/onboarding-session-notice";
 import { ArrowRight, Building2, KeyRound, UsersRound } from "lucide-react";
 import Link from "next/link";
 
@@ -35,6 +36,7 @@ export default function OnboardingPage() {
             가입한 사용자는 프로필을 완성한 뒤 기관을 만들거나 초대 코드로 참여합니다.
             원장님과 선생님은 자신이 속한 기관의 데이터만 볼 수 있습니다.
           </p>
+          <OnboardingSessionNotice />
         </section>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-3">

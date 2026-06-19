@@ -258,6 +258,29 @@ Next execution order:
 - replacing mock repositories with live Supabase repositories
 - production deployment
 
+## 2026-06-19 QA/Deployment Live Status
+
+- QA/Deployment worker performed a documentation-only, read-only live status check.
+- No Vercel env mutation, deployment, Supabase local start, or app-code edit was performed.
+- Vercel production is `Ready`:
+  - URL: `https://kidsmemo.vercel.app`
+  - Deployment ID: `dpl_kMTyYgiDMxHHYtpcZ2h2GvkvNNn6`
+  - Created: 2026-06-17 22:14:25 KST
+- Live route checks:
+  - `/`: `200 OK`
+  - `/app`: `200 OK`
+  - `/admin`: `200 OK`
+  - `/api/events`: `401 Unauthorized`, `authentication_required`
+- Vercel production envs found:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `KIDSMEMO_DATA_BACKEND`
+  - `KIDSMEMO_ALLOW_LIVE_SUPABASE`
+- Vercel production envs still needed:
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` for browser auth and bearer-token user repository QA
+  - `SUPABASE_SERVICE_ROLE_KEY` only for explicit server-only job validation
+- Supabase migration status remains aligned: local and remote both show `20260617073000`.
+- Next exact QA gate: add the public anon key, create or identify two-organization test users plus platform admin, then run live auth/RLS smoke before any production confidence claim.
+
 ## 2026-06-17 Ops/DB Readiness Refresh
 
 - Ops/DB worker performed a documentation-only readiness check.

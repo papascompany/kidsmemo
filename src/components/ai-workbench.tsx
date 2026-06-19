@@ -2,6 +2,7 @@
 
 import { Bot, Copy, Printer, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 import type {
   EventAssistantRequest,
   EventAssistantResult,
@@ -118,7 +119,7 @@ export function AiWorkbench() {
     setAssistantStatus(null);
 
     try {
-      const response = await fetch("/api/ai/event-assistant", {
+      const response = await authenticatedFetch("/api/ai/event-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -149,7 +150,7 @@ export function AiWorkbench() {
     setMessageStatus(null);
 
     try {
-      const response = await fetch("/api/ai/parent-message", {
+      const response = await authenticatedFetch("/api/ai/parent-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

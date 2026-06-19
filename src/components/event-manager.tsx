@@ -1,8 +1,9 @@
 "use client";
 
 import { CalendarPlus, CheckCircle2, Pencil, RotateCcw, Save } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 import { events as initialEvents, organizations } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import { getPrimaryOrganizationId } from "@/lib/organization-context";
@@ -62,6 +63,41 @@ export function EventManager() {
   const [showDetails, setShowDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadEvents() {
+      try {
+        const response = await authenticatedFetch("/api/events", {
+          organizationId: form.organizationId
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            setStatus("로그인 후 live 행사 데이터를 불러올 수 있습니다.");
+          }
+          return;
+        }
+
+        const loadedEvents = unwrapData<EventSchedule[]>(await response.json());
+        if (isMounted && Array.isArray(loadedEvents)) {
+          setEvents(loadedEvents);
+          setStatus(null);
+        }
+      } catch {
+        if (isMounted) {
+          setStatus("행사 목록은 현재 데모 데이터로 표시됩니다.");
+        }
+      }
+    }
+
+    void loadEvents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [form.organizationId]);
 
   const sortedEvents = useMemo(
     () => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)),
@@ -125,9 +161,10 @@ export function EventManager() {
     };
 
     try {
-      const response = await fetch(editingId ? `/api/events/${editingId}` : "/api/events", {
+      const response = await authenticatedFetch(editingId ? `/api/events/${editingId}` : "/api/events", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
+        organizationId: payload.organizationId,
         body: JSON.stringify(payload)
       });
 

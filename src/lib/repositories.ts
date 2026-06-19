@@ -1,7 +1,7 @@
 import { events, messageJobs } from "./mock-data";
 import { isLiveSupabaseMode } from "./env-flags";
 import { isTomorrow } from "./format";
-import { AccessControlError, type RequestAccessContext } from "./access-control";
+import { AccessControlError, assertLiveSupabaseAnonConfigured, type RequestAccessContext } from "./access-control";
 import { createSupabaseServiceClient, createSupabaseUserClient } from "./supabase";
 import type { EventSchedule, MessageJob } from "./types";
 
@@ -83,10 +83,12 @@ export function getRepositories(_access?: RequestAccessContext): RepositorySet {
     };
   }
 
-  const supabase =
-    _access?.accessToken && _access.source === "session" ? createSupabaseUserClient(_access.accessToken) : null;
+  const supabase = _access?.accessToken && _access.source === "session"
+    ? createSupabaseUserClient(_access.accessToken)
+    : null;
 
   if (!supabase) {
+    assertLiveSupabaseAnonConfigured();
     throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
   }
 

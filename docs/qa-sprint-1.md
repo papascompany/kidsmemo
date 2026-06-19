@@ -2,7 +2,66 @@
 
 ## Latest Verification
 
-Run date: 2026-06-17
+Run date: 2026-06-19
+
+- Live production deployment inspected with `npx vercel inspect https://kidsmemo.vercel.app`: status `Ready`, target `production`, deployment `dpl_kMTyYgiDMxHHYtpcZ2h2GvkvNNn6`, created 2026-06-17 22:14:25 KST.
+- Live aliases: `https://kidsmemo.vercel.app`, `https://kidsmemo-yohans-projects-de3234df.vercel.app`, and `https://kidsmemo-papas-yohan-yohans-projects-de3234df.vercel.app`.
+- `HEAD https://kidsmemo.vercel.app`: `200 OK`.
+- `HEAD https://kidsmemo.vercel.app/app`: `200 OK`.
+- `HEAD https://kidsmemo.vercel.app/admin`: `200 OK`.
+- `GET https://kidsmemo.vercel.app/api/events`: `401 Unauthorized` with `{ ok: false, error: { code: "authentication_required", message: "로그인이 필요한 작업입니다." } }`.
+- Vercel production env list contains `NEXT_PUBLIC_SUPABASE_URL`, `KIDSMEMO_DATA_BACKEND`, and `KIDSMEMO_ALLOW_LIVE_SUPABASE`.
+- Vercel production env list does not show `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY`.
+- The `401 authentication_required` API response implies the live backend flags are armed in production. Real browser login/signup and bearer-token API QA remain blocked until `NEXT_PUBLIC_SUPABASE_ANON_KEY` is added.
+- Supabase remote migration list matches local migration `20260617073000`.
+- No Vercel env mutation, deploy, or app-code edit was performed in this pass.
+
+## 2026-06-19 Live QA Checklist
+
+Blocked prerequisite:
+
+- Add `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the intended Vercel environment before real login/signup QA. Keep this as a public anon key only; do not use the service-role key in browser-exposed env.
+- Create or identify QA users in Supabase Auth:
+  - owner or manager in organization A
+  - teacher in organization A
+  - owner or manager in organization B
+  - platform admin account, if the admin-console route is ready for live admin validation
+- Confirm each QA user has a `profiles` row and the expected `memberships` row before route testing.
+
+Read-only live availability:
+
+- Confirm `https://kidsmemo.vercel.app` returns `200`.
+- Confirm `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding` return `200`.
+- Confirm `/api/events` without an Authorization header returns `401 authentication_required`.
+- Confirm an invalid bearer token returns an auth failure and does not expose mock data.
+
+Auth and session smoke after anon key is present:
+
+- Visit `/login` and verify the missing-public-key warning no longer appears when submitting the email form.
+- Sign in as the organization A owner/manager and open `/app`.
+- Capture the Supabase access token from the browser session only for CLI smoke testing; do not paste it into docs or commit it.
+- Call `GET /api/events` with `Authorization: Bearer <org-a-owner-token>` and verify it returns only organization A data.
+- Repeat with organization A teacher and verify role-allowed reads work.
+- Repeat with organization B owner/manager and verify organization A data is not returned.
+
+Live CRUD and RLS smoke:
+
+- As organization A owner/manager, create one clearly labeled QA event through the UI or API.
+- Patch that QA event and confirm the update is visible only to organization A members.
+- Try to patch the organization A event with an organization B token and confirm `403` or equivalent denial.
+- Try staff coupon read/download with organization A and organization B tokens and confirm coupon visibility is organization-scoped.
+- Run AI event assistant and parent-message flows while signed in and confirm generated records, if persisted, are organization-scoped.
+
+Manual browser QA after auth smoke:
+
+- Re-run the 320, 390, 768, and 1440 px matrix for `/`, `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding`.
+- Confirm live login state does not expose mock fallback headers or cross-organization data.
+- Confirm `/app#ai-helper` print preview still hides dashboard chrome and prints AI result panels cleanly.
+- Confirm coupon copy/download works only for the signed-in user's organization.
+
+Rollback gate:
+
+- If auth, RLS, or organization scoping fails, turn production back to mock mode by changing Vercel env in a separate approved ops task; do not attempt doc-only QA fixes.
 
 - `npm run lint`: passed after legacy coupon removal.
 - `npm run build`: passed after legacy coupon removal.

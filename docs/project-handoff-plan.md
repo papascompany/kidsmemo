@@ -583,6 +583,30 @@ Supabase project link를 재확인했고, 첫 timestamped migration을 원격 DB
 - 실제 Supabase test user 2개 기관 + platform admin 계정으로 RLS smoke test를 해야 한다.
 - Vercel preview/prod env live 전환은 별도 승인 단계로 둔다.
 
+### 2026-06-19 Live Production Status
+
+QA/Deployment worker가 문서 범위에서 read-only live 상태를 확인했다. Vercel env 변경, deploy, Supabase local start, app code 수정은 하지 않았다.
+
+확인 결과:
+
+- Vercel production URL `https://kidsmemo.vercel.app`는 `200 OK`.
+- `/app`와 `/admin`도 `200 OK`.
+- `npx vercel inspect https://kidsmemo.vercel.app` 기준 production deployment는 `Ready`.
+  - Deployment ID: `dpl_kMTyYgiDMxHHYtpcZ2h2GvkvNNn6`
+  - Deployment URL: `https://kidsmemo-2u6btgm6f-yohans-projects-de3234df.vercel.app`
+  - Created: 2026-06-17 22:14:25 KST
+- Vercel production env에는 `NEXT_PUBLIC_SUPABASE_URL`, `KIDSMEMO_DATA_BACKEND`, `KIDSMEMO_ALLOW_LIVE_SUPABASE`가 있다.
+- Vercel production env 목록에는 `NEXT_PUBLIC_SUPABASE_ANON_KEY`와 `SUPABASE_SERVICE_ROLE_KEY`가 없다.
+- `GET https://kidsmemo.vercel.app/api/events`는 anonymous 요청에서 `401 authentication_required`를 반환한다.
+- Supabase migration list는 local/remote 모두 `20260617073000`.
+
+해석:
+
+- Production live flags는 켜진 상태로 보인다. anonymous API가 mock events를 반환하지 않고 auth-required로 막힌다.
+- 그러나 Supabase public anon key가 없어 실제 브라우저 로그인/가입과 bearer-token 기반 user-scoped repository QA는 아직 막혀 있다.
+- 다음 live QA는 production 또는 의도한 preview 환경에 `NEXT_PUBLIC_SUPABASE_ANON_KEY`를 추가한 뒤 진행해야 한다.
+- `SUPABASE_SERVICE_ROLE_KEY`는 일반 사용자 CRUD에는 필요하지 않지만, 명시적 server-only job 검증에는 필요하다. 브라우저 노출 금지.
+
 ## 8. 다음 작업 계획
 
 ### 다음 CTO 액션

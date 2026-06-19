@@ -34,6 +34,24 @@ export class AccessControlError extends Error {
   }
 }
 
+export function assertLiveSupabaseAnonConfigured() {
+  const missingKeys = [
+    ["NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL],
+    ["NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY]
+  ]
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingKeys.length > 0) {
+    throw new AccessControlError(
+      "supabase_anon_key_missing",
+      "Live Supabase 인증에는 NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY 설정이 필요합니다.",
+      500,
+      { missingKeys }
+    );
+  }
+}
+
 export function getRequestAccessContext(request: Request): RequestAccessContext {
   const profileId = normalizeHeader(request.headers.get(`${ACCESS_HEADER_PREFIX}profile-id`));
   const organizationId = normalizeHeader(request.headers.get(`${ACCESS_HEADER_PREFIX}organization-id`));
@@ -60,6 +78,8 @@ export async function resolveRequestAccessContext(request: Request): Promise<Req
   if (!isLiveSupabaseMode()) {
     return getRequestAccessContext(request);
   }
+
+  assertLiveSupabaseAnonConfigured();
 
   const accessToken = getBearerToken(request);
   if (!accessToken) {
@@ -92,7 +112,7 @@ export async function resolveRequestAccessContext(request: Request): Promise<Req
 
   return {
     profileId: userData.user.id,
-    organizationId: membership?.organization_id ?? requestedOrganizationId,
+    organizationId: membership?.organization_id ?? null,
     role: membership?.role ?? null,
     source: "session",
     accessToken
@@ -104,11 +124,18 @@ export function assertOrganizationScope(
   organizationId: string,
   message = "선택한 기관에 접근할 권한이 없습니다."
 ) {
-  if (access.source === "anonymous" || !access.organizationId) {
+  if (access.source === "anonymous") {
     if (isLiveSupabaseMode()) {
       throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
     }
     return;
+  }
+
+  if (!access.organizationId) {
+    throw new AccessControlError("forbidden_organization", message, 403, {
+      requestedOrganizationId: organizationId,
+      sessionOrganizationId: null
+    });
   }
 
   if (access.organizationId !== organizationId) {
@@ -124,11 +151,18 @@ export function assertRoleScope(
   allowedRoles: Role[],
   message = "이 작업을 수행할 권한이 없습니다."
 ) {
-  if (access.source === "anonymous" || !access.role) {
+  if (access.source === "anonymous") {
     if (isLiveSupabaseMode()) {
       throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
     }
     return;
+  }
+
+  if (!access.role) {
+    throw new AccessControlError("forbidden_role", message, 403, {
+      role: null,
+      allowedRoles
+    });
   }
 
   if (!allowedRoles.includes(access.role)) {
@@ -144,11 +178,18 @@ export function assertProfileScope(
   profileId: string,
   message = "선택한 사용자로 작업할 권한이 없습니다."
 ) {
-  if (access.source === "anonymous" || !access.profileId) {
+  if (access.source === "anonymous") {
     if (isLiveSupabaseMode()) {
       throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
     }
     return;
+  }
+
+  if (!access.profileId) {
+    throw new AccessControlError("forbidden_profile", message, 403, {
+      requestedProfileId: profileId,
+      sessionProfileId: null
+    });
   }
 
   if (access.profileId !== profileId) {

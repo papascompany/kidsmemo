@@ -1,8 +1,8 @@
 # Kidsmemo Deployment And Environment Inventory
 
-Run date: 2026-06-10
+Run date: 2026-06-19
 
-Latest readiness check: 2026-06-17. Supabase project link was revalidated, `supabase db push` applied the first migration, and Vercel was linked to the existing `kidsmemo` project. No production deploy or Supabase local start was run.
+Latest readiness check: 2026-06-19. Production Vercel and linked Supabase status were checked with read-only CLI/HTTP commands. No Vercel env mutation, production deploy, Supabase local start, or app-code edit was run.
 
 ## Current Deployment State
 
@@ -26,7 +26,15 @@ Latest readiness check: 2026-06-17. Supabase project link was revalidated, `supa
   - Remote `20260617073000`
 - Supabase linked DB lint:
   - `supabase db lint --linked --fail-on error`: passed, no schema errors found
-- Production deployment: blocked until explicit approval.
+- Current production deployment status: `Ready` at `https://kidsmemo.vercel.app`.
+  - Deployment ID: `dpl_kMTyYgiDMxHHYtpcZ2h2GvkvNNn6`
+  - Deployment URL: `https://kidsmemo-2u6btgm6f-yohans-projects-de3234df.vercel.app`
+  - Created: 2026-06-17 22:14:25 KST
+  - Read-only live route checks on 2026-06-19:
+    - `/`: `200 OK`
+    - `/app`: `200 OK`
+    - `/admin`: `200 OK`
+    - `/api/events`: `401 Unauthorized`, `authentication_required`
 
 ## Runtime And Build
 
@@ -54,8 +62,8 @@ Latest readiness check: 2026-06-17. Supabase project link was revalidated, `supa
 | Variable | Status | Notes |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Listed | Project URL is `https://fhakjrppirmjdgqlljzd.supabase.co`; keep backend mode as `mock` until auth/RLS guards are ready. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Listed | Public client key, still blocked for live auth phase. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Listed | Server-only; must not be exposed to browser or used by normal user routes. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Missing from Vercel production env list on 2026-06-19 | Required for browser login/signup and bearer-token user repository QA. Public anon key only. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Missing from Vercel production env list on 2026-06-19 | Server-only; needed only for explicit service-role jobs, not normal user routes. Must never be exposed to browser. |
 
 Safety check:
 
@@ -66,6 +74,8 @@ Safety check:
 - Reserved request headers for the next auth/session layer: `x-kidmemo-profile-id`, `x-kidmemo-organization-id`, `x-kidmemo-role`.
 - Those headers now gate the event, reminder job, and staff coupon download skeleton routes when a session is present.
 - The same headers now gate AI workbench and internal webhook skeleton routes when a session is present.
+- 2026-06-19 production env list includes `NEXT_PUBLIC_SUPABASE_URL`, `KIDSMEMO_DATA_BACKEND`, and `KIDSMEMO_ALLOW_LIVE_SUPABASE` for Production only.
+- 2026-06-19 live `/api/events` returns `401 authentication_required`, which implies the production live flags are armed. The missing anon key still blocks real browser auth and token-backed live QA.
 
 ### AI Providers
 
@@ -119,9 +129,29 @@ Remaining after `supabase db push`:
 
 1. Run read-only schema checks in Supabase Studio or `psql`: tables, enums, indexes, functions, and RLS enabled state.
 2. Verify policies with test users from at least two organizations plus a platform admin.
-3. Keep Vercel preview/prod on `KIDSMEMO_DATA_BACKEND=mock` until verified test-user RLS smoke tests pass.
-4. Only after RLS smoke verification, set `KIDSMEMO_DATA_BACKEND=supabase` and `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` in a non-production environment first.
+3. Production currently appears to have live flags armed. Before deeper live QA, add the missing production `NEXT_PUBLIC_SUPABASE_ANON_KEY` or intentionally roll production back to mock mode in a separate approved ops task.
+4. After the anon key is present, run test-user RLS smoke before relying on production live CRUD.
 5. Smoke test `/app`, event CRUD, staff coupon read/download, AI history writes, and reminder-job idempotency before any production rollout.
+
+## 2026-06-19 Live Status Check
+
+Commands and results:
+
+- `npx vercel env ls`: production envs present for `NEXT_PUBLIC_SUPABASE_URL`, `KIDSMEMO_DATA_BACKEND`, and `KIDSMEMO_ALLOW_LIVE_SUPABASE`; missing `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`.
+- `npx vercel inspect https://kidsmemo.vercel.app`: production deployment `Ready`.
+- `Invoke-WebRequest -Uri https://kidsmemo.vercel.app -Method Head`: `200 OK`.
+- `Invoke-WebRequest -Uri https://kidsmemo.vercel.app/app -Method Head`: `200 OK`.
+- `Invoke-WebRequest -Uri https://kidsmemo.vercel.app/admin -Method Head`: `200 OK`.
+- `Invoke-WebRequest -Uri https://kidsmemo.vercel.app/api/events -Method Get -SkipHttpErrorCheck`: `401 Unauthorized`, `authentication_required`.
+- `supabase migration list`: local and remote both show migration `20260617073000`.
+
+Current interpretation:
+
+- Vercel production is live and reachable.
+- Supabase hosted DB migration state is aligned with the local first migration.
+- Production API routes are no longer serving anonymous mock event data.
+- The browser auth path cannot be validated until `NEXT_PUBLIC_SUPABASE_ANON_KEY` is added to the target Vercel environment.
+- Server-only job paths that require service-role Supabase access cannot be live-validated until `SUPABASE_SERVICE_ROLE_KEY` is added, but that value is not required for normal user-scoped CRUD.
 
 ## 2026-06-17 Session Guard And Repository Split
 

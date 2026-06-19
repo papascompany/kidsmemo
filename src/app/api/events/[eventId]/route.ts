@@ -1,5 +1,10 @@
 import { handleApiError, notFound, ok } from "@/lib/api-response";
-import { assertOrganizationScope, assertRoleScope, resolveRequestAccessContext } from "@/lib/access-control";
+import {
+  AccessControlError,
+  assertOrganizationScope,
+  assertRoleScope,
+  resolveRequestAccessContext
+} from "@/lib/access-control";
 import { getRepositories } from "@/lib/repositories";
 import { eventUpdateSchema } from "@/lib/validation";
 
@@ -19,7 +24,14 @@ export async function PATCH(
 
     assertOrganizationScope(access, event.organizationId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
-    const payload = eventUpdateSchema.parse(await request.json());
+    const { organizationId, ...payload } = eventUpdateSchema.parse(await request.json());
+    if (organizationId && organizationId !== event.organizationId) {
+      throw new AccessControlError("forbidden_organization_change", "행사의 기관은 변경할 수 없습니다.", 403, {
+        requestedOrganizationId: organizationId,
+        eventOrganizationId: event.organizationId
+      });
+    }
+
     const updatedEvent = await repositories.events.update(eventId, payload);
 
     return ok(updatedEvent);

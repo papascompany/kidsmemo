@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { handleApiError, ok } from "@/lib/api-response";
+import { apiError, handleApiError, ok } from "@/lib/api-response";
 import {
   assertOrganizationScope,
   assertProfileScope,
   assertRoleScope,
   resolveRequestAccessContext
 } from "@/lib/access-control";
+import { isLiveSupabaseMode } from "@/lib/env-flags";
 import {
   getStaffCouponById,
   staffCouponDownloads,
@@ -25,6 +26,15 @@ export async function POST(
     const { couponId } = await params;
     const payload = schema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+
+    if (isLiveSupabaseMode()) {
+      return apiError(
+        "live_coupon_download_unavailable",
+        "Live Supabase 모드에서는 교직원 쿠폰 다운로드 기록이 아직 mock 전용입니다.",
+        501
+      );
+    }
+
     const coupon = getStaffCouponById(couponId);
 
     if (!coupon) {

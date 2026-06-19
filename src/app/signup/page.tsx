@@ -1,21 +1,18 @@
-import { ArrowRight, Building2, Mail, MessageCircle, ShieldCheck } from "lucide-react";
+import { AuthEmailForm } from "@/components/auth-email-form";
+import { AuthProviderOption } from "@/components/auth-provider-option";
+import { ArrowRight, Building2, MessageCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 const signupOptions = [
   {
     title: "카카오 간편가입",
-    description: "개인 휴대폰 기반으로 빠르게 가입하고 기관 인증으로 이어집니다.",
+    description: "OAuth 앱 설정이 완료되면 활성화됩니다.",
     icon: MessageCircle
   },
   {
     title: "구글 간편가입",
-    description: "기관 업무용 계정으로 가입하는 원장님과 선생님에게 적합합니다.",
+    description: "기관 업무용 Google OAuth 연동을 준비 중입니다.",
     icon: ShieldCheck
-  },
-  {
-    title: "이메일 직접가입",
-    description: "OAuth 없이 이메일과 비밀번호로 기본 계정을 만듭니다.",
-    icon: Mail
   }
 ];
 
@@ -34,33 +31,23 @@ export default function SignupPage() {
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
               가입 후 점보키즈 아이디 회원인증 또는 초대 코드 참여를 통해 기관별 대시보드로
-              이동합니다. 실제 OAuth 연동 전까지는 화면과 상태 설계를 먼저 고정합니다.
+              이동합니다. 이메일과 비밀번호 가입은 Supabase 설정이 있을 때 실제 계정을 만듭니다.
             </p>
 
             <div className="mt-6 grid gap-3">
               {signupOptions.map((option) => {
-                const Icon = option.icon;
-
                 return (
-                  <Link
+                  <AuthProviderOption
                     key={option.title}
-                    href="/signup/jumbokids"
-                    className="flex items-center justify-between gap-4 rounded border border-line bg-surface p-4 transition hover:border-brand hover:bg-white"
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded bg-brand/10 text-brand">
-                        <Icon size={20} aria-hidden />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-ink">{option.title}</span>
-                        <span className="mt-1 block text-sm leading-5 text-muted">{option.description}</span>
-                      </span>
-                    </span>
-                    <ArrowRight size={18} className="shrink-0 text-muted" aria-hidden />
-                  </Link>
+                    description={option.description}
+                    icon={option.icon}
+                    title={option.title}
+                  />
                 );
               })}
             </div>
+
+            <AuthEmailForm mode="signup" />
           </div>
 
           <aside className="rounded border border-line bg-white p-6 shadow-soft">
