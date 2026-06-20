@@ -1,13 +1,13 @@
 "use client";
 
-import { CalendarPlus, CheckCircle2, Pencil, RotateCcw, Save } from "lucide-react";
+import { CalendarPlus, Pencil, RotateCcw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
-import { events as initialEvents, organizations } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
+import { events as initialEvents, organizations } from "@/lib/mock-data";
 import { getPrimaryOrganizationId } from "@/lib/organization-context";
-import type { EventSchedule } from "@/lib/types";
+import type { EventSchedule, Organization } from "@/lib/types";
 
 type EventFormState = {
   organizationId: string;
@@ -19,14 +19,10 @@ type EventFormState = {
   supplies: string;
 };
 
-const emptyForm: EventFormState = {
-  organizationId: getPrimaryOrganizationId(),
-  title: "",
-  eventDate: "2026-06-03",
-  audience: "전체 원아",
-  classNames: "전체",
-  description: "",
-  supplies: ""
+type EventManagerProps = {
+  availableOrganizations?: Organization[];
+  initialOrganizationId?: string;
+  initialEventList?: EventSchedule[];
 };
 
 const eventTemplates = [
@@ -56,13 +52,25 @@ const eventTemplates = [
   }
 ];
 
-export function EventManager() {
-  const [events, setEvents] = useState(initialEvents);
-  const [form, setForm] = useState<EventFormState>(emptyForm);
+export function EventManager({
+  availableOrganizations = organizations,
+  initialOrganizationId = getPrimaryOrganizationId(),
+  initialEventList = initialEvents
+}: EventManagerProps) {
+  const [events, setEvents] = useState(initialEventList);
+  const [form, setForm] = useState<EventFormState>(() => createEmptyForm(initialOrganizationId));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEvents(initialEventList);
+    setForm((current) => ({
+      ...current,
+      organizationId: initialOrganizationId
+    }));
+  }, [initialEventList, initialOrganizationId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -128,7 +136,7 @@ export function EventManager() {
     setEditingId(null);
     setStatus(null);
     setShowDetails(false);
-    setForm(emptyForm);
+    setForm(createEmptyForm(initialOrganizationId));
   }
 
   function applyTemplate(template: {
@@ -173,7 +181,6 @@ export function EventManager() {
       }
 
       const saved = normalizeEvent(unwrapData<EventSchedule>(await response.json()), payload);
-
       setEvents((current) => {
         if (editingId) {
           return current.map((event) => (event.id === editingId ? saved : event));
@@ -183,7 +190,7 @@ export function EventManager() {
       });
       setStatus(editingId ? "행사 수정 요청이 저장되었습니다." : "새 행사 등록 요청이 저장되었습니다.");
       if (!editingId) {
-        setForm({ ...emptyForm, title: "", description: "", supplies: "" });
+        setForm({ ...createEmptyForm(initialOrganizationId), title: "", description: "", supplies: "" });
       }
     } catch {
       setStatus("저장에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
@@ -269,7 +276,7 @@ export function EventManager() {
                   onChange={(event) => updateField("organizationId", event.target.value)}
                   className="w-full rounded border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
                 >
-                  {organizations.map((organization) => (
+                  {availableOrganizations.map((organization) => (
                     <option key={organization.id} value={organization.id}>
                       {organization.name}
                     </option>
@@ -344,39 +351,49 @@ export function EventManager() {
           <span className="text-right">관리</span>
         </div>
         <div className="divide-y divide-line">
-          {sortedEvents.map((event) => {
-            return (
-              <article
-                key={event.id}
-                className="grid gap-3 px-4 py-4 lg:grid-cols-[1.4fr_0.8fr_0.6fr_auto]"
-              >
-                <div>
-                  <h3 className="font-semibold text-ink">{event.title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-muted">
-                    {event.description || "설명 없음"} · {event.classNames.join(", ")}
-                  </p>
-                </div>
-                <p className="text-sm font-semibold text-ink">{formatDate(event.eventDate)}</p>
-                <div>
-                  <Badge tone={getReminderTone(event.reminderStatus)}>{event.reminderStatus}</Badge>
-                </div>
-                <div className="flex justify-start lg:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(event)}
-                    className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-                  >
-                    <Pencil size={16} aria-hidden />
-                    수정
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+          {sortedEvents.map((event) => (
+            <article
+              key={event.id}
+              className="grid gap-3 px-4 py-4 lg:grid-cols-[1.4fr_0.8fr_0.6fr_auto]"
+            >
+              <div>
+                <h3 className="font-semibold text-ink">{event.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">
+                  {event.description || "설명 없음"} · {event.classNames.join(", ")}
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-ink">{formatDate(event.eventDate)}</p>
+              <div>
+                <Badge tone={getReminderTone(event.reminderStatus)}>{event.reminderStatus}</Badge>
+              </div>
+              <div className="flex justify-start lg:justify-end">
+                <button
+                  type="button"
+                  onClick={() => startEdit(event)}
+                  className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                >
+                  <Pencil size={16} aria-hidden />
+                  수정
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </div>
   );
+}
+
+function createEmptyForm(organizationId = getPrimaryOrganizationId()): EventFormState {
+  return {
+    organizationId,
+    title: "",
+    eventDate: "2026-06-03",
+    audience: "전체 원아",
+    classNames: "전체",
+    description: "",
+    supplies: ""
+  };
 }
 
 function Field({

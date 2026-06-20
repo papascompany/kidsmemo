@@ -1,9 +1,12 @@
+"use client";
+
 import {
   ArrowRight,
   CalendarDays,
   ClipboardCheck,
   Gift
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AiWorkbench } from "@/components/ai-workbench";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge";
@@ -11,12 +14,52 @@ import { EventManager } from "@/components/event-manager";
 import { JumbokidsCouponWallet } from "@/components/jumbokids-coupon-wallet";
 import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 import { messageJobs } from "@/lib/mock-data";
+import type { OrganizationContext } from "@/lib/organization-context";
 import { getReminderHealth } from "@/lib/reminders";
 
 export function KidsmemoDashboard() {
+  const [liveContext, setLiveContext] = useState<OrganizationContext | null>(null);
+  const [liveStatus, setLiveStatus] = useState<"loading" | "ready" | "fallback">("loading");
   const queuedJobs = messageJobs.filter((job) => job.status === "queued");
   const health = getReminderHealth();
+  const liveOrganizations = useMemo(
+    () => (liveContext ? [liveContext.organization] : undefined),
+    [liveContext]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLiveContext() {
+      try {
+        const response = await authenticatedFetch("/api/session/context");
+        if (!response.ok) {
+          if (isMounted) {
+            setLiveStatus("fallback");
+          }
+          return;
+        }
+
+        const context = unwrapData<OrganizationContext>(await response.json());
+        if (isMounted) {
+          setLiveContext(context);
+          setLiveStatus("ready");
+        }
+      } catch {
+        if (isMounted) {
+          setLiveStatus("fallback");
+        }
+      }
+    }
+
+    void loadLiveContext();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <AppShell>
@@ -35,7 +78,9 @@ export function KidsmemoDashboard() {
           <div className="flex max-w-full flex-wrap gap-2">
             <Badge tone="green">클릭 동선 축소</Badge>
             <Badge tone="blue">모바일 우선</Badge>
-            <Badge tone="amber">Mock Fallback</Badge>
+            <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
+              {liveStatus === "ready" ? "Live Supabase" : liveStatus === "loading" ? "세션 확인 중" : "Mock Fallback"}
+            </Badge>
           </div>
         </div>
 
@@ -61,7 +106,7 @@ export function KidsmemoDashboard() {
         </div>
 
         <div className="mt-6">
-          <OrganizationWorkspace />
+          <OrganizationWorkspace context={liveContext} liveMode={liveStatus === "ready"} />
         </div>
 
         <div className="mt-6 grid gap-3 rounded border border-line bg-white p-4 shadow-soft md:grid-cols-3">
@@ -78,7 +123,11 @@ export function KidsmemoDashboard() {
         description="원별 행사를 등록하고 준비물, 일정 상태, 행사 전 안내 작업을 한곳에서 점검합니다."
       >
         <div className="grid gap-4">
-          <EventManager />
+          <EventManager
+            availableOrganizations={liveOrganizations}
+            initialEventList={liveContext?.events}
+            initialOrganizationId={liveContext?.organization.id}
+          />
 
           <aside className="rounded border border-line bg-white p-4 shadow-soft">
             <h3 className="text-lg font-semibold text-ink">내일 발송 점검</h3>
@@ -112,6 +161,19 @@ export function KidsmemoDashboard() {
       <div className="no-print h-10" />
     </AppShell>
   );
+}
+
+function unwrapData<T>(payload: unknown): T {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    (payload as { data?: unknown }).data
+  ) {
+    return (payload as { data: T }).data;
+  }
+
+  return payload as T;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

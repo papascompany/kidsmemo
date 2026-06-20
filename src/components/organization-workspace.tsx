@@ -16,7 +16,7 @@ import {
 import { Badge } from "./badge";
 import { messageDeliveries, messageJobs } from "@/lib/mock-data";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { getOrganizationContext } from "@/lib/organization-context";
+import { getOrganizationContext, type OrganizationContext } from "@/lib/organization-context";
 import type { EventSchedule, Profile, StaffCoupon } from "@/lib/types";
 
 const workspaceImage =
@@ -45,9 +45,15 @@ const aiAdviceHistory = [
   }
 ];
 
-export function OrganizationWorkspace() {
+export function OrganizationWorkspace({
+  context,
+  liveMode = false
+}: {
+  context?: OrganizationContext | null;
+  liveMode?: boolean;
+}) {
   const { organization: currentOrganization, director, events: organizationEvents, coupons: organizationCoupons } =
-    getOrganizationContext();
+    context ?? getOrganizationContext();
   const organizationEventIds = new Set(organizationEvents.map((event) => event.id));
   const organizationJobs = messageJobs.filter((job) => organizationEventIds.has(job.eventId));
   const organizationDeliveries = messageDeliveries.filter((delivery) =>
@@ -67,7 +73,7 @@ export function OrganizationWorkspace() {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="green">현재 기관</Badge>
                 <span className="rounded border border-white/25 bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
-                  원장 워크스페이스
+                  {liveMode ? "Live Supabase" : "원장 워크스페이스"}
                 </span>
               </div>
               <h1 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight tracking-normal sm:text-4xl lg:text-5xl">
