@@ -2,7 +2,18 @@
 
 ## Latest Verification
 
-Run date: 2026-06-19
+Run date: 2026-06-20
+
+- Local service-role bootstrap created or reused the default owner QA account, profile, organization, membership, and seed event for organization `70190539-92f8-4d48-9f44-a515c0b53e34`.
+- Supabase Auth password login for the default owner QA account returned a bearer token; the token was used only for live smoke testing and was not recorded.
+- `GET https://kidsmemo.vercel.app/api/events` without a bearer token returned `401 Unauthorized`.
+- `GET https://kidsmemo.vercel.app/api/events` with bearer token plus the default organization header returned `200 OK` and organization-scoped events.
+- `POST https://kidsmemo.vercel.app/api/events` with bearer token plus the default organization header returned `201 Created`.
+- `GET https://kidsmemo.vercel.app/api/events` with the same bearer token but a non-member organization header returned `200 OK` with an empty list.
+- `POST https://kidsmemo.vercel.app/api/events` with the same bearer token and a non-member organization id returned `403 forbidden_organization`.
+- Real browser login/signup UI QA is still pending; the API-level bearer-token and RLS smoke path is now verified against production.
+
+## 2026-06-19 Live Verification
 
 - Live production deployment inspected with `npx vercel inspect https://kidsmemo.vercel.app`: status `Ready`, target `production`, deployment `dpl_kMTyYgiDMxHHYtpcZ2h2GvkvNNn6`, created 2026-06-17 22:14:25 KST.
 - Live aliases: `https://kidsmemo.vercel.app`, `https://kidsmemo-yohans-projects-de3234df.vercel.app`, and `https://kidsmemo-papas-yohan-yohans-projects-de3234df.vercel.app`.
@@ -135,6 +146,24 @@ Manual checks:
 - Confirm the product copy describes joining by creating an organization or using an invite code.
 - Confirm the Supabase schema has tables or contracts for `organizations`, `profiles`, and `memberships`.
 - Confirm role labels cover `owner`, `manager`, `teacher`, and `admin`.
+
+Bootstrap smoke setup:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://fhakjrppirmjdgqlljzd.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=... \
+npm run bootstrap:test-membership
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:NEXT_PUBLIC_SUPABASE_URL="https://fhakjrppirmjdgqlljzd.supabase.co"
+$env:SUPABASE_SERVICE_ROLE_KEY="..."
+npm run bootstrap:test-membership
+```
+
+The script creates or reuses a confirmed test auth user, profile, organization, owner membership, and a seed event for RLS smoke testing.
 
 Supabase-ready checks once connected:
 

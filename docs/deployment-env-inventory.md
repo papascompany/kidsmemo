@@ -1,8 +1,8 @@
 # Kidsmemo Deployment And Environment Inventory
 
-Run date: 2026-06-19
+Run date: 2026-06-20
 
-Latest readiness check: 2026-06-19. Production Vercel and linked Supabase status were checked with read-only CLI/HTTP commands. No Vercel env mutation, production deploy, Supabase local start, or app-code edit was run.
+Latest readiness check: 2026-06-20. Production Vercel and linked Supabase status were checked with live bearer-token API smoke tests after a local service-role bootstrap created the default QA organization membership.
 
 ## Current Deployment State
 
@@ -35,6 +35,12 @@ Latest readiness check: 2026-06-19. Production Vercel and linked Supabase status
     - `/app`: `200 OK`
     - `/admin`: `200 OK`
     - `/api/events`: `401 Unauthorized`, `authentication_required`
+  - Bearer-token event API smoke on 2026-06-20:
+    - unauthenticated `/api/events`: `401 Unauthorized`
+    - authenticated default organization `/api/events`: `200 OK`
+    - authenticated default organization `POST /api/events`: `201 Created`
+    - authenticated non-member organization `GET /api/events`: `200 OK` with an empty list
+    - authenticated non-member organization `POST /api/events`: `403 forbidden_organization`
 
 ## Runtime And Build
 
@@ -97,14 +103,14 @@ Safety check:
 
 ## Follow-Up Gates
 
-1. Create or select a Vercel project for `kidsmemo`.
-2. Run `vercel link` only after choosing the intended project/team.
-3. Keep `KIDSMEMO_DATA_BACKEND=mock` for Vercel preview until Supabase guards are implemented.
-4. Before enabling `KIDSMEMO_DATA_BACKEND=supabase`, set `KIDSMEMO_ALLOW_LIVE_SUPABASE=true` only after auth/session guards, membership checks, repository separation, and complete RLS policies are ready.
-5. Convert `supabase/schema.sql` into reviewed migrations that match the corrected coupon direction:
+1. Complete real browser login/signup QA on production using the verified Supabase browser client configuration.
+2. Add a second organization QA user and repeat cross-organization read/write checks from the UI, not only CLI.
+3. Verify staff coupon read/download, AI history writes, and reminder-job idempotency with live Supabase data.
+4. Convert any remaining `supabase/schema.sql` draft deltas into reviewed migrations before future schema changes.
+5. Keep the corrected coupon direction intact:
    - active flow: Jumbokids admin-provided staff coupon wallet
    - removed flow: parent-facing coupon campaign and landing
-6. Do not run `supabase db push`, apply `supabase/schema.sql`, or enable live Supabase repositories until the migration/RLS review is complete.
+6. Do not expose `SUPABASE_SERVICE_ROLE_KEY` through browser or public Vercel client env.
 
 ## Supabase DB Push Result And Runbook
 
@@ -129,9 +135,9 @@ Remaining after `supabase db push`:
 
 1. Run read-only schema checks in Supabase Studio or `psql`: tables, enums, indexes, functions, and RLS enabled state.
 2. Verify policies with test users from at least two organizations plus a platform admin.
-3. Production currently appears to have live flags armed. Before deeper live QA, add the missing production `NEXT_PUBLIC_SUPABASE_ANON_KEY` or intentionally roll production back to mock mode in a separate approved ops task.
-4. After the anon key is present, run test-user RLS smoke before relying on production live CRUD.
-5. Smoke test `/app`, event CRUD, staff coupon read/download, AI history writes, and reminder-job idempotency before any production rollout.
+3. Production live flags and public anon key are armed for event API user-session smoke testing.
+4. Event API bearer-token and organization-scope smoke passed on 2026-06-20.
+5. Smoke test `/app`, staff coupon read/download, AI history writes, and reminder-job idempotency before any production rollout.
 
 ## 2026-06-19 Live Status Check
 
@@ -169,3 +175,33 @@ Current interpretation:
 - `npx vercel link --yes --project kidsmemo` linked this local workspace to that project.
 - The current Vercel CLI wrote `.vercel/repo.json` rather than `.vercel/project.json`.
 - No deploy was run.
+
+## Local Bootstrap Script
+
+- Added `npm run bootstrap:test-membership` for local service-role-only RLS smoke setup.
+- Required env:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- Optional env:
+  - `KIDSMEMO_BOOTSTRAP_EMAIL`
+  - `KIDSMEMO_BOOTSTRAP_PASSWORD`
+  - `KIDSMEMO_BOOTSTRAP_PROFILE_NAME`
+  - `KIDSMEMO_BOOTSTRAP_ORG_NAME`
+  - `KIDSMEMO_BOOTSTRAP_ORG_TYPE`
+  - `KIDSMEMO_BOOTSTRAP_ORG_REGION`
+  - `KIDSMEMO_BOOTSTRAP_ROLE`
+  - `KIDSMEMO_BOOTSTRAP_SEED_EVENT`
+- The script must be run locally only. Do not expose `SUPABASE_SERVICE_ROLE_KEY` to browser or public Vercel client env.
+
+## 2026-06-20 Bootstrap And RLS Smoke
+
+- `npm run bootstrap:test-membership` created or reused the default QA owner, organization membership, and seed event.
+- Default QA organization: `70190539-92f8-4d48-9f44-a515c0b53e34`.
+- API-level production smoke used Supabase Auth password login to obtain a bearer token; the token was not persisted.
+- Verified outcomes:
+  - no bearer token: `401 authentication_required`
+  - bearer token for member organization: `200 OK`
+  - create event in member organization: `201 Created`
+  - read non-member organization: `200 OK` with no rows
+  - create event in non-member organization: `403 forbidden_organization`
+- Remaining manual QA: sign in through the production browser UI and verify `/app` renders the same scoped organization data.

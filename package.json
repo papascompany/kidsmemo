@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0"
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
+    "bootstrap:test-membership": "node scripts/bootstrap-test-membership.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
