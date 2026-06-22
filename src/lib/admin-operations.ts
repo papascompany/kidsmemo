@@ -1,4 +1,4 @@
-import type { Role } from "./types";
+import type { CouponUseSite, Role, StaffCouponAssignee, StaffCouponStatus } from "./types";
 
 export type ContentScope = "landing" | "organization";
 export type ContentStatus = "draft" | "published" | "archived";
@@ -54,6 +54,21 @@ export interface AdminGiftCode {
   expiresAt: string | null;
 }
 
+export interface AdminStaffCoupon {
+  id: string;
+  organizationId: string;
+  title: string;
+  description: string;
+  code: string;
+  amountLabel: string;
+  validUntil: string;
+  assignedTo: StaffCouponAssignee;
+  status: StaffCouponStatus;
+  sites: CouponUseSite[];
+  jumbokidsUrl: string;
+  godomallUrl: string;
+}
+
 export interface AdminPushCampaign {
   id: string;
   organizationId: string | null;
@@ -78,6 +93,7 @@ export interface AdminOperationsPayload {
   mediaAssets: AdminMediaAsset[];
   attendanceRecords: AdminAttendanceRecord[];
   giftCodes: AdminGiftCode[];
+  staffCoupons: AdminStaffCoupon[];
   pushCampaigns: AdminPushCampaign[];
   auditLogs: AdminAuditLog[];
 }
@@ -101,6 +117,7 @@ export const adminMockOperations: AdminOperationsPayload = {
   mediaAssets: [],
   attendanceRecords: [],
   giftCodes: [],
+  staffCoupons: [],
   pushCampaigns: [],
   auditLogs: []
 };

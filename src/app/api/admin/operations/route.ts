@@ -12,6 +12,7 @@ const resourceSchema = z.enum([
   "mediaAssets",
   "attendanceRecords",
   "giftCodes",
+  "staffCoupons",
   "pushCampaigns"
 ]);
 
@@ -61,6 +62,21 @@ const giftCodeSchema = z.object({
   expiresAt: z.string().datetime().nullable().optional()
 });
 
+const staffCouponSchema = z.object({
+  id: z.string().uuid().optional(),
+  organizationId: z.string().uuid(),
+  title: z.string().trim().min(1),
+  description: z.string().default(""),
+  code: z.string().trim().min(1),
+  amountLabel: z.string().trim().min(1),
+  validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  assignedTo: z.enum(["owner", "teacher", "all_staff"]).default("all_staff"),
+  status: z.enum(["available", "downloaded", "used", "expired"]).default("available"),
+  sites: z.array(z.enum(["jumbokids", "godomall"])).min(1).default(["jumbokids"]),
+  jumbokidsUrl: z.string().trim().url().or(z.literal("")).default(""),
+  godomallUrl: z.string().trim().url().or(z.literal("")).default("")
+});
+
 const pushCampaignSchema = z.object({
   id: z.string().uuid().optional(),
   organizationId: z.string().uuid().nullable().optional(),
@@ -76,6 +92,7 @@ const mutationSchemaBase = z.discriminatedUnion("resource", [
   z.object({ resource: z.literal("mediaAssets"), payload: mediaAssetSchema }),
   z.object({ resource: z.literal("attendanceRecords"), payload: attendanceRecordSchema }),
   z.object({ resource: z.literal("giftCodes"), payload: giftCodeSchema }),
+  z.object({ resource: z.literal("staffCoupons"), payload: staffCouponSchema }),
   z.object({ resource: z.literal("pushCampaigns"), payload: pushCampaignSchema })
 ]);
 
@@ -118,6 +135,10 @@ const resourceConfig = {
     table: "gift_codes",
     order: "created_at"
   },
+  staffCoupons: {
+    table: "staff_coupons",
+    order: "valid_until"
+  },
   pushCampaigns: {
     table: "push_campaigns",
     order: "created_at"
@@ -137,12 +158,13 @@ export async function GET(request: Request) {
     }
 
     const supabase = requireSupabase(access.accessToken);
-    const [contentBlocks, mediaAssets, attendanceRecords, giftCodes, pushCampaigns, auditLogs] =
+    const [contentBlocks, mediaAssets, attendanceRecords, giftCodes, staffCoupons, pushCampaigns, auditLogs] =
       await Promise.all([
         fetchRows(supabase, "contentBlocks"),
         fetchRows(supabase, "mediaAssets"),
         fetchRows(supabase, "attendanceRecords"),
         fetchRows(supabase, "giftCodes"),
+        fetchRows(supabase, "staffCoupons"),
         fetchRows(supabase, "pushCampaigns"),
         supabase
           .from("admin_audit_logs")
@@ -158,6 +180,7 @@ export async function GET(request: Request) {
       mediaAssets: mediaAssets.map(mapMediaAsset),
       attendanceRecords: attendanceRecords.map(mapAttendanceRecord),
       giftCodes: giftCodes.map(mapGiftCode),
+      staffCoupons: staffCoupons.map(mapStaffCoupon),
       pushCampaigns: pushCampaigns.map(mapPushCampaign),
       auditLogs: ((auditLogs.data ?? []) as Row[]).map(mapAuditLog)
     });
@@ -294,6 +317,23 @@ function toRow(
     };
   }
 
+  if (resource === "staffCoupons") {
+    return {
+      organization_id: payload.organizationId,
+      title: payload.title,
+      description: payload.description,
+      code: payload.code,
+      amount_label: payload.amountLabel,
+      valid_until: payload.validUntil,
+      assigned_to: payload.assignedTo,
+      status: payload.status,
+      sites: payload.sites,
+      jumbokids_url: payload.jumbokidsUrl || null,
+      godomall_url: payload.godomallUrl || null,
+      created_by: profileId
+    };
+  }
+
   return {
     organization_id: payload.organizationId || null,
     title: payload.title,
@@ -310,6 +350,7 @@ function mapResource(resource: z.infer<typeof resourceSchema>, row: Row) {
   if (resource === "mediaAssets") return mapMediaAsset(row);
   if (resource === "attendanceRecords") return mapAttendanceRecord(row);
   if (resource === "giftCodes") return mapGiftCode(row);
+  if (resource === "staffCoupons") return mapStaffCoupon(row);
   return mapPushCampaign(row);
 }
 
@@ -366,6 +407,23 @@ function mapGiftCode(row: Row) {
     status: asString(row.status),
     assignedToProfileId: nullableString(row.assigned_to_profile_id),
     expiresAt: nullableString(row.expires_at)
+  };
+}
+
+function mapStaffCoupon(row: Row) {
+  return {
+    id: asString(row.id),
+    organizationId: asString(row.organization_id),
+    title: asString(row.title),
+    description: asString(row.description),
+    code: asString(row.code),
+    amountLabel: asString(row.amount_label),
+    validUntil: asString(row.valid_until),
+    assignedTo: asString(row.assigned_to),
+    status: asString(row.status),
+    sites: Array.isArray(row.sites) ? row.sites.filter((site): site is string => typeof site === "string") : [],
+    jumbokidsUrl: asString(row.jumbokids_url),
+    godomallUrl: asString(row.godomall_url)
   };
 }
 

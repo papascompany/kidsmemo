@@ -21,7 +21,8 @@ import type {
   AdminGiftCode,
   AdminMediaAsset,
   AdminOperationsPayload,
-  AdminPushCampaign
+  AdminPushCampaign,
+  AdminStaffCoupon
 } from "@/lib/admin-operations";
 
 type AdminTab = "content" | "media" | "attendance" | "gifts" | "push" | "audit";
@@ -41,6 +42,7 @@ const emptyPayload: AdminOperationsPayload = {
   mediaAssets: [],
   attendanceRecords: [],
   giftCodes: [],
+  staffCoupons: [],
   pushCampaigns: [],
   auditLogs: []
 };
@@ -87,6 +89,21 @@ const defaultGiftForm = {
   expiresAt: ""
 };
 
+const defaultStaffCouponForm = {
+  id: "",
+  organizationId: "",
+  title: "",
+  description: "",
+  code: "",
+  amountLabel: "",
+  validUntil: new Date().toISOString().slice(0, 10),
+  assignedTo: "all_staff",
+  status: "available",
+  sites: "jumbokids",
+  jumbokidsUrl: "",
+  godomallUrl: ""
+};
+
 const defaultPushForm = {
   organizationId: "",
   title: "",
@@ -106,6 +123,7 @@ export default function AdminPage() {
   const [mediaForm, setMediaForm] = useState(defaultMediaForm);
   const [attendanceForm, setAttendanceForm] = useState(defaultAttendanceForm);
   const [giftForm, setGiftForm] = useState(defaultGiftForm);
+  const [staffCouponForm, setStaffCouponForm] = useState(defaultStaffCouponForm);
   const [pushForm, setPushForm] = useState(defaultPushForm);
 
   useEffect(() => {
@@ -189,7 +207,7 @@ export default function AdminPage() {
               <Metric label="게시 랜딩" value={`${publishedLandingCount}개`} />
               <Metric label="이미지" value={`${payload.mediaAssets.length}개`} />
               <Metric label="출석 레코드" value={`${payload.attendanceRecords.length}건`} />
-              <Metric label="상품권/코드" value={`${payload.giftCodes.length}개`} />
+              <Metric label="쿠폰함 코드" value={`${payload.staffCoupons.length}개`} />
               <Metric label="푸시 캠페인" value={`${payload.pushCampaigns.length}건`} />
             </section>
 
@@ -249,9 +267,14 @@ export default function AdminPage() {
                   {activeTab === "gifts" ? (
                     <GiftPanel
                       codes={payload.giftCodes}
+                      staffCoupons={payload.staffCoupons}
                       form={giftForm}
+                      staffCouponForm={staffCouponForm}
                       onChange={setGiftForm}
+                      onStaffCouponChange={setStaffCouponForm}
                       onSave={() => saveResource("giftCodes", giftForm)}
+                      onStaffCouponSave={() => saveResource("staffCoupons", serializeStaffCouponForm(staffCouponForm))}
+                      onStaffCouponEdit={setStaffCouponForm}
                       saveState={saveState}
                     />
                   ) : null}
@@ -380,34 +403,73 @@ function AttendancePanel({
 
 function GiftPanel({
   codes,
+  staffCoupons,
   form,
+  staffCouponForm,
   onChange,
+  onStaffCouponChange,
   onSave,
+  onStaffCouponSave,
+  onStaffCouponEdit,
   saveState
 }: {
   codes: AdminGiftCode[];
+  staffCoupons: AdminStaffCoupon[];
   form: typeof defaultGiftForm;
+  staffCouponForm: typeof defaultStaffCouponForm;
   onChange: (form: typeof defaultGiftForm) => void;
+  onStaffCouponChange: (form: typeof defaultStaffCouponForm) => void;
   onSave: () => void;
+  onStaffCouponSave: () => void;
+  onStaffCouponEdit: (form: typeof defaultStaffCouponForm) => void;
   saveState: SaveState;
 }) {
   return (
-    <EditorLayout
-      title="상품권/쿠폰 코드 등록과 지급"
-      description="운영자가 기관 또는 교직원에게 지급할 코드 재고와 지급 상태를 관리합니다."
-      onSave={onSave}
-      saveState={saveState}
-      list={<RecordList emptyLabel="등록된 상품권/코드가 없습니다." items={codes.map((code) => `${code.title} · ${code.code} · ${code.status}`)} />}
-    >
-      <div className="grid gap-3 md:grid-cols-2">
-        <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="선택 사항" />
-        <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="점보키즈 포토북 상품권" />
-        <Field label="코드" value={form.code} onChange={(code) => onChange({ ...form, code })} placeholder="JK-GIFT-0001" />
-        <Field label="혜택 라벨" value={form.amountLabel} onChange={(amountLabel) => onChange({ ...form, amountLabel })} placeholder="10,000원" />
-        <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["available", "issued", "redeemed", "expired", "void"]} />
-        <Field label="만료 시각" value={form.expiresAt} onChange={(expiresAt) => onChange({ ...form, expiresAt })} placeholder="2026-12-31T14:59:59.000Z" />
-      </div>
-    </EditorLayout>
+    <div className="grid gap-5">
+      <EditorLayout
+        title="교직원 쿠폰함 코드"
+        description="여기서 등록한 쿠폰은 해당 기관의 /app 점보키즈 쿠폰함에 바로 노출됩니다."
+        onSave={onStaffCouponSave}
+        saveState={saveState}
+        list={
+          <StaffCouponList
+            coupons={staffCoupons}
+            onEdit={(coupon) => onStaffCouponEdit(toStaffCouponForm(coupon))}
+          />
+        }
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="기관 ID" value={staffCouponForm.organizationId} onChange={(organizationId) => onStaffCouponChange({ ...staffCouponForm, organizationId })} placeholder="organization uuid" />
+          <Field label="제목" value={staffCouponForm.title} onChange={(title) => onStaffCouponChange({ ...staffCouponForm, title })} placeholder="원장님 포토북 제작 20% 할인" />
+          <Field label="설명" value={staffCouponForm.description} onChange={(description) => onStaffCouponChange({ ...staffCouponForm, description })} placeholder="쿠폰함에 표시될 설명" />
+          <Field label="코드" value={staffCouponForm.code} onChange={(code) => onStaffCouponChange({ ...staffCouponForm, code })} placeholder="JK-DIRECTOR-20" />
+          <Field label="혜택 라벨" value={staffCouponForm.amountLabel} onChange={(amountLabel) => onStaffCouponChange({ ...staffCouponForm, amountLabel })} placeholder="20% 할인" />
+          <Field label="유효기간" value={staffCouponForm.validUntil} onChange={(validUntil) => onStaffCouponChange({ ...staffCouponForm, validUntil })} placeholder="2026-12-31" />
+          <SelectField label="대상" value={staffCouponForm.assignedTo} onChange={(assignedTo) => onStaffCouponChange({ ...staffCouponForm, assignedTo })} options={["all_staff", "owner", "teacher"]} />
+          <SelectField label="상태" value={staffCouponForm.status} onChange={(status) => onStaffCouponChange({ ...staffCouponForm, status })} options={["available", "downloaded", "used", "expired"]} />
+          <Field label="사용 사이트" value={staffCouponForm.sites} onChange={(sites) => onStaffCouponChange({ ...staffCouponForm, sites })} placeholder="jumbokids,godomall" />
+          <Field label="점보키즈 URL" value={staffCouponForm.jumbokidsUrl} onChange={(jumbokidsUrl) => onStaffCouponChange({ ...staffCouponForm, jumbokidsUrl })} placeholder="https://..." />
+          <Field label="고도몰 URL" value={staffCouponForm.godomallUrl} onChange={(godomallUrl) => onStaffCouponChange({ ...staffCouponForm, godomallUrl })} placeholder="https://..." />
+        </div>
+      </EditorLayout>
+
+      <EditorLayout
+        title="상품권 코드 재고"
+        description="지급 전/후 상태를 추적하는 내부 코드 재고입니다. 쿠폰함 노출은 위 교직원 쿠폰함 코드를 사용합니다."
+        onSave={onSave}
+        saveState={saveState}
+        list={<RecordList emptyLabel="등록된 상품권/코드가 없습니다." items={codes.map((code) => `${code.title} · ${code.code} · ${code.status}`)} />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="선택 사항" />
+          <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="점보키즈 포토북 상품권" />
+          <Field label="코드" value={form.code} onChange={(code) => onChange({ ...form, code })} placeholder="JK-GIFT-0001" />
+          <Field label="혜택 라벨" value={form.amountLabel} onChange={(amountLabel) => onChange({ ...form, amountLabel })} placeholder="10,000원" />
+          <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["available", "issued", "redeemed", "expired", "void"]} />
+          <Field label="만료 시각" value={form.expiresAt} onChange={(expiresAt) => onChange({ ...form, expiresAt })} placeholder="2026-12-31T14:59:59.000Z" />
+        </div>
+      </EditorLayout>
+    </div>
   );
 }
 
@@ -522,6 +584,53 @@ function MediaList({ assets }: { assets: AdminMediaAsset[] }) {
         ) : (
           <p className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
             관리 중인 이미지가 없습니다.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StaffCouponList({
+  coupons,
+  onEdit
+}: {
+  coupons: AdminStaffCoupon[];
+  onEdit: (coupon: AdminStaffCoupon) => void;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-ink">쿠폰함 노출 코드</h3>
+      <div className="mt-4 grid gap-3">
+        {coupons.length > 0 ? (
+          coupons.map((coupon) => (
+            <div key={coupon.id} className="rounded border border-line bg-surface p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-wrap-anywhere font-semibold text-ink">{coupon.title}</p>
+                  <p className="mt-1 break-all font-mono text-xs font-semibold text-muted">
+                    {coupon.code}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-brand">
+                    {coupon.amountLabel} · {coupon.assignedTo} · {coupon.status}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {coupon.organizationId} · {coupon.validUntil}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onEdit(coupon)}
+                  className="shrink-0 rounded border border-line bg-white px-3 py-2 text-xs font-semibold text-muted transition hover:border-brand hover:text-brand"
+                >
+                  수정
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
+            쿠폰함에 노출할 코드가 없습니다.
           </p>
         )}
       </div>
@@ -683,6 +792,40 @@ function normalizePayload(payload: Record<string, unknown>) {
       nullableKeys.has(key) && value === "" ? null : value
     ])
   );
+}
+
+function serializeStaffCouponForm(form: typeof defaultStaffCouponForm) {
+  return {
+    ...form,
+    id: form.id || undefined,
+    sites: parseCouponSites(form.sites)
+  };
+}
+
+function toStaffCouponForm(coupon: AdminStaffCoupon): typeof defaultStaffCouponForm {
+  return {
+    id: coupon.id,
+    organizationId: coupon.organizationId,
+    title: coupon.title,
+    description: coupon.description,
+    code: coupon.code,
+    amountLabel: coupon.amountLabel,
+    validUntil: coupon.validUntil,
+    assignedTo: coupon.assignedTo,
+    status: coupon.status,
+    sites: coupon.sites.join(","),
+    jumbokidsUrl: coupon.jumbokidsUrl,
+    godomallUrl: coupon.godomallUrl
+  };
+}
+
+function parseCouponSites(value: string) {
+  const sites = value
+    .split(",")
+    .map((site) => site.trim())
+    .filter((site): site is "jumbokids" | "godomall" => site === "jumbokids" || site === "godomall");
+
+  return sites.length > 0 ? sites : ["jumbokids"];
 }
 
 function unwrapData<T>(payload: unknown): T {
