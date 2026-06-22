@@ -103,12 +103,15 @@ export async function resolveRequestAccessContext(request: Request): Promise<Req
     query = query.eq("organization_id", requestedOrganizationId);
   }
 
-  const { data, error } = await query.order("created_at", { ascending: true }).limit(1);
+  const { data, error } = await query.order("created_at", { ascending: true }).limit(requestedOrganizationId ? 1 : 20);
   if (error) {
     throw error;
   }
 
-  const membership = (data?.[0] ?? null) as MembershipRow | null;
+  const memberships = (data ?? []) as MembershipRow[];
+  const membership = requestedOrganizationId
+    ? memberships[0] ?? null
+    : memberships.find((item) => item.role === "admin") ?? memberships[0] ?? null;
 
   return {
     profileId: userData.user.id,

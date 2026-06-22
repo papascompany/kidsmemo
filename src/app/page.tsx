@@ -8,6 +8,9 @@ import {
   Sparkles
 } from "lucide-react";
 import Link from "next/link";
+import { findLandingBlock, getPublishedLandingBlocks } from "@/lib/landing-content";
+
+export const dynamic = "force-dynamic";
 
 const heroImage =
   "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1800&q=82";
@@ -43,7 +46,20 @@ const flows = [
   "내 유치원 대시보드 시작"
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const landingBlocks = await getPublishedLandingBlocks();
+  const hero = findLandingBlock(landingBlocks, "hero");
+  const schedule = findLandingBlock(landingBlocks, "schedule");
+  const teacherMessage = findLandingBlock(landingBlocks, "teacher-message");
+  const jumbokidsBenefit = findLandingBlock(landingBlocks, "jumbokids-benefit");
+  const footerCta = findLandingBlock(landingBlocks, "footer-cta");
+  const heroTitle = hero?.title || "행사는 놓치지 않고, 안내문은 더 따뜻하게.";
+  const heroBody =
+    hero?.body ||
+    "키즈메모는 원장님과 선생님이 행사 일정, AI 안내문, 점보키즈 쿠폰함을 한곳에서 관리하도록 돕는 반응형 웹 서비스입니다.";
+  const primaryCtaLabel = hero?.ctaLabel || "간편가입 시작하기";
+  const primaryCtaUrl = hero?.ctaUrl || "/signup";
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f8f6f1] text-ink">
       <header className="sticky top-0 z-30 border-b border-white/50 bg-white/88 backdrop-blur">
@@ -72,25 +88,24 @@ export default function LandingPage() {
       <section className="relative min-h-[calc(100vh-65px)] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          style={{ backgroundImage: `url(${hero?.imageUrl || heroImage})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/36 via-black/28 to-[#f8f6f1]" />
         <div className="relative mx-auto flex min-h-[calc(100vh-65px)] max-w-7xl flex-col justify-end px-4 pb-16 pt-20 sm:px-6 lg:px-8">
           <div className="max-w-3xl text-white">
             <p className="text-sm font-semibold text-white/86">유치원과 어린이집을 위한 행사 운영 도구</p>
             <h2 className="text-wrap-anywhere mt-4 text-4xl font-semibold leading-tight tracking-normal sm:text-5xl lg:text-6xl">
-              행사는 놓치지 않고, 안내문은 더 따뜻하게.
+              {heroTitle}
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/88 sm:text-lg">
-              키즈메모는 원장님과 선생님이 행사 일정, AI 안내문, 점보키즈 쿠폰함을 한곳에서
-              관리하도록 돕는 반응형 웹 서비스입니다.
+              {heroBody}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/signup"
+                href={primaryCtaUrl}
                 className="inline-flex items-center justify-center gap-2 rounded bg-white px-5 py-3 text-sm font-semibold text-ink shadow-soft transition hover:bg-white/92"
               >
-                간편가입 시작하기
+                {primaryCtaLabel}
                 <ArrowRight size={17} aria-hidden />
               </Link>
               <Link
@@ -123,22 +138,22 @@ export default function LandingPage() {
 
       <section className="mx-auto grid max-w-7xl gap-4 px-4 py-16 sm:px-6 lg:grid-cols-3 lg:px-8">
         <EditorialCard
-          image={scheduleImage}
+          image={schedule?.imageUrl || scheduleImage}
           eyebrow="Schedule"
-          title="연간 행사를 놓치지 않게"
-          description="반복되는 원 행사를 한 화면에서 정리하고 내일 필요한 안내를 먼저 확인합니다."
+          title={schedule?.title || "연간 행사를 놓치지 않게"}
+          description={schedule?.body || "반복되는 원 행사를 한 화면에서 정리하고 내일 필요한 안내를 먼저 확인합니다."}
         />
         <EditorialCard
-          image={teacherImage}
+          image={teacherMessage?.imageUrl || teacherImage}
           eyebrow="AI Message"
-          title="선생님 말투에 맞는 안내문"
-          description="행사명과 분위기만 넣어도 학부모님께 보낼 따뜻한 초안을 준비합니다."
+          title={teacherMessage?.title || "선생님 말투에 맞는 안내문"}
+          description={teacherMessage?.body || "행사명과 분위기만 넣어도 학부모님께 보낼 따뜻한 초안을 준비합니다."}
         />
         <EditorialCard
-          image={photoBookImage}
+          image={jumbokidsBenefit?.imageUrl || photoBookImage}
           eyebrow="Jumbokids Benefit"
-          title="점보키즈 혜택을 기관별로"
-          description="원장님과 선생님이 사용할 수 있는 쿠폰과 고도몰 링크를 안전하게 제공합니다."
+          title={jumbokidsBenefit?.title || "점보키즈 혜택을 기관별로"}
+          description={jumbokidsBenefit?.body || "원장님과 선생님이 사용할 수 있는 쿠폰과 고도몰 링크를 안전하게 제공합니다."}
         />
       </section>
 
@@ -190,15 +205,16 @@ export default function LandingPage() {
           <div>
             <p className="text-sm font-semibold text-white/72">Kidsmemo</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-normal">
-              내 유치원 운영실을 먼저 열어보세요.
+              {footerCta?.title || "내 유치원 운영실을 먼저 열어보세요."}
             </h2>
+            {footerCta?.body ? <p className="mt-2 text-sm leading-6 text-white/72">{footerCta.body}</p> : null}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/signup"
+              href={footerCta?.ctaUrl || "/signup"}
               className="inline-flex items-center justify-center gap-2 rounded bg-white px-5 py-3 text-sm font-semibold text-ink"
             >
-              무료로 시작하기
+              {footerCta?.ctaLabel || "무료로 시작하기"}
               <ArrowRight size={17} aria-hidden />
             </Link>
             <Link
