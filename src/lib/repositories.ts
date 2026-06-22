@@ -1,9 +1,9 @@
-import { events, messageJobs } from "./mock-data";
+import { events, messageJobs, staffCouponDownloads, staffCoupons } from "./mock-data";
 import { isLiveSupabaseMode } from "./env-flags";
 import { isTomorrow } from "./format";
 import { AccessControlError, assertLiveSupabaseAnonConfigured, type RequestAccessContext } from "./access-control";
 import { createSupabaseServiceClient, createSupabaseUserClient } from "./supabase";
-import type { EventSchedule, MessageJob } from "./types";
+import type { EventSchedule, MessageJob, StaffCoupon, StaffCouponDownload } from "./types";
 
 type Row = Record<string, unknown>;
 
@@ -30,9 +30,29 @@ export interface MessageJobRepository {
   findExistingJob(eventId: string, scheduledDate: string): Promise<MessageJob | undefined>;
 }
 
+export interface StaffCouponDownloadInput {
+  couponId: string;
+  organizationId: string;
+  profileId: string;
+}
+
+export interface StaffCouponDownloadResult {
+  recorded: boolean;
+  duplicate?: boolean;
+  reason?: "coupon_not_found" | "organization_mismatch";
+  download?: StaffCouponDownload;
+}
+
+export interface StaffCouponRepository {
+  list(): Promise<StaffCoupon[]>;
+  findById(couponId: string): Promise<StaffCoupon | undefined>;
+  recordDownload(input: StaffCouponDownloadInput): Promise<StaffCouponDownloadResult>;
+}
+
 export interface RepositorySet {
   events: EventRepository;
   messageJobs: MessageJobRepository;
+  staffCoupons: StaffCouponRepository;
 }
 
 export const mockEventRepository: EventRepository = {
@@ -73,13 +93,74 @@ export const mockMessageJobRepository: MessageJobRepository = {
   }
 };
 
+export const mockStaffCouponRepository: StaffCouponRepository = {
+  async list() {
+    return staffCoupons;
+  },
+  async findById(couponId) {
+    return staffCoupons.find((coupon) => coupon.id === couponId);
+  },
+  async recordDownload(input) {
+    const coupon = staffCoupons.find((item) => item.id === input.couponId);
+    if (!coupon) {
+      return {
+        recorded: false,
+        reason: "coupon_not_found"
+      };
+    }
+
+    if (coupon.organizationId !== input.organizationId) {
+      return {
+        recorded: false,
+        reason: "organization_mismatch"
+      };
+    }
+
+    const existing = staffCouponDownloads.find(
+      (download) =>
+        download.couponId === input.couponId &&
+        download.organizationId === input.organizationId &&
+        download.profileId === input.profileId
+    );
+
+    if (existing) {
+      return {
+        recorded: true,
+        duplicate: true,
+        download: existing
+      };
+    }
+
+    const download = {
+      id: `staff-coupon-download-${staffCouponDownloads.length + 1}`,
+      couponId: input.couponId,
+      organizationId: input.organizationId,
+      profileId: input.profileId,
+      downloadedAt: new Date().toISOString()
+    };
+
+    staffCouponDownloads.push(download);
+
+    const couponRow = staffCoupons.find((item) => item.id === input.couponId);
+    if (couponRow && couponRow.status === "available") {
+      couponRow.status = "downloaded";
+    }
+
+    return {
+      recorded: true,
+      download
+    };
+  }
+};
+
 export function getRepositories(_access?: RequestAccessContext): RepositorySet {
   const dataBackend = process.env.KIDSMEMO_DATA_BACKEND ?? "mock";
 
   if (dataBackend !== "supabase" || !isLiveSupabaseMode()) {
     return {
       events: mockEventRepository,
-      messageJobs: mockMessageJobRepository
+      messageJobs: mockMessageJobRepository,
+      staffCoupons: mockStaffCouponRepository
     };
   }
 
@@ -182,9 +263,84 @@ function createSupabaseRepositories(
     }
   };
 
+  const staffCouponRepository: StaffCouponRepository = {
+    async list() {
+      const organizationId = getReadableOrganizationId(access);
+      if (organizationId === null) {
+        return [];
+      }
+
+      const query = supabase.from("staff_coupons").select("*").order("valid_until", { ascending: true });
+      const { data, error } = await (organizationId ? query.eq("organization_id", organizationId) : query);
+      if (error) throw error;
+      return (data as Row[]).map(mapStaffCoupon);
+    },
+    async findById(couponId) {
+      const { data, error } = await supabase
+        .from("staff_coupons")
+        .select("*")
+        .eq("id", couponId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? mapStaffCoupon(data as Row) : undefined;
+    },
+    async recordDownload(input) {
+      const coupon = await this.findById(input.couponId);
+      if (!coupon) {
+        return {
+          recorded: false,
+          reason: "coupon_not_found"
+        };
+      }
+
+      if (coupon.organizationId !== input.organizationId) {
+        return {
+          recorded: false,
+          reason: "organization_mismatch"
+        };
+      }
+
+      const { data, error } = await supabase
+        .from("staff_coupon_downloads")
+        .insert({
+          coupon_id: input.couponId,
+          organization_id: input.organizationId,
+          profile_id: input.profileId
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        if (isUniqueViolation(error)) {
+          const { data: existing, error: findError } = await supabase
+            .from("staff_coupon_downloads")
+            .select("*")
+            .eq("coupon_id", input.couponId)
+            .eq("profile_id", input.profileId)
+            .maybeSingle();
+          if (findError) throw findError;
+
+          return {
+            recorded: true,
+            duplicate: true,
+            download: existing ? mapStaffCouponDownload(existing as Row) : undefined
+          };
+        }
+
+        throw error;
+      }
+
+      return {
+        recorded: true,
+        download: mapStaffCouponDownload(data as Row)
+      };
+    }
+  };
+
   return {
     events: eventRepository,
-    messageJobs: messageJobRepository
+    messageJobs: messageJobRepository,
+    staffCoupons: staffCouponRepository
   };
 }
 
@@ -224,6 +380,37 @@ function mapMessageJob(row: Row): MessageJob {
   };
 }
 
+function mapStaffCoupon(row: Row): StaffCoupon {
+  return {
+    id: asString(row.id),
+    organizationId: asString(row.organization_id),
+    title: asString(row.title),
+    description: asString(row.description),
+    code: asString(row.code),
+    amountLabel: asString(row.amount_label),
+    validUntil: asString(row.valid_until),
+    assignedTo: asStaffCouponAssignee(row.assigned_to),
+    status: asStaffCouponStatus(row.status),
+    sites: asStringArray(row.sites).filter((site) =>
+      ["jumbokids", "godomall"].includes(site)
+    ) as StaffCoupon["sites"],
+    siteUrls: {
+      jumbokids: asString(row.jumbokids_url),
+      godomall: asString(row.godomall_url)
+    }
+  };
+}
+
+function mapStaffCouponDownload(row: Row): StaffCouponDownload {
+  return {
+    id: asString(row.id),
+    couponId: asString(row.coupon_id),
+    organizationId: asString(row.organization_id),
+    profileId: asString(row.profile_id),
+    downloadedAt: asString(row.downloaded_at)
+  };
+}
+
 function toEventRow(input: Partial<CreateEventInput & UpdateEventInput>) {
   return {
     organization_id: input.organizationId,
@@ -260,4 +447,24 @@ function asDeliveryStatus(value: unknown): MessageJob["status"] {
   return ["queued", "sent", "failed", "fallback"].includes(asString(value))
     ? (value as MessageJob["status"])
     : "queued";
+}
+
+function asStaffCouponAssignee(value: unknown): StaffCoupon["assignedTo"] {
+  return ["owner", "teacher", "all_staff"].includes(asString(value))
+    ? (value as StaffCoupon["assignedTo"])
+    : "all_staff";
+}
+
+function asStaffCouponStatus(value: unknown): StaffCoupon["status"] {
+  return ["available", "downloaded", "used", "expired"].includes(asString(value))
+    ? (value as StaffCoupon["status"])
+    : "available";
+}
+
+function isUniqueViolation(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  return "code" in error && (error as { code?: unknown }).code === "23505";
 }

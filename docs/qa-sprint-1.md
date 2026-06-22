@@ -173,6 +173,8 @@ npm run bootstrap:admin-membership
 
 Run this in the same local terminal after setting `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and any intended `KIDSMEMO_BOOTSTRAP_*` account values. It reuses the same auth user/profile/organization and upserts the membership role to `admin` without creating another seed event.
 
+By default, the admin bootstrap uses a separate platform QA account and organization so it does not overwrite the owner QA membership. Override with `KIDSMEMO_ADMIN_EMAIL`, `KIDSMEMO_ADMIN_PASSWORD`, `KIDSMEMO_ADMIN_PROFILE_NAME`, or `KIDSMEMO_ADMIN_ORG_NAME` when a named admin account is needed.
+
 Supabase-ready checks once connected:
 
 - Kakao signup creates a profile and allows organization creation.

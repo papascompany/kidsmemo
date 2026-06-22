@@ -194,6 +194,7 @@ Current interpretation:
   - `KIDSMEMO_BOOTSTRAP_SEED_EVENT`
 - The script must be run locally only. Do not expose `SUPABASE_SERVICE_ROLE_KEY` to browser or public Vercel client env.
 - Admin promotion must also be run locally only, in a terminal where the service-role env is already set.
+- Admin promotion uses a separate default platform QA account and organization. Use `KIDSMEMO_ADMIN_EMAIL`, `KIDSMEMO_ADMIN_PASSWORD`, `KIDSMEMO_ADMIN_PROFILE_NAME`, and `KIDSMEMO_ADMIN_ORG_NAME` to target a specific admin user without changing the owner QA bootstrap defaults.
 
 ## 2026-06-20 Bootstrap And RLS Smoke
 

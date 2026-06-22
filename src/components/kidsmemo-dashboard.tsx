@@ -146,7 +146,7 @@ export function KidsmemoDashboard() {
         title="점보키즈 쿠폰함"
         description="점보키즈 관리자가 원장님과 선생님께 제공한 쿠폰/할인코드를 다운로드하고, 점보키즈 또는 고도몰에서 사용할 수 있습니다."
       >
-        <JumbokidsCouponWallet />
+        <JumbokidsCouponWallet initialContext={liveContext} liveMode={liveStatus === "ready"} />
       </Section>
 
       <Section

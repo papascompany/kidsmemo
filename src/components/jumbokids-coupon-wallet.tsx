@@ -8,11 +8,11 @@ import {
   ShieldCheck,
   Store
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import { profiles } from "@/lib/mock-data";
-import { getOrganizationContext } from "@/lib/organization-context";
+import { getOrganizationContext, type OrganizationContext } from "@/lib/organization-context";
 import type { CouponUseSite, StaffCoupon } from "@/lib/types";
 
 const siteLabels: Record<CouponUseSite, string> = {
@@ -29,23 +29,65 @@ const assignedToLabels: Record<StaffCoupon["assignedTo"], string> = {
 const statusLabels: Record<StaffCoupon["status"], string> = {
   available: "사용 가능",
   downloaded: "다운로드 완료",
-  used: "사용 완료"
+  used: "사용 완료",
+  expired: "만료"
 };
 
-export function JumbokidsCouponWallet() {
+export function JumbokidsCouponWallet({
+  initialContext,
+  liveMode = false
+}: {
+  initialContext?: OrganizationContext | null;
+  liveMode?: boolean;
+}) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const { organization: currentOrganization, director, members, coupons: organizationCoupons } =
-    getOrganizationContext();
-  const [coupons, setCoupons] = useState(() => organizationCoupons);
-  const staffCount = profiles.filter(
+  const fallbackContext = getOrganizationContext();
+  const activeContext = initialContext ?? fallbackContext;
+  const { organization: currentOrganization, director, members } = activeContext;
+  const [coupons, setCoupons] = useState(() => activeContext.coupons);
+  const fallbackStaffCount = profiles.filter(
     (profile) =>
       profile.organizationId === currentOrganization.id &&
       (profile.role === "owner" || profile.role === "teacher" || profile.role === "manager")
   ).length;
+  const staffCount =
+    members.length > 0 ? members.length : currentOrganization.memberCount || fallbackStaffCount;
   const availableCount = useMemo(
-    () => coupons.filter((coupon) => coupon.status !== "used").length,
+    () => coupons.filter((coupon) => !["used", "expired"].includes(coupon.status)).length,
     [coupons]
   );
+
+  useEffect(() => {
+    if (!liveMode || !currentOrganization.id) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadCoupons() {
+      try {
+        const response = await authenticatedFetch("/api/staff-coupons", {
+          organizationId: currentOrganization.id
+        });
+        if (!response.ok) {
+          return;
+        }
+
+        const loadedCoupons = unwrapData<StaffCoupon[]>(await response.json());
+        if (isMounted) {
+          setCoupons(loadedCoupons);
+        }
+      } catch {
+        // 쿠폰 목록 로딩 실패 시 기존 context/mock 목록을 유지한다.
+      }
+    }
+
+    void loadCoupons();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentOrganization.id, liveMode]);
 
   async function copyCode(code: string) {
     await navigator.clipboard?.writeText(code);
@@ -191,21 +233,29 @@ export function JumbokidsCouponWallet() {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {coupon.sites.map((site) => (
-                  <a
-                    key={site}
-                    href={coupon.siteUrls[site]}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-                  >
-                    <Store size={16} aria-hidden />
-                    {siteLabels[site]}에서 사용
-                    <ExternalLink size={15} aria-hidden />
-                  </a>
+                  coupon.siteUrls[site] ? (
+                    <a
+                      key={site}
+                      href={coupon.siteUrls[site]}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                    >
+                      <Store size={16} aria-hidden />
+                      {siteLabels[site]}에서 사용
+                      <ExternalLink size={15} aria-hidden />
+                    </a>
+                  ) : null
                 ))}
               </div>
             </article>
           ))}
+
+          {coupons.length === 0 ? (
+            <div className="rounded border border-dashed border-line bg-white p-5 text-sm font-semibold text-muted">
+              등록된 교직원 쿠폰이 없습니다.
+            </div>
+          ) : null}
         </div>
 
         <aside className="grid content-start gap-3">
@@ -224,6 +274,19 @@ export function JumbokidsCouponWallet() {
       </div>
     </div>
   );
+}
+
+function unwrapData<T>(payload: unknown): T {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    (payload as { data?: unknown }).data
+  ) {
+    return (payload as { data: T }).data;
+  }
+
+  return payload as T;
 }
 
 function WalletMetric({ label, value }: { label: string; value: string }) {

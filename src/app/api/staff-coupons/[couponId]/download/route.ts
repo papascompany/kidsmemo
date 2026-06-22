@@ -1,21 +1,17 @@
 import { z } from "zod";
-import { apiError, handleApiError, ok } from "@/lib/api-response";
+import { handleApiError, ok } from "@/lib/api-response";
 import {
+  AccessControlError,
   assertOrganizationScope,
   assertProfileScope,
   assertRoleScope,
   resolveRequestAccessContext
 } from "@/lib/access-control";
-import { isLiveSupabaseMode } from "@/lib/env-flags";
-import {
-  getStaffCouponById,
-  staffCouponDownloads,
-  staffCoupons
-} from "@/lib/mock-data";
+import { getRepositories } from "@/lib/repositories";
 
 const schema = z.object({
   organizationId: z.string().min(1),
-  profileId: z.string().min(1)
+  profileId: z.string().min(1).optional()
 });
 
 export async function POST(
@@ -26,69 +22,23 @@ export async function POST(
     const { couponId } = await params;
     const payload = schema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const profileId = access.profileId ?? payload.profileId;
 
-    if (isLiveSupabaseMode()) {
-      return apiError(
-        "live_coupon_download_unavailable",
-        "Live Supabase 모드에서는 교직원 쿠폰 다운로드 기록이 아직 mock 전용입니다.",
-        501
-      );
-    }
-
-    const coupon = getStaffCouponById(couponId);
-
-    if (!coupon) {
-      return ok({
-        recorded: false,
-        reason: "coupon_not_found"
-      });
+    if (!profileId) {
+      throw new AccessControlError("forbidden_profile", "선택한 사용자로 작업할 권한이 없습니다.", 403);
     }
 
     assertOrganizationScope(access, payload.organizationId);
-    assertProfileScope(access, payload.profileId);
+    assertProfileScope(access, profileId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
-
-    if (coupon.organizationId !== payload.organizationId) {
-      return ok({
-        recorded: false,
-        reason: "organization_mismatch"
-      });
-    }
-
-    const existing = staffCouponDownloads.find(
-      (download) =>
-        download.couponId === couponId &&
-        download.organizationId === payload.organizationId &&
-        download.profileId === payload.profileId
-    );
-
-    if (existing) {
-      return ok({
-        recorded: true,
-        duplicate: true,
-        download: existing
-      });
-    }
-
-    const download = {
-      id: `staff-coupon-download-${staffCouponDownloads.length + 1}`,
+    const repositories = getRepositories(access);
+    const result = await repositories.staffCoupons.recordDownload({
       couponId,
       organizationId: payload.organizationId,
-      profileId: payload.profileId,
-      downloadedAt: new Date().toISOString()
-    };
-
-    staffCouponDownloads.push(download);
-
-    const couponRow = staffCoupons.find((item) => item.id === couponId);
-    if (couponRow && couponRow.status === "available") {
-      couponRow.status = "downloaded";
-    }
-
-    return ok({
-      recorded: true,
-      download
+      profileId
     });
+
+    return ok(result);
   } catch (error) {
     return handleApiError(error);
   }

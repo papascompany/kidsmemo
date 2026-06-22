@@ -6,7 +6,7 @@ export type DeliveryStatus = "queued" | "sent" | "failed" | "fallback";
 
 export type CouponUseSite = "jumbokids" | "godomall";
 
-export type StaffCouponStatus = "available" | "downloaded" | "used";
+export type StaffCouponStatus = "available" | "downloaded" | "used" | "expired";
 
 export type StaffCouponAssignee = "owner" | "teacher" | "all_staff";
 
