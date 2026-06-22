@@ -99,8 +99,8 @@ Static findings:
 - `/` does not import mock institution data, coupon codes, member lists, runtime state, or admin details.
 - `/app` still renders the mock/fallback dashboard through `KidsmemoDashboard` and preserves the `dashboard`, `calendar`, `coupons`, and `ai-helper` anchors.
 - `next.config.ts` keeps transitional redirects from legacy intent routes to `/app` anchors.
-- `/admin` is visually and structurally separate from the teacher/director dashboard and labels the current surface as a mock Supabase-pre-live skeleton.
-- `/admin` includes institution, coupon/discount code, benefit, valid date, role target, Jumbokids URL, and GodoMall URL fields.
+- `/admin` is visually and structurally separate from the teacher/director dashboard and requires a live platform admin session before operational data is shown.
+- `/admin` includes content, image, attendance, gift-code, push-campaign, and audit-log management tabs.
 - Auth pages describe Kakao, Google, and email paths as UI/IA skeletons or "ready/preparing" flows rather than live auth.
 - Print CSS hides dashboard chrome and operational sections while keeping `#ai-helper` and `.print-page` content printable.
 
@@ -164,6 +164,14 @@ npm run bootstrap:test-membership
 ```
 
 The script creates or reuses a confirmed test auth user, profile, organization, owner membership, and a seed event for RLS smoke testing.
+
+Platform admin bootstrap:
+
+```powershell
+npm run bootstrap:admin-membership
+```
+
+Run this in the same local terminal after setting `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and any intended `KIDSMEMO_BOOTSTRAP_*` account values. It reuses the same auth user/profile/organization and upserts the membership role to `admin` without creating another seed event.
 
 Supabase-ready checks once connected:
 
@@ -342,4 +350,4 @@ Manual checks:
   - GodoMall URL
 - Confirm `/admin` does not reintroduce parent-facing coupon campaigns or public coupon landing language.
 - Confirm `/admin` surfaces Jumbokids verification state as a managed platform-admin concept.
-- Confirm `/admin` still labels the current build as mock/fallback until Supabase live guards and RLS are complete.
+- Confirm `/admin` denies anonymous and non-admin sessions before any operational data is shown.

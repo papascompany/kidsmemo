@@ -179,6 +179,7 @@ Current interpretation:
 ## Local Bootstrap Script
 
 - Added `npm run bootstrap:test-membership` for local service-role-only RLS smoke setup.
+- Added `npm run bootstrap:admin-membership` for local service-role-only promotion of the configured bootstrap account to the platform `admin` role.
 - Required env:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
@@ -192,10 +193,12 @@ Current interpretation:
   - `KIDSMEMO_BOOTSTRAP_ROLE`
   - `KIDSMEMO_BOOTSTRAP_SEED_EVENT`
 - The script must be run locally only. Do not expose `SUPABASE_SERVICE_ROLE_KEY` to browser or public Vercel client env.
+- Admin promotion must also be run locally only, in a terminal where the service-role env is already set.
 
 ## 2026-06-20 Bootstrap And RLS Smoke
 
 - `npm run bootstrap:test-membership` created or reused the default QA owner, organization membership, and seed event.
+- `npm run bootstrap:admin-membership` reuses the configured bootstrap account and organization, sets the membership role to `admin`, and skips seed-event creation by default.
 - Default QA organization: `70190539-92f8-4d48-9f44-a515c0b53e34`.
 - API-level production smoke used Supabase Auth password login to obtain a bearer token; the token was not persisted.
 - Verified outcomes:
