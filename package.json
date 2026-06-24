@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "bootstrap:test-membership": "node scripts/bootstrap-test-membership.mjs",
-    "bootstrap:admin-membership": "node scripts/bootstrap-admin-membership.mjs"
+    "bootstrap:admin-membership": "node scripts/bootstrap-admin-membership.mjs",
+    "smoke:admin-live": "node scripts/admin-live-smoke.mjs",
+    "test:staff-coupon-e2e": "node scripts/staff-coupon-e2e.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

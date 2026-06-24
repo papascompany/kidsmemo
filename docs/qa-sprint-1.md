@@ -1,5 +1,15 @@
 # Kidsmemo Sprint 1 QA Checklist
 
+## 2026-06-24 Admin Operations Expansion
+
+- 관리자 기관 입력을 UUID 직접 입력에서 기관명/지역 검색 선택기로 교체했다.
+- `GET /api/admin/organizations`는 platform admin만 기관 목록을 조회할 수 있다.
+- 출석 운영 API는 기관/날짜/반별 조회, 최대 500명 일괄 저장, 마감/재오픈을 지원한다.
+- 마감된 출석부는 API와 DB trigger 양쪽에서 변경을 거부한다.
+- 관리자 저장 smoke: `npm run smoke:admin-live`
+- 쿠폰 전체 흐름 E2E: `npm run test:staff-coupon-e2e`
+- 두 live 스크립트는 Supabase 로그인 환경변수가 있는 로컬 터미널에서 실행하며 토큰과 비밀번호를 출력하지 않는다.
+
 ## Latest Verification
 
 Run date: 2026-06-20

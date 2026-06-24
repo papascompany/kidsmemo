@@ -8,15 +8,18 @@ import {
   Image as ImageIcon,
   Loader2,
   LockKeyhole,
+  Plus,
+  RefreshCw,
   Save,
   ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AdminOrganizationSelect } from "@/components/admin-organization-select";
 import { Badge } from "@/components/badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
+import type { AttendanceRoster, AttendanceRosterItem } from "@/lib/attendance-operations";
 import type {
-  AdminAttendanceRecord,
   AdminContentBlock,
   AdminGiftCode,
   AdminMediaAsset,
@@ -121,7 +124,6 @@ export default function AdminPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [contentForm, setContentForm] = useState(defaultContentForm);
   const [mediaForm, setMediaForm] = useState(defaultMediaForm);
-  const [attendanceForm, setAttendanceForm] = useState(defaultAttendanceForm);
   const [giftForm, setGiftForm] = useState(defaultGiftForm);
   const [staffCouponForm, setStaffCouponForm] = useState(defaultStaffCouponForm);
   const [pushForm, setPushForm] = useState(defaultPushForm);
@@ -256,13 +258,7 @@ export default function AdminPage() {
                     />
                   ) : null}
                   {activeTab === "attendance" ? (
-                    <AttendancePanel
-                      records={payload.attendanceRecords}
-                      form={attendanceForm}
-                      onChange={setAttendanceForm}
-                      onSave={() => saveResource("attendanceRecords", attendanceForm)}
-                      saveState={saveState}
-                    />
+                    <AttendancePanel />
                   ) : null}
                   {activeTab === "gifts" ? (
                     <GiftPanel
@@ -320,8 +316,19 @@ function ContentPanel({
       list={<ContentList blocks={blocks} />}
     >
       <div className="grid gap-3 md:grid-cols-2">
-        <SelectField label="범위" value={form.scope} onChange={(scope) => onChange({ ...form, scope })} options={["landing", "organization"]} />
-        <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="기관 콘텐츠일 때만 입력" />
+        <SelectField
+          label="범위"
+          value={form.scope}
+          onChange={(scope) => onChange({ ...form, scope, organizationId: scope === "landing" ? "" : form.organizationId })}
+          options={["landing", "organization"]}
+        />
+        <AdminOrganizationSelect
+          label="기관"
+          value={form.organizationId}
+          disabled={form.scope === "landing"}
+          onChange={(organizationId) => onChange({ ...form, organizationId })}
+          placeholder={form.scope === "landing" ? "랜딩 콘텐츠는 기관을 선택하지 않습니다" : "기관명 또는 지역 검색"}
+        />
         <Field label="슬롯" value={form.slot} onChange={(slot) => onChange({ ...form, slot })} placeholder="hero, feature-1, footer-cta" />
         <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "published", "archived"]} />
         <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="운영 화면에 표시할 제목" />
@@ -356,8 +363,19 @@ function MediaPanel({
       list={<MediaList assets={assets} />}
     >
       <div className="grid gap-3 md:grid-cols-2">
-        <SelectField label="범위" value={form.scope} onChange={(scope) => onChange({ ...form, scope })} options={["landing", "organization"]} />
-        <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="선택 사항" />
+        <SelectField
+          label="범위"
+          value={form.scope}
+          onChange={(scope) => onChange({ ...form, scope, organizationId: scope === "landing" ? "" : form.organizationId })}
+          options={["landing", "organization"]}
+        />
+        <AdminOrganizationSelect
+          label="기관"
+          value={form.organizationId}
+          disabled={form.scope === "landing"}
+          onChange={(organizationId) => onChange({ ...form, organizationId })}
+          placeholder={form.scope === "landing" ? "랜딩 이미지는 기관을 선택하지 않습니다" : "기관명 또는 지역 검색"}
+        />
         <Field label="라벨" value={form.label} onChange={(label) => onChange({ ...form, label })} placeholder="랜딩 히어로 이미지" />
         <Field label="사용 위치" value={form.usageSlot} onChange={(usageSlot) => onChange({ ...form, usageSlot })} placeholder="hero" />
         <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "published", "archived"]} />
@@ -368,36 +386,222 @@ function MediaPanel({
   );
 }
 
-function AttendancePanel({
-  records,
-  form,
-  onChange,
-  onSave,
-  saveState
-}: {
-  records: AdminAttendanceRecord[];
-  form: typeof defaultAttendanceForm;
-  onChange: (form: typeof defaultAttendanceForm) => void;
-  onSave: () => void;
-  saveState: SaveState;
-}) {
+function AttendancePanel() {
+  const [scope, setScope] = useState(defaultAttendanceForm);
+  const [roster, setRoster] = useState<AttendanceRoster | null>(null);
+  const [newChildName, setNewChildName] = useState("");
+  const [actionState, setActionState] = useState<SaveState>("idle");
+  const [statusMessage, setStatusMessage] = useState("기관, 날짜, 반을 선택해 출석부를 조회하세요.");
+
+  const canLoad = Boolean(scope.organizationId && scope.attendanceDate && scope.className.trim());
+
+  async function loadRoster() {
+    if (!canLoad) {
+      setStatusMessage("기관, 날짜, 반을 모두 입력해 주세요.");
+      return;
+    }
+
+    setActionState("saving");
+    const params = new URLSearchParams({
+      organizationId: scope.organizationId,
+      attendanceDate: scope.attendanceDate,
+      className: scope.className.trim()
+    });
+    const response = await authenticatedFetch(`/api/admin/attendance?${params}`);
+    if (!response.ok) {
+      setActionState("error");
+      setStatusMessage("출석부를 불러오지 못했습니다.");
+      return;
+    }
+
+    setRoster(unwrapData<AttendanceRoster>(await response.json()));
+    setActionState("idle");
+    setStatusMessage("출석부를 불러왔습니다.");
+  }
+
+  function updateRosterItem(index: number, patch: Partial<AttendanceRosterItem>) {
+    setRoster((current) =>
+      current
+        ? {
+            ...current,
+            roster: current.roster.map((item, itemIndex) =>
+              itemIndex === index ? { ...item, ...patch } : item
+            )
+          }
+        : current
+    );
+  }
+
+  function addChild() {
+    const childName = newChildName.trim();
+    if (!childName || !roster || roster.roster.some((item) => item.childName === childName)) return;
+    setRoster({
+      ...roster,
+      roster: [
+        ...roster.roster,
+        { id: null, childName, status: "present", note: "", updatedAt: null }
+      ]
+    });
+    setNewChildName("");
+  }
+
+  async function saveRoster() {
+    if (!roster || roster.roster.length === 0) return;
+    setActionState("saving");
+    const response = await authenticatedFetch("/api/admin/attendance", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        organizationId: roster.organizationId,
+        attendanceDate: roster.attendanceDate,
+        className: roster.className,
+        records: roster.roster.map(({ childName, status, note }) => ({ childName, status, note }))
+      })
+    });
+    if (!response.ok) {
+      setActionState("error");
+      setStatusMessage("출석 저장에 실패했습니다. 마감 여부와 입력값을 확인해 주세요.");
+      return;
+    }
+    const data = unwrapData<{ roster: AttendanceRoster }>(await response.json());
+    setRoster(data.roster);
+    setActionState("saved");
+    setStatusMessage(`${data.roster.roster.length}명의 출석을 저장했습니다.`);
+  }
+
+  async function changeClosure(action: "close" | "reopen") {
+    if (!roster) return;
+    setActionState("saving");
+    const response = await authenticatedFetch("/api/admin/attendance/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        organizationId: roster.organizationId,
+        attendanceDate: roster.attendanceDate,
+        className: roster.className,
+        action
+      })
+    });
+    if (!response.ok) {
+      setActionState("error");
+      setStatusMessage("출석부 상태를 변경하지 못했습니다.");
+      return;
+    }
+    const data = unwrapData<{ isClosed: boolean; closedAt: string | null }>(await response.json());
+    setRoster({ ...roster, isClosed: data.isClosed, closedAt: data.closedAt });
+    setActionState("saved");
+    setStatusMessage(data.isClosed ? "출석부를 마감했습니다." : "출석부를 재오픈했습니다.");
+  }
+
   return (
-    <EditorLayout
-      title="출석체크 관리"
-      description="기관/반/일자별 원아 출석 상태를 등록하고 운영자가 마감 상태를 점검합니다."
-      onSave={onSave}
-      saveState={saveState}
-      list={<RecordList emptyLabel="등록된 출석 레코드가 없습니다." items={records.map((record) => `${record.attendanceDate} · ${record.className} · ${record.childName} · ${record.status}`)} />}
-    >
-      <div className="grid gap-3 md:grid-cols-2">
-        <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="organization uuid" />
-        <Field label="날짜" value={form.attendanceDate} onChange={(attendanceDate) => onChange({ ...form, attendanceDate })} placeholder="2026-06-22" />
-        <Field label="반" value={form.className} onChange={(className) => onChange({ ...form, className })} placeholder="햇님반" />
-        <Field label="원아명" value={form.childName} onChange={(childName) => onChange({ ...form, childName })} placeholder="김하늘" />
-        <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["present", "absent", "late", "excused"]} />
-        <Field label="메모" value={form.note} onChange={(note) => onChange({ ...form, note })} placeholder="보호자 연락 완료" />
-      </div>
-    </EditorLayout>
+    <div className="grid gap-5">
+      <section className="rounded border border-line bg-white p-5 shadow-soft">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-normal">출석체크 관리</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              기관·날짜·반별 출석부를 불러와 일괄 저장하고 마감 상태를 관리합니다.
+            </p>
+          </div>
+          {roster ? <Badge tone={roster.isClosed ? "amber" : "green"}>{roster.isClosed ? "마감됨" : "작성 중"}</Badge> : null}
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <AdminOrganizationSelect
+            value={scope.organizationId}
+            required
+            onChange={(organizationId) => setScope({ ...scope, organizationId })}
+          />
+          <Field label="날짜" value={scope.attendanceDate} onChange={(attendanceDate) => setScope({ ...scope, attendanceDate })} placeholder="2026-06-24" />
+          <Field label="반" value={scope.className} onChange={(className) => setScope({ ...scope, className })} placeholder="햇님반" />
+        </div>
+        <button
+          type="button"
+          onClick={() => void loadRoster()}
+          disabled={!canLoad || actionState === "saving"}
+          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-4 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:text-muted"
+        >
+          <RefreshCw size={17} className={actionState === "saving" ? "animate-spin" : ""} aria-hidden />
+          출석부 조회
+        </button>
+        <p className="mt-4 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted">
+          {statusMessage}
+        </p>
+      </section>
+
+      {roster ? (
+        <section className="rounded border border-line bg-white p-5 shadow-soft">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <h3 className="text-lg font-semibold text-ink">{roster.className} 출석부</h3>
+              <p className="mt-1 text-sm text-muted">{roster.attendanceDate} · {roster.roster.length}명</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void changeClosure(roster.isClosed ? "reopen" : "close")}
+              disabled={actionState === "saving"}
+              className="inline-flex min-h-10 items-center justify-center rounded border border-line bg-white px-3 text-sm font-semibold text-muted hover:border-brand hover:text-brand"
+            >
+              {roster.isClosed ? "재오픈" : "출석부 마감"}
+            </button>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={newChildName}
+              onChange={(event) => setNewChildName(event.target.value)}
+              disabled={roster.isClosed}
+              placeholder="원아명 추가"
+              className="min-h-11 flex-1 rounded border border-line bg-surface px-3 text-sm outline-none focus:border-brand"
+            />
+            <button
+              type="button"
+              onClick={addChild}
+              disabled={roster.isClosed || !newChildName.trim()}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 text-sm font-semibold disabled:text-muted"
+            >
+              <Plus size={17} aria-hidden />
+              원아 추가
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {roster.roster.map((item, index) => (
+              <div key={item.childName} className="grid gap-3 rounded border border-line bg-surface p-3 md:grid-cols-[minmax(120px,1fr)_180px_2fr] md:items-center">
+                <p className="font-semibold text-ink">{item.childName}</p>
+                <select
+                  value={item.status}
+                  disabled={roster.isClosed}
+                  onChange={(event) => updateRosterItem(index, { status: event.target.value as AttendanceRosterItem["status"] })}
+                  className="min-h-10 rounded border border-line bg-white px-3 text-sm"
+                >
+                  <option value="present">출석</option>
+                  <option value="absent">결석</option>
+                  <option value="late">지각</option>
+                  <option value="excused">인정결석</option>
+                </select>
+                <input
+                  value={item.note}
+                  disabled={roster.isClosed}
+                  onChange={(event) => updateRosterItem(index, { note: event.target.value })}
+                  placeholder="메모"
+                  className="min-h-10 rounded border border-line bg-white px-3 text-sm"
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void saveRoster()}
+            disabled={roster.isClosed || roster.roster.length === 0 || actionState === "saving"}
+            className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {actionState === "saving" ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <Save size={17} aria-hidden />}
+            출석 일괄 저장
+          </button>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -439,7 +643,7 @@ function GiftPanel({
         }
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="기관 ID" value={staffCouponForm.organizationId} onChange={(organizationId) => onStaffCouponChange({ ...staffCouponForm, organizationId })} placeholder="organization uuid" />
+          <AdminOrganizationSelect label="기관" value={staffCouponForm.organizationId} required onChange={(organizationId) => onStaffCouponChange({ ...staffCouponForm, organizationId })} />
           <Field label="제목" value={staffCouponForm.title} onChange={(title) => onStaffCouponChange({ ...staffCouponForm, title })} placeholder="원장님 포토북 제작 20% 할인" />
           <Field label="설명" value={staffCouponForm.description} onChange={(description) => onStaffCouponChange({ ...staffCouponForm, description })} placeholder="쿠폰함에 표시될 설명" />
           <Field label="코드" value={staffCouponForm.code} onChange={(code) => onStaffCouponChange({ ...staffCouponForm, code })} placeholder="JK-DIRECTOR-20" />
@@ -461,7 +665,7 @@ function GiftPanel({
         list={<RecordList emptyLabel="등록된 상품권/코드가 없습니다." items={codes.map((code) => `${code.title} · ${code.code} · ${code.status}`)} />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="선택 사항" />
+          <AdminOrganizationSelect label="기관" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} />
           <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="점보키즈 포토북 상품권" />
           <Field label="코드" value={form.code} onChange={(code) => onChange({ ...form, code })} placeholder="JK-GIFT-0001" />
           <Field label="혜택 라벨" value={form.amountLabel} onChange={(amountLabel) => onChange({ ...form, amountLabel })} placeholder="10,000원" />
@@ -495,7 +699,7 @@ function PushPanel({
       list={<RecordList emptyLabel="등록된 푸시 캠페인이 없습니다." items={campaigns.map((campaign) => `${campaign.title} · ${campaign.status} · ${campaign.scheduledFor ?? "즉시"}`)} />}
     >
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="기관 ID" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} placeholder="선택 사항" />
+        <AdminOrganizationSelect label="기관" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} />
         <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="내일 행사 안내" />
         <SelectField label="대상 역할" value={form.targetRole} onChange={(targetRole) => onChange({ ...form, targetRole })} options={["", "owner", "manager", "teacher"]} />
         <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "scheduled", "sent", "failed", "cancelled"]} />
