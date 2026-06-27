@@ -10,6 +10,7 @@ import {
   LockKeyhole,
   Plus,
   RefreshCw,
+  Send,
   Save,
   ShieldCheck
 } from "lucide-react";
@@ -354,6 +355,45 @@ function MediaPanel({
   onSave: () => void;
   saveState: SaveState;
 }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadState, setUploadState] = useState<SaveState>("idle");
+  const [uploadMessage, setUploadMessage] = useState("");
+
+  async function uploadMedia() {
+    if (!file || !form.usageSlot.trim()) {
+      setUploadState("error");
+      setUploadMessage("이미지 파일과 사용 위치를 먼저 입력해 주세요.");
+      return;
+    }
+
+    setUploadState("saving");
+    setUploadMessage("");
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("slot", form.usageSlot.trim());
+    formData.set("scope", form.scope);
+    if (form.organizationId) formData.set("organizationId", form.organizationId);
+    formData.set("label", form.label || file.name);
+    formData.set("altText", form.altText);
+    formData.set("status", form.status);
+
+    const response = await authenticatedFetch("/api/admin/media-upload", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!response.ok) {
+      setUploadState("error");
+      setUploadMessage("이미지 업로드에 실패했습니다.");
+      return;
+    }
+
+    const result = unwrapData<{ publicUrl: string }>(await response.json());
+    onChange({ ...form, url: result.publicUrl, label: form.label || file.name });
+    setUploadState("saved");
+    setUploadMessage("이미지를 업로드했고 URL을 입력칸에 반영했습니다.");
+  }
+
   return (
     <EditorLayout
       title="이미지 등록/교체"
@@ -381,6 +421,31 @@ function MediaPanel({
         <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "published", "archived"]} />
         <Field label="이미지 URL" value={form.url} onChange={(url) => onChange({ ...form, url })} placeholder="https://..." />
         <Field label="대체 텍스트" value={form.altText} onChange={(altText) => onChange({ ...form, altText })} placeholder="아이들이 교실에서 활동하는 사진" />
+      </div>
+      <div className="rounded border border-line bg-surface p-3">
+        <label className="grid gap-2 text-sm font-semibold text-ink">
+          이미지 파일 업로드
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            className="rounded border border-line bg-white px-3 py-2 text-sm"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => void uploadMedia()}
+          disabled={uploadState === "saving" || !file}
+          className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:text-muted"
+        >
+          {uploadState === "saving" ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ImageIcon size={16} aria-hidden />}
+          업로드 후 URL 반영
+        </button>
+        {uploadMessage ? (
+          <p className={`mt-2 text-sm font-semibold ${uploadState === "error" ? "text-coral" : "text-brand"}`}>
+            {uploadMessage}
+          </p>
+        ) : null}
       </div>
     </EditorLayout>
   );
@@ -690,13 +755,36 @@ function PushPanel({
   onSave: () => void;
   saveState: SaveState;
 }) {
+  const [sendState, setSendState] = useState<Record<string, SaveState>>({});
+  const [sendMessage, setSendMessage] = useState("");
+
+  async function sendCampaign(campaign: AdminPushCampaign) {
+    setSendState((current) => ({ ...current, [campaign.id]: "saving" }));
+    setSendMessage("");
+    const response = await authenticatedFetch(`/api/admin/push/campaigns/${campaign.id}/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ providerMode: "mock", mockResult: "sent" })
+    });
+
+    if (!response.ok) {
+      setSendState((current) => ({ ...current, [campaign.id]: "error" }));
+      setSendMessage("푸시 발송 요청에 실패했습니다.");
+      return;
+    }
+
+    const result = unwrapData<{ sent: number; skipped: number }>(await response.json());
+    setSendState((current) => ({ ...current, [campaign.id]: "saved" }));
+    setSendMessage(`발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`);
+  }
+
   return (
     <EditorLayout
       title="푸시알림/운영 메시지"
       description="대상 기관/역할, 예약 시간, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다."
       onSave={onSave}
       saveState={saveState}
-      list={<RecordList emptyLabel="등록된 푸시 캠페인이 없습니다." items={campaigns.map((campaign) => `${campaign.title} · ${campaign.status} · ${campaign.scheduledFor ?? "즉시"}`)} />}
+      list={<PushCampaignList campaigns={campaigns} sendState={sendState} onSend={sendCampaign} />}
     >
       <div className="grid gap-3 md:grid-cols-2">
         <AdminOrganizationSelect label="기관" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} />
@@ -706,6 +794,7 @@ function PushPanel({
         <Field label="예약 시각" value={form.scheduledFor} onChange={(scheduledFor) => onChange({ ...form, scheduledFor })} placeholder="2026-06-23T00:00:00.000Z" />
       </div>
       <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="알림 본문" />
+      {sendMessage ? <p className="text-sm font-semibold text-brand">{sendMessage}</p> : null}
     </EditorLayout>
   );
 }
@@ -788,6 +877,51 @@ function MediaList({ assets }: { assets: AdminMediaAsset[] }) {
         ) : (
           <p className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
             관리 중인 이미지가 없습니다.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PushCampaignList({
+  campaigns,
+  sendState,
+  onSend
+}: {
+  campaigns: AdminPushCampaign[];
+  sendState: Record<string, SaveState>;
+  onSend: (campaign: AdminPushCampaign) => void;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-ink">현재 캠페인</h3>
+      <div className="mt-4 grid gap-3">
+        {campaigns.length > 0 ? (
+          campaigns.map((campaign) => {
+            const state = sendState[campaign.id] ?? "idle";
+            const canSend = campaign.status === "draft" || campaign.status === "scheduled";
+            return (
+              <div key={campaign.id} className="rounded border border-line bg-surface p-3">
+                <p className="font-semibold text-ink">{campaign.title}</p>
+                <p className="mt-1 text-xs font-semibold text-brand">
+                  {campaign.status} · {campaign.scheduledFor ?? "즉시"} · {campaign.targetRole ?? "전체"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onSend(campaign)}
+                  disabled={!canSend || state === "saving"}
+                  className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-xs font-semibold text-muted hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:text-muted"
+                >
+                  {state === "saving" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Send size={15} aria-hidden />}
+                  {canSend ? "발송 요청" : "발송 불가"}
+                </button>
+              </div>
+            );
+          })
+        ) : (
+          <p className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
+            등록된 푸시 캠페인이 없습니다.
           </p>
         )}
       </div>

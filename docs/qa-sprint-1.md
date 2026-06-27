@@ -1,5 +1,19 @@
 # Kidsmemo Sprint 1 QA Checklist
 
+## 2026-06-27 Admin Operations Expansion
+
+- E2E QA 계정 bootstrap 스크립트 추가: `npm run bootstrap:e2e-memberships`
+- 관리자 운영 live smoke 추가: `npm run smoke:admin-operations-live`
+- 관리자 이미지 업로드 API 추가: `POST /api/admin/media-upload`
+- 관리자 이미지 탭에서 파일 업로드 후 URL 자동 반영 가능
+- Supabase Storage public bucket `admin-media`와 platform admin write 정책 추가
+- 푸시 발송 요청 API 추가: `POST /api/admin/push/campaigns/:campaignId/send`
+- 푸시 탭에서 draft/scheduled 캠페인 mock 발송 요청 가능
+- 푸시 delivery log는 `push_deliveries`에 저장되며 실제 외부 provider 발송은 아직 하지 않는다.
+- 적용된 migration:
+  - `20260627130000_media_storage.sql`
+  - `20260627131000_push_delivery.sql`
+
 ## 2026-06-24 Admin Operations Expansion
 
 - 관리자 기관 입력을 UUID 직접 입력에서 기관명/지역 검색 선택기로 교체했다.

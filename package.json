@@ -8,8 +8,10 @@
     "start": "next start",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "bootstrap:test-membership": "node scripts/bootstrap-test-membership.mjs",
+    "bootstrap:e2e-memberships": "node scripts/bootstrap-e2e-memberships.mjs",
     "bootstrap:admin-membership": "node scripts/bootstrap-admin-membership.mjs",
     "smoke:admin-live": "node scripts/admin-live-smoke.mjs",
+    "smoke:admin-operations-live": "node scripts/admin-operations-live-smoke.mjs",
     "test:staff-coupon-e2e": "node scripts/staff-coupon-e2e.mjs"
   },
   "dependencies": {
