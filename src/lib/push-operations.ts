@@ -13,7 +13,8 @@ type Row = Record<string, unknown>;
 type SupabaseClient = NonNullable<ReturnType<typeof createSupabaseUserClient>>;
 type PushCampaignStatus = "draft" | "scheduled" | "sent" | "failed" | "cancelled";
 type MockResult = "sent" | "skipped" | "mixed";
-type PushDeliveryStatus = "sent" | "skipped";
+type PushDeliveryProviderName = "mock";
+type PushDeliveryStatus = "sent" | "skipped" | "failed";
 
 const sendableCampaignStatuses: PushCampaignStatus[] = ["draft", "scheduled"];
 const mockMemberships = [
@@ -39,7 +40,12 @@ export const pushSendRequestSchema = z
   })
   .default({});
 
+export const pushDeliveryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).default(50)
+});
+
 export type PushSendRequest = z.infer<typeof pushSendRequestSchema>;
+export type PushDeliveryQuery = z.infer<typeof pushDeliveryQuerySchema>;
 
 interface CampaignRow {
   id: string;
@@ -59,7 +65,7 @@ interface MembershipRow {
 
 interface DeliverySummary {
   campaignId: string;
-  provider: "mock";
+  provider: PushDeliveryProviderName;
   requested: number;
   sent: number;
   skipped: number;
@@ -68,17 +74,67 @@ interface DeliverySummary {
   deliveries: PushDeliveryItem[];
 }
 
-interface PushDeliveryItem {
+export interface PushDeliveryItem {
   id: string | null;
   organizationId: string;
   recipientProfileId: string;
   recipientRole: Role;
-  provider: "mock";
+  provider: PushDeliveryProviderName;
   status: PushDeliveryStatus;
   skippedReason: string | null;
+  failureReason: string | null;
   providerMessageId: string | null;
   createdAt: string;
 }
+
+export interface PushDeliveryLog {
+  campaignId: string;
+  summary: {
+    total: number;
+    sent: number;
+    skipped: number;
+    failed: number;
+  };
+  deliveries: PushDeliveryItem[];
+}
+
+interface PushProviderDeliveryResult {
+  membership: MembershipRow;
+  provider: PushDeliveryProviderName;
+  status: PushDeliveryStatus;
+  providerMessageId: string | null;
+  skippedReason: string | null;
+  failureReason: string | null;
+}
+
+interface PushProviderRequest {
+  campaign: CampaignRow;
+  memberships: MembershipRow[];
+  mockResult: MockResult;
+  now: string;
+}
+
+interface PushProvider {
+  name: PushDeliveryProviderName;
+  send(request: PushProviderRequest): Promise<PushProviderDeliveryResult[]>;
+}
+
+const mockPushProvider: PushProvider = {
+  name: "mock",
+  async send({ campaign, memberships, mockResult, now }) {
+    return memberships.map((membership, index) => {
+      const shouldSkip = mockResult === "skipped" || (mockResult === "mixed" && index % 2 === 1);
+      return {
+        membership,
+        provider: "mock",
+        status: shouldSkip ? "skipped" : "sent",
+        providerMessageId: shouldSkip ? null : `mock:${campaign.id}:${membership.profile_id}:${now}`,
+        skippedReason: shouldSkip ? "mock_provider_skipped" : null,
+        failureReason: null
+      };
+    });
+  }
+};
 
 export async function requirePushAdmin(request: Request) {
   const access = await resolveRequestAccessContext(request);
@@ -104,8 +160,15 @@ export async function sendPushCampaign(
 
   const memberships = await getTargetMemberships(supabase, campaign, input.limit);
   const now = new Date().toISOString();
-  const deliveryRows = memberships.map((membership, index) =>
-    toDeliveryInsert(campaign, membership, access.profileId, input.mockResult, index, now)
+  const provider = resolvePushProvider(input);
+  const providerResults = await provider.send({
+    campaign,
+    memberships,
+    mockResult: input.mockResult,
+    now
+  });
+  const deliveryRows = providerResults.map((result) =>
+    toDeliveryInsert(campaign, result, access.profileId)
   );
 
   let insertedRows: Row[] = [];
@@ -113,13 +176,14 @@ export async function sendPushCampaign(
     const { data, error } = await supabase
       .from("push_deliveries")
       .insert(deliveryRows)
-      .select("id, organization_id, recipient_profile_id, recipient_role, provider, status, skipped_reason, provider_message_id, created_at");
+      .select("id, organization_id, recipient_profile_id, recipient_role, provider, status, skipped_reason, failure_reason, provider_message_id, created_at");
     if (error) throw error;
     insertedRows = (data ?? []) as Row[];
   }
 
   const sentCount = insertedRows.filter((row) => row.status === "sent").length;
   const skippedCount = insertedRows.filter((row) => row.status === "skipped").length;
+  const failedCount = insertedRows.filter((row) => row.status === "failed").length;
   const nextStatus: PushCampaignStatus = "sent";
   const { error: updateError } = await supabase
     .from("push_campaigns")
@@ -128,22 +192,62 @@ export async function sendPushCampaign(
   if (updateError) throw updateError;
 
   await writeAuditLog(supabase, access.profileId, campaign, {
-    provider: "mock",
+    provider: provider.name,
     requested: memberships.length,
     sent: sentCount,
-    skipped: skippedCount
+    skipped: skippedCount,
+    failed: failedCount
   });
 
   return {
     campaignId: campaign.id,
-    provider: "mock",
+    provider: provider.name,
     requested: memberships.length,
     sent: sentCount,
     skipped: skippedCount,
-    failed: 0,
+    failed: failedCount,
     campaignStatus: nextStatus,
     deliveries: insertedRows.map(mapDelivery)
   };
+}
+
+export async function getPushDeliveryLog(
+  access: RequestAccessContext,
+  campaignId: string,
+  query: PushDeliveryQuery
+): Promise<PushDeliveryLog> {
+  if (!isLiveSupabaseMode()) {
+    return getMockDeliveryLog(campaignId, query);
+  }
+
+  const supabase = requireSupabase(access);
+  const campaign = await getCampaign(supabase, campaignId);
+  const [{ data: summaryRows, error: summaryError }, { data: deliveryRows, error: deliveryError }] =
+    await Promise.all([
+      supabase.from("push_deliveries").select("status").eq("campaign_id", campaign.id),
+      supabase
+        .from("push_deliveries")
+        .select("id, organization_id, recipient_profile_id, recipient_role, provider, status, skipped_reason, failure_reason, provider_message_id, created_at")
+        .eq("campaign_id", campaign.id)
+        .order("created_at", { ascending: false })
+        .limit(query.limit)
+    ]);
+
+  if (summaryError) throw summaryError;
+  if (deliveryError) throw deliveryError;
+
+  const deliveries = ((deliveryRows ?? []) as Row[]).map(mapDelivery);
+  const summary = summarizeDeliveryRows((summaryRows ?? []) as Row[]);
+
+  return {
+    campaignId: campaign.id,
+    summary,
+    deliveries
+  };
+}
+
+function resolvePushProvider(_input: PushSendRequest): PushProvider {
+  return mockPushProvider;
 }
 
 async function getCampaign(supabase: SupabaseClient, campaignId: string): Promise<CampaignRow> {
@@ -209,26 +313,23 @@ async function getTargetMemberships(supabase: SupabaseClient, campaign: Campaign
 
 function toDeliveryInsert(
   campaign: CampaignRow,
-  membership: MembershipRow,
-  requestedBy: string | null,
-  mockResult: MockResult,
-  index: number,
-  now: string
+  result: PushProviderDeliveryResult,
+  requestedBy: string | null
 ) {
-  const shouldSkip = mockResult === "skipped" || (mockResult === "mixed" && index % 2 === 1);
   return {
     campaign_id: campaign.id,
-    organization_id: membership.organization_id,
-    recipient_profile_id: membership.profile_id,
-    recipient_role: membership.role,
-    provider: "mock",
-    status: shouldSkip ? "skipped" : "sent",
-    provider_message_id: shouldSkip ? null : `mock:${campaign.id}:${membership.profile_id}:${now}`,
-    skipped_reason: shouldSkip ? "mock_provider_skipped" : null,
+    organization_id: result.membership.organization_id,
+    recipient_profile_id: result.membership.profile_id,
+    recipient_role: result.membership.role,
+    provider: result.provider,
+    status: result.status,
+    provider_message_id: result.providerMessageId,
+    skipped_reason: result.skippedReason,
+    failure_reason: result.failureReason,
     metadata: {
       campaignTitle: campaign.title,
       targetRole: campaign.target_role,
-      providerMode: "mock"
+      providerMode: result.provider
     },
     requested_by: requestedBy
   };
@@ -278,6 +379,7 @@ function sendMockCampaign(campaignId: string, input: PushSendRequest): DeliveryS
         input.mockResult === "skipped" || (input.mockResult === "mixed" && index % 2 === 1)
           ? null
           : `mock:${campaign.id}:${membership.profile_id}:${now}`,
+      failure_reason: null,
       created_at: now
     })
   );
@@ -290,6 +392,20 @@ function sendMockCampaign(campaignId: string, input: PushSendRequest): DeliveryS
     skipped: deliveries.filter((delivery) => delivery.status === "skipped").length,
     failed: 0,
     campaignStatus: "sent",
+    deliveries
+  };
+}
+
+function getMockDeliveryLog(campaignId: string, query: PushDeliveryQuery): PushDeliveryLog {
+  const deliveries = sendMockCampaign(campaignId, {
+    providerMode: "mock",
+    mockResult: "mixed",
+    limit: query.limit
+  }).deliveries;
+
+  return {
+    campaignId,
+    summary: summarizeDeliveryItems(deliveries),
     deliveries
   };
 }
@@ -307,10 +423,37 @@ function mapDelivery(row: Row): PushDeliveryItem {
     recipientProfileId: asString(row.recipient_profile_id),
     recipientRole: parseRole(row.recipient_role),
     provider: "mock",
-    status: row.status === "skipped" ? "skipped" : "sent",
+    status: parseDeliveryStatus(row.status),
     skippedReason: nullableString(row.skipped_reason),
+    failureReason: nullableString(row.failure_reason),
     providerMessageId: nullableString(row.provider_message_id),
     createdAt: asString(row.created_at)
+  };
+}
+
+function summarizeDeliveryRows(rows: Row[]): PushDeliveryLog["summary"] {
+  return summarizeDeliveryItems(
+    rows.map((row) => ({
+      id: null,
+      organizationId: "",
+      recipientProfileId: "",
+      recipientRole: "teacher",
+      provider: "mock",
+      status: parseDeliveryStatus(row.status),
+      skippedReason: null,
+      failureReason: null,
+      providerMessageId: null,
+      createdAt: ""
+    }))
+  );
+}
+
+function summarizeDeliveryItems(deliveries: PushDeliveryItem[]): PushDeliveryLog["summary"] {
+  return {
+    total: deliveries.length,
+    sent: deliveries.filter((delivery) => delivery.status === "sent").length,
+    skipped: deliveries.filter((delivery) => delivery.status === "skipped").length,
+    failed: deliveries.filter((delivery) => delivery.status === "failed").length
   };
 }
 
@@ -318,6 +461,12 @@ function parseCampaignStatus(value: unknown): PushCampaignStatus {
   return typeof value === "string" && ["draft", "scheduled", "sent", "failed", "cancelled"].includes(value)
     ? (value as PushCampaignStatus)
     : "draft";
+}
+
+function parseDeliveryStatus(value: unknown): PushDeliveryStatus {
+  return typeof value === "string" && ["sent", "skipped", "failed"].includes(value)
+    ? (value as PushDeliveryStatus)
+    : "sent";
 }
 
 function parseRole(value: unknown): Role {

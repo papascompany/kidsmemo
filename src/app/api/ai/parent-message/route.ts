@@ -2,6 +2,7 @@ import { z } from "zod";
 import { apiError, handleApiError, ok } from "@/lib/api-response";
 import { assertRoleScope, resolveRequestAccessContext } from "@/lib/access-control";
 import { generateParentMessages } from "@/lib/ai";
+import { saveAiGeneration } from "@/lib/ai-history";
 
 const schema = z.object({
   purpose: z.enum(["event_notice", "thanks", "growth_record", "participation", "apology"]),
@@ -23,6 +24,11 @@ export async function POST(request: Request) {
     const access = await resolveRequestAccessContext(request);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
     const result = await generateParentMessages(payload);
+    await saveAiGeneration(access, {
+      kind: "parent_message",
+      input: payload,
+      output: result
+    });
 
     return ok(result);
   } catch (error) {

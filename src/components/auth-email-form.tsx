@@ -15,18 +15,25 @@ const copy = {
   login: {
     button: "이메일로 로그인",
     busy: "로그인 중",
-    success: "로그인되었습니다. 대시보드로 이동합니다.",
+    success: "로그인되었습니다. 기관 연결 상태를 확인합니다.",
     missingConfig:
       "Supabase 공개 키가 아직 설정되지 않아 실제 로그인을 진행할 수 없습니다. NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 설정하면 활성화됩니다."
   },
   signup: {
     button: "이메일로 가입",
     busy: "가입 중",
-    success: "가입 요청이 완료되었습니다. 이메일 확인이 필요하면 받은 편지함을 확인해 주세요.",
+    success: "가입 요청이 완료되었습니다. 기관 온보딩으로 이동합니다.",
     missingConfig:
       "Supabase 공개 키가 아직 설정되지 않아 실제 가입을 진행할 수 없습니다. NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 설정하면 활성화됩니다."
   }
 } as const;
+
+type OnboardingStatusResponse = {
+  ok: true;
+  data: {
+    memberships: Array<{ organizationId: string }>;
+  };
+};
 
 export function AuthEmailForm({ mode }: AuthEmailFormProps) {
   const router = useRouter();
@@ -67,10 +74,12 @@ export function AuthEmailForm({ mode }: AuthEmailFormProps) {
         return;
       }
 
-      setMessage(copy[mode].success);
+      const session = result.data.session;
+      setMessage(session ? copy[mode].success : "가입 요청이 완료되었습니다. 이메일 확인이 필요하면 받은 편지함을 확인해 주세요.");
 
-      if (mode === "login" || result.data.session) {
-        router.push(mode === "login" ? "/app" : "/onboarding");
+      if (session) {
+        const destination = await resolvePostAuthDestination(session.access_token);
+        router.push(destination);
         router.refresh();
       }
     } finally {
@@ -130,4 +139,19 @@ export function AuthEmailForm({ mode }: AuthEmailFormProps) {
       </button>
     </form>
   );
+}
+
+async function resolvePostAuthDestination(accessToken: string) {
+  const response = await fetch("/api/onboarding", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  if (!response.ok) {
+    return "/onboarding";
+  }
+
+  const payload = (await response.json()) as OnboardingStatusResponse;
+  return payload.ok && payload.data.memberships.length > 0 ? "/app" : "/onboarding";
 }

@@ -126,6 +126,18 @@ export interface ParentMessageResult {
   safetyNotes: string[];
 }
 
+export type AiGenerationKind = "event_assistant" | "parent_message";
+
+export interface AiGenerationRecord {
+  id: string;
+  organizationId: string;
+  profileId: string;
+  kind: AiGenerationKind;
+  input: EventAssistantRequest | ParentMessageRequest;
+  output: EventAssistantResult | ParentMessageResult;
+  createdAt: string;
+}
+
 export interface ReminderRunResult {
   generatedJobs: MessageJob[];
   jobSummaries: ReminderJobSummary[];

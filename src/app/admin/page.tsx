@@ -28,6 +28,7 @@ import type {
   AdminPushCampaign,
   AdminStaffCoupon
 } from "@/lib/admin-operations";
+import type { PushDeliveryLog } from "@/lib/push-operations";
 
 type AdminTab = "content" | "media" | "attendance" | "gifts" | "push" | "audit";
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -756,7 +757,26 @@ function PushPanel({
   saveState: SaveState;
 }) {
   const [sendState, setSendState] = useState<Record<string, SaveState>>({});
+  const [deliveryLog, setDeliveryLog] = useState<PushDeliveryLog | null>(null);
+  const [deliveryLogState, setDeliveryLogState] = useState<SaveState>("idle");
+  const [activeDeliveryCampaignId, setActiveDeliveryCampaignId] = useState<string | null>(null);
   const [sendMessage, setSendMessage] = useState("");
+
+  async function loadDeliveryLog(campaign: AdminPushCampaign) {
+    setActiveDeliveryCampaignId(campaign.id);
+    setDeliveryLogState("saving");
+    const response = await authenticatedFetch(`/api/admin/push/campaigns/${campaign.id}/deliveries?limit=20`);
+
+    if (!response.ok) {
+      setDeliveryLogState("error");
+      setSendMessage("푸시 발송 이력을 불러오지 못했습니다.");
+      return;
+    }
+
+    setDeliveryLog(unwrapData<PushDeliveryLog>(await response.json()));
+    setDeliveryLogState("saved");
+    setSendMessage(`${campaign.title} 발송 이력을 불러왔습니다.`);
+  }
 
   async function sendCampaign(campaign: AdminPushCampaign) {
     setSendState((current) => ({ ...current, [campaign.id]: "saving" }));
@@ -776,6 +796,7 @@ function PushPanel({
     const result = unwrapData<{ sent: number; skipped: number }>(await response.json());
     setSendState((current) => ({ ...current, [campaign.id]: "saved" }));
     setSendMessage(`발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`);
+    await loadDeliveryLog(campaign);
   }
 
   return (
@@ -784,7 +805,16 @@ function PushPanel({
       description="대상 기관/역할, 예약 시간, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다."
       onSave={onSave}
       saveState={saveState}
-      list={<PushCampaignList campaigns={campaigns} sendState={sendState} onSend={sendCampaign} />}
+      list={
+        <PushCampaignList
+          campaigns={campaigns}
+          sendState={sendState}
+          deliveryLogState={deliveryLogState}
+          activeDeliveryCampaignId={activeDeliveryCampaignId}
+          onSend={sendCampaign}
+          onLoadDeliveryLog={loadDeliveryLog}
+        />
+      }
     >
       <div className="grid gap-3 md:grid-cols-2">
         <AdminOrganizationSelect label="기관" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} />
@@ -795,6 +825,7 @@ function PushPanel({
       </div>
       <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="알림 본문" />
       {sendMessage ? <p className="text-sm font-semibold text-brand">{sendMessage}</p> : null}
+      <PushDeliveryLogPanel log={deliveryLog} state={deliveryLogState} />
     </EditorLayout>
   );
 }
@@ -887,11 +918,17 @@ function MediaList({ assets }: { assets: AdminMediaAsset[] }) {
 function PushCampaignList({
   campaigns,
   sendState,
-  onSend
+  deliveryLogState,
+  activeDeliveryCampaignId,
+  onSend,
+  onLoadDeliveryLog
 }: {
   campaigns: AdminPushCampaign[];
   sendState: Record<string, SaveState>;
+  deliveryLogState: SaveState;
+  activeDeliveryCampaignId: string | null;
   onSend: (campaign: AdminPushCampaign) => void;
+  onLoadDeliveryLog: (campaign: AdminPushCampaign) => void;
 }) {
   return (
     <div>
@@ -916,6 +953,19 @@ function PushCampaignList({
                   {state === "saving" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Send size={15} aria-hidden />}
                   {canSend ? "발송 요청" : "발송 불가"}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => onLoadDeliveryLog(campaign)}
+                  disabled={deliveryLogState === "saving" && activeDeliveryCampaignId === campaign.id}
+                  className="mt-2 inline-flex min-h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-xs font-semibold text-muted hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:text-muted"
+                >
+                  {deliveryLogState === "saving" && activeDeliveryCampaignId === campaign.id ? (
+                    <Loader2 size={15} className="animate-spin" aria-hidden />
+                  ) : (
+                    <RefreshCw size={15} aria-hidden />
+                  )}
+                  이력 보기
+                </button>
               </div>
             );
           })
@@ -926,6 +976,62 @@ function PushCampaignList({
         )}
       </div>
     </div>
+  );
+}
+
+function PushDeliveryLogPanel({ log, state }: { log: PushDeliveryLog | null; state: SaveState }) {
+  if (state === "saving") {
+    return (
+      <div className="rounded border border-line bg-surface p-4 text-sm font-semibold text-muted">
+        <Loader2 size={16} className="mr-2 inline animate-spin" aria-hidden />
+        발송 이력을 불러오는 중입니다.
+      </div>
+    );
+  }
+
+  if (!log) {
+    return (
+      <div className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
+        캠페인 카드에서 이력 보기를 선택하면 최근 delivery log가 표시됩니다.
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded border border-line bg-surface p-4">
+      <div className="flex flex-wrap gap-2">
+        <Badge tone="blue">총 {log.summary.total}건</Badge>
+        <Badge tone="green">전송 {log.summary.sent}건</Badge>
+        <Badge tone="amber">제외 {log.summary.skipped}건</Badge>
+        <Badge tone={log.summary.failed > 0 ? "red" : "blue"}>실패 {log.summary.failed}건</Badge>
+      </div>
+      <div className="mt-4 grid gap-2">
+        {log.deliveries.length > 0 ? (
+          log.deliveries.map((delivery) => (
+            <div key={delivery.id ?? `${delivery.recipientProfileId}-${delivery.createdAt}`} className="rounded border border-line bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono text-xs font-semibold text-muted">{delivery.recipientProfileId}</p>
+                <Badge tone={delivery.status === "sent" ? "green" : delivery.status === "failed" ? "red" : "amber"}>
+                  {delivery.status}
+                </Badge>
+              </div>
+              <p className="mt-2 text-xs font-semibold text-brand">
+                {delivery.provider} · {delivery.recipientRole} · {delivery.createdAt}
+              </p>
+              {delivery.skippedReason || delivery.failureReason ? (
+                <p className="mt-1 text-xs text-muted">
+                  {delivery.skippedReason ?? delivery.failureReason}
+                </p>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <p className="rounded border border-dashed border-line bg-white p-4 text-sm text-muted">
+            아직 저장된 발송 이력이 없습니다.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 

@@ -155,7 +155,7 @@ export function KidsmemoDashboard() {
         title="행사 아이디어와 학부모 메시지"
         description="행사 도우미와 감동 문구 생성기는 결과를 저장, 복사, 인쇄할 수 있는 운영형 도구로 구성했습니다."
       >
-        <AiWorkbench />
+        <AiWorkbench organizationId={liveContext?.organization.id} />
       </Section>
 
       <div className="no-print h-10" />

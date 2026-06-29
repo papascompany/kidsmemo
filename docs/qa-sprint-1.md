@@ -8,11 +8,26 @@
 - 관리자 이미지 탭에서 파일 업로드 후 URL 자동 반영 가능
 - Supabase Storage public bucket `admin-media`와 platform admin write 정책 추가
 - 푸시 발송 요청 API 추가: `POST /api/admin/push/campaigns/:campaignId/send`
+- 푸시 발송 이력 조회 API 추가: `GET /api/admin/push/campaigns/:campaignId/deliveries?limit=20`
 - 푸시 탭에서 draft/scheduled 캠페인 mock 발송 요청 가능
+- 푸시 탭에서 캠페인별 delivery log 요약과 최근 목록 조회 가능
 - 푸시 delivery log는 `push_deliveries`에 저장되며 실제 외부 provider 발송은 아직 하지 않는다.
+- 푸시 provider abstraction은 현재 `mock` 구현체만 활성화되어 있으며 외부 provider 호출은 없다.
 - 적용된 migration:
   - `20260627130000_media_storage.sql`
   - `20260627131000_push_delivery.sql`
+
+Push delivery API contract:
+
+- `POST /api/admin/push/campaigns/:campaignId/send`
+  - Auth: `Authorization: Bearer <platform-admin-token>` required.
+  - Body: `{ "providerMode": "auto" | "mock", "mockResult": "sent" | "skipped" | "mixed", "limit"?: number }`.
+  - Response: `{ ok: true, data: { campaignId, provider, requested, sent, skipped, failed, campaignStatus, deliveries } }`.
+- `GET /api/admin/push/campaigns/:campaignId/deliveries?limit=20`
+  - Auth: `Authorization: Bearer <platform-admin-token>` required.
+  - Query: `limit` is optional, positive, and capped at 100.
+  - Response: `{ ok: true, data: { campaignId, summary: { total, sent, skipped, failed }, deliveries } }`.
+  - Delivery rows include `id`, `organizationId`, `recipientProfileId`, `recipientRole`, `provider`, `status`, `skippedReason`, `failureReason`, `providerMessageId`, and `createdAt`.
 
 ## 2026-06-24 Admin Operations Expansion
 
@@ -362,6 +377,28 @@ Manual checks:
 - Confirm `/onboarding` explains institution creation, invite-code participation, and selected-organization readiness.
 
 ## Platform Admin Console
+
+Automated admin browser/DOM QA:
+
+- Run `npm run qa:admin-browser` against a local dev server; default base URL is `http://localhost:3000`.
+- Override the target with `KIDSMEMO_ADMIN_BROWSER_QA_TARGET=production` or an explicit `KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL`.
+- The script checks `/admin` availability, anonymous `/api/admin/operations` rejection, admin tab labels in the rendered shell, and page-level horizontal overflow guards.
+- If Playwright is installed, `KIDSMEMO_ADMIN_BROWSER_QA_MODE=playwright` runs mobile and desktop viewport checks. Without Playwright, `auto` mode falls back to lightweight HTTP/DOM checks.
+- To click through authenticated admin tabs in Playwright mode, set `KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN` to a platform-admin Supabase access token. The script must not print this token.
+
+Example local run:
+
+```powershell
+npm run dev
+npm run qa:admin-browser
+```
+
+Example production run:
+
+```powershell
+$env:KIDSMEMO_ADMIN_BROWSER_QA_TARGET="production"
+npm run qa:admin-browser
+```
 
 Manual checks:
 

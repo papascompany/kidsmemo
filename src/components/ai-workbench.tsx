@@ -1,9 +1,11 @@
 "use client";
 
-import { Bot, Copy, Printer, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Bot, Copy, History, Printer, RotateCcw, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { authenticatedFetch } from "@/lib/auth-fetch";
+import { formatDateTime } from "@/lib/format";
 import type {
+  AiGenerationRecord,
   EventAssistantRequest,
   EventAssistantResult,
   ParentMessageRequest,
@@ -71,7 +73,7 @@ const sampleMessageResult: ParentMessageResult = {
   safetyNotes: ["민감 정보 제외", "구매 강요 표현 제외", "실제 발송 전 행사명과 날짜 확인 필요"]
 };
 
-export function AiWorkbench() {
+export function AiWorkbench({ organizationId }: { organizationId?: string }) {
   const [activeTool, setActiveTool] = useState<"assistant" | "message">("assistant");
   const [assistantResult, setAssistantResult] = useState(sampleAssistantResult);
   const [messageResult, setMessageResult] = useState(sampleMessageResult);
@@ -93,8 +95,30 @@ export function AiWorkbench() {
   });
   const [assistantStatus, setAssistantStatus] = useState<string | null>(null);
   const [messageStatus, setMessageStatus] = useState<string | null>(null);
+  const [historyStatus, setHistoryStatus] = useState<string | null>(null);
+  const [history, setHistory] = useState<AiGenerationRecord[]>([]);
   const [isGeneratingAssistant, setIsGeneratingAssistant] = useState(false);
   const [isGeneratingMessages, setIsGeneratingMessages] = useState(false);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const response = await authenticatedFetch("/api/ai/history?limit=6", { organizationId });
+      if (!response.ok) {
+        setHistoryStatus("최근 이력은 로그인 후 live 기관 범위에서 불러올 수 있습니다.");
+        return;
+      }
+
+      const payload = unwrapData<{ history: AiGenerationRecord[] }>(await response.json());
+      setHistory(Array.isArray(payload.history) ? payload.history : []);
+      setHistoryStatus(null);
+    } catch {
+      setHistoryStatus("최근 이력은 현재 데모 데이터로 표시됩니다.");
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
 
   function updateAssistantField<Name extends keyof EventAssistantRequest>(
     name: Name,
@@ -122,6 +146,7 @@ export function AiWorkbench() {
       const response = await authenticatedFetch("/api/ai/event-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        organizationId,
         body: JSON.stringify({
           ...assistantForm,
           eventName: assistantForm.eventName.trim(),
@@ -138,6 +163,7 @@ export function AiWorkbench() {
       const payload = unwrapData<EventAssistantResult>(await response.json());
       setAssistantResult(payload);
       setAssistantStatus("행사 계획서가 새로 생성되었습니다.");
+      await loadHistory();
     } catch {
       setAssistantStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
     } finally {
@@ -153,6 +179,7 @@ export function AiWorkbench() {
       const response = await authenticatedFetch("/api/ai/parent-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        organizationId,
         body: JSON.stringify({
           ...messageForm,
           eventName: messageForm.eventName.trim(),
@@ -168,10 +195,28 @@ export function AiWorkbench() {
       const payload = unwrapData<ParentMessageResult>(await response.json());
       setMessageResult(payload);
       setMessageStatus("학부모 메시지 후보가 새로 생성되었습니다.");
+      await loadHistory();
     } catch {
       setMessageStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
     } finally {
       setIsGeneratingMessages(false);
+    }
+  }
+
+  function reuseHistory(record: AiGenerationRecord) {
+    if (record.kind === "event_assistant" && isEventAssistantRequest(record.input) && isEventAssistantResult(record.output)) {
+      setActiveTool("assistant");
+      setAssistantForm(record.input);
+      setAssistantResult(record.output);
+      setAssistantStatus("저장된 행사 도우미 결과를 불러왔습니다.");
+      return;
+    }
+
+    if (record.kind === "parent_message" && isParentMessageRequest(record.input) && isParentMessageResult(record.output)) {
+      setActiveTool("message");
+      setMessageForm(record.input);
+      setMessageResult(record.output);
+      setMessageStatus("저장된 학부모 메시지 결과를 불러왔습니다.");
     }
   }
 
@@ -197,6 +242,58 @@ export function AiWorkbench() {
           문구 생성기
         </button>
       </div>
+
+      <section className="no-print rounded border border-line bg-white p-4 shadow-soft">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h3 className="flex items-center gap-2 text-base font-semibold text-ink">
+              <History size={18} aria-hidden />
+              최근 AI 이력
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              현재 기관에서 생성한 결과를 다시 불러와 이어서 사용할 수 있습니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadHistory()}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+          >
+            <RotateCcw size={16} aria-hidden />
+            새로고침
+          </button>
+        </div>
+
+        {historyStatus ? <p className="mt-3 text-sm font-semibold text-muted">{historyStatus}</p> : null}
+
+        <div className="mt-3 grid gap-2 lg:grid-cols-3">
+          {history.length > 0 ? (
+            history.map((record) => (
+              <button
+                key={record.id}
+                type="button"
+                onClick={() => reuseHistory(record)}
+                className="min-h-28 rounded border border-line bg-surface p-3 text-left transition hover:border-brand hover:bg-white"
+              >
+                <span className="text-xs font-semibold text-muted">
+                  {record.kind === "event_assistant" ? "행사 도우미" : "문구 생성기"}
+                </span>
+                <span className="mt-1 block text-sm font-semibold text-ink">{getHistoryTitle(record)}</span>
+                <span className="mt-2 line-clamp-2 block text-sm leading-6 text-muted">
+                  {getHistorySummary(record)}
+                </span>
+                <span className="mt-2 block text-xs font-semibold text-muted">
+                  {formatDateTime(record.createdAt)}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="rounded border border-dashed border-line bg-surface p-4 text-sm leading-6 text-muted lg:col-span-3">
+              아직 저장된 AI 이력이 없습니다. 결과를 생성하면 이곳에 최근 항목이 표시됩니다.
+            </div>
+          )}
+        </div>
+      </section>
 
       <div
         id="event-assistant-panel"
@@ -524,4 +621,59 @@ function unwrapData<T>(payload: unknown): T {
   }
 
   return payload as T;
+}
+
+function isEventAssistantRequest(value: unknown): value is EventAssistantRequest {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as EventAssistantRequest).eventName === "string" &&
+      typeof (value as EventAssistantRequest).ageGroup === "string" &&
+      typeof (value as EventAssistantRequest).preparationDays === "number"
+  );
+}
+
+function isEventAssistantResult(value: unknown): value is EventAssistantResult {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      Array.isArray((value as EventAssistantResult).ideas) &&
+      Array.isArray((value as EventAssistantResult).checklist) &&
+      Array.isArray((value as EventAssistantResult).timeline)
+  );
+}
+
+function isParentMessageRequest(value: unknown): value is ParentMessageRequest {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as ParentMessageRequest).eventName === "string" &&
+      typeof (value as ParentMessageRequest).senderName === "string"
+  );
+}
+
+function isParentMessageResult(value: unknown): value is ParentMessageResult {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      Array.isArray((value as ParentMessageResult).candidates) &&
+      Array.isArray((value as ParentMessageResult).safetyNotes)
+  );
+}
+
+function getHistoryTitle(record: AiGenerationRecord) {
+  const input = record.input as Partial<EventAssistantRequest & ParentMessageRequest>;
+  return input.eventName || "이름 없는 AI 생성";
+}
+
+function getHistorySummary(record: AiGenerationRecord) {
+  if (record.kind === "event_assistant" && isEventAssistantResult(record.output)) {
+    return record.output.ideas[0] ?? record.output.parentNoticeDraft;
+  }
+
+  if (record.kind === "parent_message" && isParentMessageResult(record.output)) {
+    return record.output.candidates[0] ?? record.output.safetyNotes[0];
+  }
+
+  return "저장된 결과를 다시 불러올 수 있습니다.";
 }

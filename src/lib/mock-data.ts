@@ -1,5 +1,6 @@
 import type {
   EventSchedule,
+  AiGenerationRecord,
   MessageDelivery,
   MessageJob,
   Organization,
@@ -178,6 +179,8 @@ export const messageDeliveries: MessageDelivery[] = [
 ];
 
 export const staffCouponDownloads: StaffCouponDownload[] = [];
+
+export const aiGenerations: AiGenerationRecord[] = [];
 
 export function getOrganizationById(organizationId: string) {
   return organizations.find((organization) => organization.id === organizationId);
