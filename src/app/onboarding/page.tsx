@@ -47,7 +47,7 @@ const onboardingCards = [
   },
   {
     title: "초대 코드로 참여",
-    description: "이미 생성된 기관에 선생님 역할로 참여합니다.",
+    description: "이미 생성된 기관에 발급된 역할로 참여합니다.",
     icon: KeyRound
   },
   {
@@ -233,7 +233,7 @@ export default function OnboardingPage() {
             키즈메모는 기관 단위로 행사와 쿠폰을 관리합니다.
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
-            가입한 사용자는 프로필을 완성한 뒤 기관을 만들거나 초대 코드로 참여합니다.
+            가입한 사용자는 프로필을 완성한 뒤 기관을 만들거나 기관에서 발급한 초대 코드로 참여합니다.
             원장님과 선생님은 자신이 속한 기관의 데이터만 볼 수 있습니다.
           </p>
           {sessionNotice}
@@ -338,7 +338,7 @@ export default function OnboardingPage() {
                 <input
                   className="rounded border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
                   onChange={(event) => setInviteCode(event.target.value)}
-                  placeholder="기관 UUID"
+                  placeholder="예: KIDS-2026"
                   required
                   value={inviteCode}
                 />
@@ -397,7 +397,6 @@ export default function OnboardingPage() {
                 <p className="mt-1 text-muted">
                   {primaryMembership.organizationRegion} · {primaryMembership.role}
                 </p>
-                <p className="mt-2 break-all text-xs text-muted">초대 코드: {primaryMembership.organizationId}</p>
               </div>
             ) : null}
 

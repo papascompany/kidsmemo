@@ -2,6 +2,7 @@ import { created, handleApiError, ok } from "@/lib/api-response";
 import { AccessControlError } from "@/lib/access-control";
 import {
   completeOnboarding,
+  createOnboardingInvite,
   getBearerToken,
   getOnboardingStatus,
   onboardingRequestSchema
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
     }
 
     const input = onboardingRequestSchema.parse(await request.json());
+    if (input.action === "createInvite") {
+      return created(await createOnboardingInvite(accessToken, input));
+    }
+
     return created(await completeOnboarding(accessToken, input));
   } catch (error) {
     return handleApiError(error);

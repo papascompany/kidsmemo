@@ -3,12 +3,12 @@ const DEFAULT_PRODUCTION_BASE_URL = "https://kidsmemo.vercel.app";
 const REQUEST_TIMEOUT_MS = Number(readEnv("KIDSMEMO_ADMIN_BROWSER_QA_TIMEOUT_MS", "20000"));
 
 const ADMIN_TABS = [
-  { id: "content", label: "콘텐츠", panelText: "사이트/기관 콘텐츠 관리" },
-  { id: "media", label: "이미지", panelText: "이미지 등록/교체" },
-  { id: "attendance", label: "출석", panelText: "출석 운영" },
-  { id: "gifts", label: "상품권/코드", panelText: "교직원 쿠폰함 코드" },
-  { id: "push", label: "푸시알림", panelText: "푸시알림/운영 메시지" },
-  { id: "audit", label: "감사로그", panelText: "운영 감사로그" }
+  { id: "content", label: "콘텐츠", panelHeading: "사이트/기관 콘텐츠 관리" },
+  { id: "media", label: "이미지", panelHeading: "이미지 등록/교체" },
+  { id: "attendance", label: "출석", panelHeading: "출석체크 관리" },
+  { id: "gifts", label: "상품권/코드", panelHeading: "교직원 쿠폰함 코드" },
+  { id: "push", label: "푸시알림", panelHeading: "푸시알림/운영 메시지" },
+  { id: "audit", label: "감사로그", panelHeading: "운영 감사로그" }
 ];
 
 const VIEWPORTS = [
@@ -109,6 +109,7 @@ async function runBrowserChecks(baseUrl) {
   try {
     for (const viewport of VIEWPORTS) {
       const page = await browser.newPage({ viewport });
+      const diagnostics = capturePageDiagnostics(page);
 
       if (config.accessToken) {
         await page.route("**/api/admin/**", async (route) => {
@@ -120,23 +121,37 @@ async function runBrowserChecks(baseUrl) {
         });
       }
 
+      const operationsResponsePromise = waitForAdminOperationsResponse(page);
       await page.goto(new URL("/admin", baseUrl).toString(), {
-        waitUntil: "networkidle",
+        waitUntil: "domcontentloaded",
         timeout: REQUEST_TIMEOUT_MS
       });
+      const operationsResponse = await operationsResponsePromise;
+      await page.waitForLoadState("networkidle", { timeout: REQUEST_TIMEOUT_MS }).catch(() => {});
+      assertNoPageErrors(diagnostics, viewport.name);
 
       await assertNoPageOverflow(page, viewport.name);
       checks.push(`no_page_overflow_${viewport.name}`);
 
       if (config.accessToken) {
+        assert(
+          operationsResponse.ok(),
+          `${viewport.name} authenticated /api/admin/operations returned HTTP ${operationsResponse.status()}`
+        );
         await page.getByText("Admin Session").waitFor({ timeout: REQUEST_TIMEOUT_MS });
         for (const tab of ADMIN_TABS) {
-          await page.getByRole("button", { name: tab.label }).click();
-          await page.getByText(tab.panelText).waitFor({ timeout: REQUEST_TIMEOUT_MS });
+          const button = page.getByRole("button", { name: tab.label, exact: true });
+          await button.scrollIntoViewIfNeeded();
+          await button.click({ timeout: REQUEST_TIMEOUT_MS });
+          await page.getByRole("heading", { name: tab.panelHeading }).waitFor({ timeout: REQUEST_TIMEOUT_MS });
           await assertNoPageOverflow(page, `${viewport.name}_${tab.id}`);
         }
         checks.push(`admin_tabs_clickable_${viewport.name}`);
       } else {
+        assert(
+          operationsResponse.status() === 401,
+          `${viewport.name} anonymous browser /api/admin/operations returned HTTP ${operationsResponse.status()}, expected 401`
+        );
         await page.getByText("운영자 권한이 필요합니다.").waitFor({ timeout: REQUEST_TIMEOUT_MS });
         checks.push(`anonymous_admin_denied_${viewport.name}`);
       }
@@ -152,6 +167,32 @@ async function runBrowserChecks(baseUrl) {
   }
 
   return { mode: "playwright", checks, notes };
+}
+
+function capturePageDiagnostics(page) {
+  const pageErrors = [];
+  page.on("pageerror", (error) => {
+    pageErrors.push(errorMessage(error));
+  });
+
+  return { pageErrors };
+}
+
+function assertNoPageErrors(diagnostics, label) {
+  assert(
+    diagnostics.pageErrors.length === 0,
+    `${label} emitted page errors: ${diagnostics.pageErrors.map(redact).join(" | ")}`
+  );
+}
+
+async function waitForAdminOperationsResponse(page) {
+  return page.waitForResponse(
+    (response) => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/admin/operations" && response.request().method() === "GET";
+    },
+    { timeout: REQUEST_TIMEOUT_MS }
+  );
 }
 
 async function assertAnonymousAdminApiRejected(baseUrl) {

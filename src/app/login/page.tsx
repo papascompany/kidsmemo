@@ -6,17 +6,26 @@ import Link from "next/link";
 const loginMethods = [
   {
     title: "카카오로 로그인",
-    description: "OAuth 앱 설정이 완료되면 활성화됩니다.",
+    description: "카카오계정으로 키즈메모에 로그인합니다.",
+    provider: "kakao",
     icon: MessageCircle
   },
   {
     title: "구글로 로그인",
-    description: "기관 업무용 Google OAuth 연동을 준비 중입니다.",
+    description: "기관 업무용 Google 계정으로 로그인합니다.",
+    provider: "google",
     icon: KeyRound
   }
-];
+] as const;
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const authMessage = getAuthMessage(params.auth_error);
+
   return (
     <main className="min-h-screen bg-surface px-4 py-8 text-ink sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
@@ -33,12 +42,18 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-6 grid gap-3">
+            {authMessage ? (
+              <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+                {authMessage}
+              </p>
+            ) : null}
             {loginMethods.map((method) => {
               return (
                 <AuthProviderOption
                   key={method.title}
                   description={method.description}
                   icon={method.icon}
+                  provider={method.provider}
                   title={method.title}
                 />
               );
@@ -74,6 +89,20 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+function getAuthMessage(error: string | string[] | undefined) {
+  const code = Array.isArray(error) ? error[0] : error;
+
+  if (!code) {
+    return null;
+  }
+
+  if (code === "config") {
+    return "인증 설정이 아직 완료되지 않아 로그인을 마칠 수 없습니다. 관리자에게 설정을 요청해 주세요.";
+  }
+
+  return "로그인을 마치지 못했습니다. 다시 시도하거나 이메일 로그인을 이용해 주세요.";
 }
 
 function Status({ title, description }: { title: string; description: string }) {

@@ -6,17 +6,26 @@ import Link from "next/link";
 const signupOptions = [
   {
     title: "카카오 간편가입",
-    description: "OAuth 앱 설정이 완료되면 활성화됩니다.",
+    description: "카카오계정으로 가입하고 온보딩을 이어갑니다.",
+    provider: "kakao",
     icon: MessageCircle
   },
   {
     title: "구글 간편가입",
-    description: "기관 업무용 Google OAuth 연동을 준비 중입니다.",
+    description: "기관 업무용 Google 계정으로 가입합니다.",
+    provider: "google",
     icon: ShieldCheck
   }
-];
+] as const;
 
-export default function SignupPage() {
+type SignupPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function SignupPage({ searchParams }: SignupPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const authMessage = getAuthMessage(params.auth_error);
+
   return (
     <main className="min-h-screen bg-[#f8f6f1] px-4 py-8 text-ink sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -35,12 +44,18 @@ export default function SignupPage() {
             </p>
 
             <div className="mt-6 grid gap-3">
+              {authMessage ? (
+                <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+                  {authMessage}
+                </p>
+              ) : null}
               {signupOptions.map((option) => {
                 return (
                   <AuthProviderOption
                     key={option.title}
                     description={option.description}
                     icon={option.icon}
+                    provider={option.provider}
                     title={option.title}
                   />
                 );
@@ -74,6 +89,20 @@ export default function SignupPage() {
       </div>
     </main>
   );
+}
+
+function getAuthMessage(error: string | string[] | undefined) {
+  const code = Array.isArray(error) ? error[0] : error;
+
+  if (!code) {
+    return null;
+  }
+
+  if (code === "config") {
+    return "인증 설정이 아직 완료되지 않아 가입을 마칠 수 없습니다. 관리자에게 설정을 요청해 주세요.";
+  }
+
+  return "간편가입을 마치지 못했습니다. 다시 시도하거나 이메일 가입을 이용해 주세요.";
 }
 
 function Step({ title, description }: { title: string; description: string }) {

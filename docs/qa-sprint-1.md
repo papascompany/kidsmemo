@@ -13,21 +13,23 @@
 - 푸시 탭에서 캠페인별 delivery log 요약과 최근 목록 조회 가능
 - 푸시 delivery log는 `push_deliveries`에 저장되며 실제 외부 provider 발송은 아직 하지 않는다.
 - 푸시 provider abstraction은 현재 `mock` 구현체만 활성화되어 있으며 외부 provider 호출은 없다.
+- 푸시 실패는 `failed` delivery와 `failureReason`, `retryCount`, `nextRetryAt`으로 기록한다.
 - 적용된 migration:
   - `20260627130000_media_storage.sql`
   - `20260627131000_push_delivery.sql`
+  - `20260630120000_push_delivery_retry_policy.sql`
 
 Push delivery API contract:
 
 - `POST /api/admin/push/campaigns/:campaignId/send`
   - Auth: `Authorization: Bearer <platform-admin-token>` required.
-  - Body: `{ "providerMode": "auto" | "mock", "mockResult": "sent" | "skipped" | "mixed", "limit"?: number }`.
+  - Body: `{ "providerMode": "auto" | "mock", "mockResult": "sent" | "skipped" | "failed" | "mixed", "limit"?: number }`.
   - Response: `{ ok: true, data: { campaignId, provider, requested, sent, skipped, failed, campaignStatus, deliveries } }`.
 - `GET /api/admin/push/campaigns/:campaignId/deliveries?limit=20`
   - Auth: `Authorization: Bearer <platform-admin-token>` required.
   - Query: `limit` is optional, positive, and capped at 100.
   - Response: `{ ok: true, data: { campaignId, summary: { total, sent, skipped, failed }, deliveries } }`.
-  - Delivery rows include `id`, `organizationId`, `recipientProfileId`, `recipientRole`, `provider`, `status`, `skippedReason`, `failureReason`, `providerMessageId`, and `createdAt`.
+  - Delivery rows include `id`, `organizationId`, `recipientProfileId`, `recipientRole`, `provider`, `status`, `skippedReason`, `failureReason`, `providerMessageId`, `retryCount`, `nextRetryAt`, and `createdAt`.
 
 ## 2026-06-24 Admin Operations Expansion
 
@@ -216,6 +218,9 @@ By default, the admin bootstrap uses a separate platform QA account and organiza
 
 Supabase-ready checks once connected:
 
+- Kakao and Google buttons call Supabase OAuth and return through `/auth/callback`.
+- OAuth callback routes users with an organization membership to `/app` and users without one to `/onboarding`.
+- OAuth configuration or provider errors show a safe user-facing message without exposing tokens or provider secrets.
 - Kakao signup creates a profile and allows organization creation.
 - Google signup creates a profile and allows invite-code organization join.
 - Email/password signup creates a profile and requires email verification if enabled.
@@ -384,12 +389,23 @@ Automated admin browser/DOM QA:
 - Override the target with `KIDSMEMO_ADMIN_BROWSER_QA_TARGET=production` or an explicit `KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL`.
 - The script checks `/admin` availability, anonymous `/api/admin/operations` rejection, admin tab labels in the rendered shell, and page-level horizontal overflow guards.
 - If Playwright is installed, `KIDSMEMO_ADMIN_BROWSER_QA_MODE=playwright` runs mobile and desktop viewport checks. Without Playwright, `auto` mode falls back to lightweight HTTP/DOM checks.
-- To click through authenticated admin tabs in Playwright mode, set `KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN` to a platform-admin Supabase access token. The script must not print this token.
+- Without `KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN`, the Playwright path intentionally verifies only the anonymous admin denial state after confirming `/api/admin/operations` returns `401 authentication_required`.
+- To click through authenticated admin tabs in Playwright mode, set `KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN` to a platform-admin Supabase access token. The script injects it only into `/api/admin/**` browser requests and must not print this token.
+- `KIDSMEMO_ADMIN_BROWSER_QA_MODE=auto` is recommended for shared CI/smoke use: it runs Playwright checks when the package is available and otherwise completes the HTTP/DOM guard checks.
+- `KIDSMEMO_ADMIN_BROWSER_QA_MODE=playwright` is recommended for release sign-off because it fails if Playwright is unavailable.
 
 Example local run:
 
 ```powershell
 npm run dev
+npm run qa:admin-browser
+```
+
+Example authenticated local browser run:
+
+```powershell
+$env:KIDSMEMO_ADMIN_BROWSER_QA_MODE="playwright"
+$env:KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN="<platform-admin-access-token>"
 npm run qa:admin-browser
 ```
 
@@ -399,6 +415,22 @@ Example production run:
 $env:KIDSMEMO_ADMIN_BROWSER_QA_TARGET="production"
 npm run qa:admin-browser
 ```
+
+Example authenticated production browser run:
+
+```powershell
+$env:KIDSMEMO_ADMIN_BROWSER_QA_TARGET="production"
+$env:KIDSMEMO_ADMIN_BROWSER_QA_MODE="playwright"
+$env:KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN="<platform-admin-access-token>"
+npm run qa:admin-browser
+```
+
+Production/local configuration notes:
+
+- Local default: `KIDSMEMO_ADMIN_BROWSER_QA_LOCAL_BASE_URL` falls back to `http://localhost:3000`; HTTP is allowed only for localhost.
+- Production default: `KIDSMEMO_ADMIN_BROWSER_QA_PRODUCTION_BASE_URL` falls back to `https://kidsmemo.vercel.app`; production/custom base URLs must use HTTPS.
+- `KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL` overrides both target defaults when validating a preview deployment.
+- Keep access tokens in the shell environment only; do not paste them into docs, logs, commits, or issue comments.
 
 Manual checks:
 

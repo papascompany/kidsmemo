@@ -1,4 +1,6 @@
+import { createBrowserClient, createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
 export function createSupabaseBrowserClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -8,7 +10,7 @@ export function createSupabaseBrowserClient() {
     return null;
   }
 
-  return createClient(url, anonKey);
+  return createBrowserClient(url, anonKey);
 }
 
 export function createSupabaseServiceClient() {
@@ -43,6 +45,28 @@ export function createSupabaseUserClient(accessToken: string) {
     global: {
       headers: {
         Authorization: `Bearer ${accessToken}`
+      }
+    }
+  });
+}
+
+export function createSupabaseRouteClient(cookieStore: ReadonlyRequestCookies) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    return null;
+  }
+
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
       }
     }
   });

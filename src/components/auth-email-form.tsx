@@ -65,7 +65,7 @@ export function AuthEmailForm({ mode }: AuthEmailFormProps) {
               password,
               options: {
                 emailRedirectTo:
-                  typeof window === "undefined" ? undefined : `${window.location.origin}/onboarding`
+                  typeof window === "undefined" ? undefined : `${window.location.origin}/auth/callback`
               }
             });
 
