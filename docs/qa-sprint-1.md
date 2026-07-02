@@ -393,6 +393,7 @@ Automated admin browser/DOM QA:
 - To click through authenticated admin tabs in Playwright mode, set `KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN` to a platform-admin Supabase access token. The script injects it only into `/api/admin/**` browser requests and must not print this token.
 - `KIDSMEMO_ADMIN_BROWSER_QA_MODE=auto` is recommended for shared CI/smoke use: it runs Playwright checks when the package is available and otherwise completes the HTTP/DOM guard checks.
 - `KIDSMEMO_ADMIN_BROWSER_QA_MODE=playwright` is recommended for release sign-off because it fails if Playwright is unavailable.
+- `npm run qa:admin-browser-auth` signs in with `KIDSMEMO_ADMIN_EMAIL` and `KIDSMEMO_ADMIN_PASSWORD`, injects the returned bearer token into the browser QA process, and keeps the token out of logs.
 
 Example local run:
 
@@ -425,12 +426,36 @@ $env:KIDSMEMO_ADMIN_BROWSER_QA_ACCESS_TOKEN="<platform-admin-access-token>"
 npm run qa:admin-browser
 ```
 
+Example authenticated production browser run with automatic admin login:
+
+```powershell
+$env:NEXT_PUBLIC_SUPABASE_URL="https://fhakjrppirmjdgqlljzd.supabase.co"
+$env:NEXT_PUBLIC_SUPABASE_ANON_KEY="<public-anon-key>"
+$env:KIDSMEMO_ADMIN_EMAIL="<platform-admin-email>"
+$env:KIDSMEMO_ADMIN_PASSWORD="<platform-admin-password>"
+$env:KIDSMEMO_ADMIN_BROWSER_QA_TARGET="production"
+npm run qa:admin-browser-auth
+```
+
 Production/local configuration notes:
 
 - Local default: `KIDSMEMO_ADMIN_BROWSER_QA_LOCAL_BASE_URL` falls back to `http://localhost:3000`; HTTP is allowed only for localhost.
 - Production default: `KIDSMEMO_ADMIN_BROWSER_QA_PRODUCTION_BASE_URL` falls back to `https://kidsmemo.vercel.app`; production/custom base URLs must use HTTPS.
 - `KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL` overrides both target defaults when validating a preview deployment.
 - Keep access tokens in the shell environment only; do not paste them into docs, logs, commits, or issue comments.
+
+Invite onboarding live smoke:
+
+- `npm run smoke:onboarding-invite-live` ensures two confirmed Supabase Auth users with the service role, signs both in with the anon key, creates a QA organization through `/api/onboarding`, creates a one-use invite, joins the second account as `teacher`, verifies `/api/onboarding` status, and cleans up the QA organization/invite/memberships unless `KIDSMEMO_ONBOARDING_SMOKE_KEEP_RECORD=true`.
+- Required env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+- Optional account env: `KIDSMEMO_ONBOARDING_OWNER_EMAIL`, `KIDSMEMO_ONBOARDING_OWNER_PASSWORD`, `KIDSMEMO_ONBOARDING_JOINER_EMAIL`, and `KIDSMEMO_ONBOARDING_JOINER_PASSWORD`.
+
+```powershell
+$env:NEXT_PUBLIC_SUPABASE_URL="https://fhakjrppirmjdgqlljzd.supabase.co"
+$env:NEXT_PUBLIC_SUPABASE_ANON_KEY="<public-anon-key>"
+$env:SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
+npm run smoke:onboarding-invite-live
+```
 
 Manual checks:
 

@@ -102,7 +102,18 @@ async function runBrowserChecks(baseUrl) {
   }
 
   const { chromium } = playwright;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchBrowserOrFallback(chromium);
+  if (!browser) {
+    return {
+      mode: "dom",
+      checks: ["dom_mode_completed"],
+      notes: [
+        "Playwright is installed but its browser executable is missing; completed lightweight HTTP/DOM checks only.",
+        "Run `npx playwright install chromium` before release sign-off, or set KIDSMEMO_ADMIN_BROWSER_QA_MODE=playwright to fail fast."
+      ]
+    };
+  }
+
   const checks = [];
   const notes = [];
 
@@ -167,6 +178,17 @@ async function runBrowserChecks(baseUrl) {
   }
 
   return { mode: "playwright", checks, notes };
+}
+
+async function launchBrowserOrFallback(chromium) {
+  try {
+    return await chromium.launch({ headless: true });
+  } catch (error) {
+    if (config.mode === "playwright") {
+      throw error;
+    }
+    return null;
+  }
 }
 
 function capturePageDiagnostics(page) {
