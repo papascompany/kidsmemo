@@ -1,20 +1,18 @@
 import { AuthEmailForm } from "@/components/auth-email-form";
 import { AuthProviderOption } from "@/components/auth-provider-option";
-import { ArrowRight, Building2, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2 } from "lucide-react";
 import Link from "next/link";
 
 const signupOptions = [
   {
     title: "카카오 간편가입",
     description: "카카오계정으로 가입하고 온보딩을 이어갑니다.",
-    provider: "kakao",
-    icon: MessageCircle
+    provider: "kakao"
   },
   {
     title: "구글 간편가입",
     description: "기관 업무용 Google 계정으로 가입합니다.",
-    provider: "google",
-    icon: ShieldCheck
+    provider: "google"
   }
 ] as const;
 
@@ -54,8 +52,8 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                   <AuthProviderOption
                     key={option.title}
                     description={option.description}
-                    icon={option.icon}
                     provider={option.provider}
+                    variant="signup"
                     title={option.title}
                   />
                 );

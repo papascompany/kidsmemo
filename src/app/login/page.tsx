@@ -1,20 +1,18 @@
 import { AuthEmailForm } from "@/components/auth-email-form";
 import { AuthProviderOption } from "@/components/auth-provider-option";
-import { ArrowRight, KeyRound, MessageCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 const loginMethods = [
   {
     title: "카카오로 로그인",
     description: "카카오계정으로 키즈메모에 로그인합니다.",
-    provider: "kakao",
-    icon: MessageCircle
+    provider: "kakao"
   },
   {
     title: "구글로 로그인",
     description: "기관 업무용 Google 계정으로 로그인합니다.",
-    provider: "google",
-    icon: KeyRound
+    provider: "google"
   }
 ] as const;
 
@@ -52,7 +50,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <AuthProviderOption
                   key={method.title}
                   description={method.description}
-                  icon={method.icon}
                   provider={method.provider}
                   title={method.title}
                 />

@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { KeyRound, Loader2, MessageCircle, ShieldCheck } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 type AuthProviderOptionProps = {
   description: string;
-  icon: LucideIcon;
   provider: Extract<Provider, "google" | "kakao">;
+  variant?: "login" | "signup";
   title: string;
 };
 
@@ -18,9 +17,10 @@ const missingConfigMessage =
 const oauthErrorMessage =
   "간편 로그인을 시작하지 못했습니다. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.";
 
-export function AuthProviderOption({ description, icon: Icon, provider, title }: AuthProviderOptionProps) {
+export function AuthProviderOption({ description, provider, title, variant = "login" }: AuthProviderOptionProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const Icon = getProviderIcon(provider, variant);
 
   async function handleProviderSignIn() {
     setError(null);
@@ -74,4 +74,12 @@ export function AuthProviderOption({ description, icon: Icon, provider, title }:
       ) : null}
     </div>
   );
+}
+
+function getProviderIcon(provider: Extract<Provider, "google" | "kakao">, variant: "login" | "signup") {
+  if (provider === "kakao") {
+    return MessageCircle;
+  }
+
+  return variant === "signup" ? ShieldCheck : KeyRound;
 }
