@@ -4,7 +4,9 @@ import {
   ArrowRight,
   CalendarDays,
   ClipboardCheck,
-  Gift
+  Gift,
+  Sparkles,
+  type LucideIcon
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AiWorkbench } from "@/components/ai-workbench";
@@ -64,56 +66,81 @@ export function KidsmemoDashboard() {
   return (
     <AppShell>
       <section id="dashboard" className="min-w-0 scroll-mt-32 py-3 lg:scroll-mt-6">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-          <div className="min-w-0">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.55fr)] xl:items-start">
+          <div className="min-w-0 rounded border border-line bg-white p-4 shadow-soft sm:p-5">
             <p className="text-sm font-semibold text-brand">오늘의 운영</p>
-            <h1 className="text-wrap-anywhere mt-2 max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl md:text-4xl">
-              바쁜 원장님과 선생님을 위한 3단계 업무 화면입니다.
+            <h1 className="text-wrap-anywhere mt-2 max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl">
+              오늘 해야 할 일만 먼저 확인하세요.
             </h1>
-            <p className="text-wrap-anywhere mt-3 max-w-3xl text-sm leading-6 text-muted">
-              행사 확인, 쿠폰 저장, 학부모 문구 생성만 먼저 보이게 정리했습니다.
-              세부 설정과 운영 상태는 필요할 때만 아래에서 확인합니다.
+            <p className="text-wrap-anywhere mt-2 max-w-2xl text-sm leading-6 text-muted">
+              행사 점검, 쿠폰 저장, 안내 문구 생성 순서로 바로 이동합니다.
+              기관 상세와 운영 기록은 아래 접힌 영역에서 필요할 때만 엽니다.
             </p>
+
+            <div className="mt-5 grid gap-3 lg:grid-cols-3">
+              <TodayTask
+                href="#calendar"
+                icon={CalendarDays}
+                step="1"
+                title="내일 행사 점검"
+                description={`${health.tomorrowEvents}건의 행사와 준비 상태를 확인합니다.`}
+                status="일정 관리"
+              />
+              <TodayTask
+                href="#coupons"
+                icon={Gift}
+                step="2"
+                title="쿠폰 저장"
+                description={`${health.availableStaffCoupons}개의 사용 가능 쿠폰을 복사하거나 내려받습니다.`}
+                status="쿠폰함"
+              />
+              <TodayTask
+                href="#ai-helper"
+                icon={ClipboardCheck}
+                step="3"
+                title="안내 문구 만들기"
+                description="행사명만 넣고 학부모 안내 초안을 만듭니다."
+                status="AI 도움"
+              />
+            </div>
           </div>
-          <div className="flex max-w-full flex-wrap gap-2">
-            <Badge tone="green">클릭 동선 축소</Badge>
-            <Badge tone="blue">모바일 우선</Badge>
-            <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
-              {liveStatus === "ready" ? "Live Supabase" : liveStatus === "loading" ? "세션 확인 중" : "Mock Fallback"}
-            </Badge>
+
+          <aside className="rounded border border-line bg-white p-4 shadow-soft">
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="green">오늘 할 일</Badge>
+              <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
+                {liveStatus === "ready" ? "Live Supabase" : liveStatus === "loading" ? "세션 확인 중" : "Mock Fallback"}
+              </Badge>
+            </div>
+            <h2 className="mt-4 text-lg font-semibold text-ink">빠른 요약</h2>
+            <div className="mt-3 grid gap-2">
+              <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
+              <Metric label="사용 가능 쿠폰" value={`${health.availableStaffCoupons}개`} />
+              <Metric label="발송 대기" value={`${queuedJobs.length}건`} />
+            </div>
+            <a
+              href="#calendar"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              오늘 업무 시작
+              <ArrowRight size={16} aria-hidden />
+            </a>
+          </aside>
+        </div>
+
+        <details className="group mt-5 rounded border border-line bg-white shadow-soft">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold text-ink marker:hidden">
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Sparkles size={17} className="shrink-0 text-brand" aria-hidden />
+              기관 운영 상세와 저장된 기록 보기
+            </span>
+            <span className="shrink-0 text-xs text-muted group-open:hidden">펼치기</span>
+            <span className="hidden shrink-0 text-xs text-muted group-open:inline">접기</span>
+          </summary>
+          <div className="border-t border-line p-3 sm:p-4">
+            <OrganizationWorkspace context={liveContext} liveMode={liveStatus === "ready"} />
           </div>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <QuickAction
-            href="#calendar"
-            icon={CalendarDays}
-            title="행사 하나 등록"
-            description="행사명과 날짜만 먼저 적고 저장합니다."
-          />
-          <QuickAction
-            href="#coupons"
-            icon={Gift}
-            title="쿠폰 코드 저장"
-            description="점보키즈 쿠폰을 복사하거나 내려받습니다."
-          />
-          <QuickAction
-            href="#ai-helper"
-            icon={ClipboardCheck}
-            title="안내 문구 만들기"
-            description="행사명만 넣고 바로 초안을 만듭니다."
-          />
-        </div>
-
-        <div className="mt-6">
-          <OrganizationWorkspace context={liveContext} liveMode={liveStatus === "ready"} />
-        </div>
-
-        <div className="mt-6 grid gap-3 rounded border border-line bg-white p-4 shadow-soft md:grid-cols-3">
-          <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
-          <Metric label="사용 가능 쿠폰" value={`${health.availableStaffCoupons}개`} />
-          <Metric label="발송 대기" value={`${queuedJobs.length}건`} />
-        </div>
+        </details>
       </section>
 
       <Section
@@ -185,36 +212,46 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function QuickAction({
+function TodayTask({
   href,
   icon: Icon,
+  step,
   title,
-  description
+  description,
+  status
 }: {
   href: string;
-  icon: typeof CalendarDays;
+  icon: LucideIcon;
+  step: string;
   title: string;
   description: string;
+  status: string;
 }) {
   return (
     <a
       href={href}
-      className="group flex min-h-28 items-center justify-between gap-4 rounded border border-line bg-white p-4 shadow-soft transition hover:border-brand"
+      className="group flex min-h-40 flex-col justify-between rounded border border-line bg-surface p-4 transition hover:border-brand hover:bg-white"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded bg-surface text-brand">
-          <Icon size={21} aria-hidden />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-white text-brand">
+            <Icon size={18} aria-hidden />
+          </span>
+          <span className="rounded border border-line bg-white px-2 py-1 text-xs font-semibold text-muted">
+            {step}
+          </span>
         </div>
-        <div className="min-w-0">
-          <p className="text-base font-semibold text-ink">{title}</p>
-          <p className="mt-1 text-sm leading-5 text-muted">{description}</p>
-        </div>
+        <p className="mt-4 text-base font-semibold text-ink">{title}</p>
+        <p className="text-wrap-anywhere mt-2 text-sm leading-5 text-muted">{description}</p>
       </div>
-      <ArrowRight
-        size={18}
-        className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand"
-        aria-hidden
-      />
+      <div className="mt-4 flex items-center justify-between gap-3 text-sm font-semibold text-brand">
+        <span>{status}</span>
+        <ArrowRight
+          size={17}
+          className="shrink-0 transition group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </div>
     </a>
   );
 }

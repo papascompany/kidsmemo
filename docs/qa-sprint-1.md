@@ -1,5 +1,11 @@
 # Kidsmemo Sprint 1 QA Checklist
 
+## 2026-07-08 Landing Simplification
+
+- `/` 첫 화면을 핵심 가치 문장, `/signup` CTA, `/app` 데모 진입 중심으로 단순화했다.
+- 운영 권한/기관 데이터처럼 보이는 상세 패널을 랜딩에서 제거하고 행사 일정, AI 안내문, 점보키즈 혜택 확인만 가볍게 노출한다.
+- 다음 수동 QA에서는 320, 390, 768, 1440 px에서 히어로 CTA와 하단 가치 스트립의 줄바꿈/간격을 확인한다.
+
 ## 2026-06-27 Admin Operations Expansion
 
 - E2E QA 계정 bootstrap 스크립트 추가: `npm run bootstrap:e2e-memberships`
@@ -359,6 +365,17 @@ Manual checks:
 - Confirm text, buttons, cards, and quick navigation do not overlap or overflow.
 - Confirm image-backed cards retain readable contrast.
 - Confirm print preview keeps AI content printable and hides operational dashboard chrome.
+
+Landing and app responsive QA guardrails:
+
+- At every checked width, confirm `document.documentElement.scrollWidth <= window.innerWidth + 1`; any horizontal page scroll is a release blocker unless it is contained inside a deliberate table/nav scroller.
+- At 320 px, check Korean headings, organization names, coupon codes, URLs, email addresses, and button labels for forced wrapping with no clipped glyphs or text over neighboring controls.
+- At 390 px, check paired CTAs and quick-action controls wrap into readable rows without shrinking icons, hiding labels, or producing uneven tap targets under 44 px high.
+- At 768 px, check grid transitions: cards should reflow from single-column to multi-column without nested card-on-card framing, cramped gutters, or orphaned one-word lines in section headings.
+- At 1440 px, check max-width behavior: content should stay grouped and scannable, image-backed blocks should keep enough contrast, and dashboard/sidebar regions should not stretch long text into hard-to-scan lines.
+- For `/`, verify the first viewport shows the public value proposition plus a hint of the next section, while CTA rows remain reachable and do not wrap into more than two visual lines.
+- For `/app`, verify the mobile quick nav remains horizontally scrollable only within the nav strip, anchor jumps to `#dashboard`, `#calendar`, `#coupons`, and `#ai-helper` leave headings visible, and coupon/AI panels keep long generated content inside their cards.
+- When a component intentionally scrolls horizontally, such as compact nav or admin-style tables, confirm the body itself does not gain a second horizontal scrollbar.
 
 ## Public Landing And Auth Entry
 
