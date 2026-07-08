@@ -9,7 +9,7 @@ const config: Config = {
       },
       colors: {
         ink: "#172033",
-        muted: "#687385",
+        muted: "#586476",
         line: "#dfe4ea",
         surface: "#f7f9fb",
         brand: "#1f8f7a",
