@@ -288,7 +288,7 @@ UX 원칙:
 
 ## 4. 현재 구현 상태
 
-현재 저장소에는 Sprint 1 프로토타입이 구현되어 있다.
+현재 저장소에는 Sprint 1 프로토타입과 초기 live 운영 경로가 함께 구현되어 있다.
 
 주요 구현:
 
@@ -304,6 +304,27 @@ UX 원칙:
 - Supabase schema 초안
 - QA 문서
 - CTO 스프린트 문서
+
+### 2026-07-09 현재 상태 요약
+
+완료된 핵심 작업:
+
+- Vercel 프로젝트 링크와 production URL 확인이 완료되어 있다.
+- Supabase 프로젝트 링크와 첫 migration push가 완료되어 있다. "Vercel link pending", "db push blocked"는 과거 checkpoint 문구다.
+- live session guard, membership guard, user-scoped Supabase repositories, service-role 전용 작업 분리가 들어가 있다.
+- `/`는 단순한 공개 랜딩, `/app`는 운영 데모/워크스페이스, `/admin`은 platform admin 운영 콘솔로 분리되어 있다.
+- staff coupon 흐름은 `/app` 점보키즈 쿠폰함에서 API 조회/다운로드까지 연결되어 있고, `npm run test:staff-coupon-e2e`로 검증한다.
+- admin operations는 content/media/attendance/gift code/staff coupon/push/audit 영역과 smoke scripts가 있다.
+- invite/onboarding은 기관 생성, 초대 코드 생성, teacher join 흐름과 `npm run smoke:onboarding-invite-live`가 있다.
+- Kakao/Google/email auth entry와 `/auth/callback` 라우팅이 구현되어 membership이 있으면 `/app`, 없으면 `/onboarding`으로 보낸다.
+- push delivery는 mock provider 기준으로 발송 요청, delivery log 조회, `failureReason`, `retryCount`, `nextRetryAt` 기록을 지원한다.
+- landing/dashboard UX는 단순화되었고, login/signup production error handling과 local Pretendard font loading이 반영되어 있다.
+
+남은 확인:
+
+- 실제 배포/로컬 어느 환경에서든 smoke 실행 전 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, 테스트 계정 env를 현재 셸에서 확인한다. 2026-06-19의 "anon key missing"은 당시 Vercel env 목록 기준 기록이며, 현재 blocker로 단정하지 않는다.
+- manual browser QA와 print preview는 아직 최종 release sign-off 항목이다.
+- real push provider, Jumbokids/GodoMall API, Naver Shopping, Kakao/SMS/email provider 연동은 별도 후속 작업이다.
 
 중요 파일:
 
@@ -352,7 +373,7 @@ C:\Users\yohan\OneDrive\Desktop\codex project\kidsmemo
 - Git: `2.54.0.windows.1`
 - GitHub CLI: 설치됨, `papascompany` 인증 확인
 - Vercel CLI: 설치됨, `papas-yohan` 로그인 확인
-- Supabase CLI: 설치됨. 2026-06-10 프로젝트 링크가 문서화되었고, 2026-06-17 현재 체크아웃에는 `supabase/.temp` link metadata가 없어 push 전 재확인이 필요함
+- Supabase CLI: 설치됨. Supabase 프로젝트 ref `fhakjrppirmjdgqlljzd`가 문서화되어 있고, 2026-06-17 첫 migration push가 완료됨
 
 새 PC에서 재검증:
 
@@ -370,8 +391,8 @@ C:\Users\yohan\OneDrive\Desktop\codex project\kidsmemo
 ```
 
 - GitHub 이메일 privacy protection 때문에 로컬 git email은 `papascompany@users.noreply.github.com`로 설정되어 있다.
-- Vercel 프로젝트 링크는 아직 이 repo에 고정하지 않았다. 배포 전 `vercel link`가 필요하다.
-- Supabase 프로젝트 연결은 2026-06-10에 한 차례 완료되었으나, 현재 체크아웃에는 ignored link metadata인 `supabase/.temp`가 없다. 실제 `db push` 전에는 프로젝트 ref를 재확인하고 link metadata를 다시 확인해야 한다.
+- Vercel 프로젝트 링크는 2026-06-17 기준 `kidsmemo` 프로젝트로 완료되었다.
+- Supabase project/ref와 migration 상태는 작업 전 다시 확인하되, "프로젝트 연결 전 대기"나 "초기 db push 금지" 문구는 과거 기록으로 본다.
 
 ## 5. API 응답 규칙
 
@@ -480,52 +501,44 @@ Sprint 1 통합 순서:
 | Backend / Supabase readiness | schema, repository, API route, validation 점검 | Supabase 전환 구조는 준비됨. 인증/인가, RLS policy 확장, service-role 범위 분리, reminder idempotency 저장이 다음 핵심 리스크 |
 | Frontend / UX QA | main dashboard, responsive, print flow 점검 | `lint/build/dev Ready` 확인. 브라우저 visual QA는 pending. 모바일 quick nav, 긴 라벨 overflow, print preview 확인 필요 |
 | QA Smoke | Sprint 1 API smoke test 실행 | events/AI 중심 smoke는 대부분 PASS. 기존 coupon landing/items/targets/notices smoke는 2026-06-10 범위 정정으로 제거됨. reminder job은 mock seed의 duplicate job 때문에 `generatedJobs: []` |
-| Deployment / Ops | GitHub/Vercel/Supabase/Node/npm 환경 점검 | GitHub/Vercel 준비 양호. Supabase login/link 미확인. Node 24와 Next 16 배포 정합성은 배포 전 확인 필요 |
+| Deployment / Ops | GitHub/Vercel/Supabase/Node/npm 환경 점검 | Vercel link, Supabase link, 첫 DB push, production availability 확인 완료. 이후 작업은 env 재확인과 live smoke 중심 |
 
 CTO 통합 판정:
 
 - 현재 PC에서 개발 계속 가능.
 - Sprint 1 mock/fallback 앱은 통합 완료 상태로 본다.
-- Supabase 연결은 사용자 승인 전까지 계속 보류한다.
-- 다음 작업은 QA 문서 보정, 브라우저 수동 QA, 모바일 UX 보강, Ops 링크 준비 순서가 적절하다.
+- Supabase 연결/초기 migration은 이후 checkpoint에서 완료되었다.
+- 다음 작업은 현재 env 재확인, live smoke, 브라우저 수동 QA, print preview sign-off 순서가 적절하다.
 
 ## 7. 현재 Hold Point
 
-중요: 현재는 **Supabase 연결 전 대기 상태**다.
+중요: 현재는 **Supabase 연결 전 대기 상태가 아니다**. 링크와 초기 migration push는 완료되었고, 일부 live API/QA 경로도 구현되어 있다. 다만 production confidence claim 전에는 매번 env와 권한 smoke를 다시 확인해야 한다.
 
-아직 하지 말아야 할 작업:
+현재 하지 말아야 할 작업:
 
-- `supabase/schema.sql` 실제 적용
-- Supabase 프로젝트 연결
-- Supabase 환경 변수 설정
-- mock repository를 live Supabase repository로 교체
-- Supabase Storage 이미지 업로드 연결
+- 사용자 승인 없이 production env 변경, deploy, destructive DB 작업을 하지 않는다.
+- 문서 작업 중 source code를 수정하지 않는다.
+- service-role key를 브라우저 코드, docs, logs, commits에 노출하지 않는다.
+- 외부 push/SMS/Kakao/Jumbokids/GodoMall provider를 mock에서 실연동으로 바꾸는 작업은 별도 승인 없이 하지 않는다.
 
-Supabase 연결 전 허용되는 작업:
+현재 허용/권장되는 작업:
 
-- 브라우저 QA
-- UI 문구/레이아웃 소폭 개선
-- QA 문서 보강
-- API smoke test 보강
-- 모바일 quick navigation 개선
-- 인쇄 flow QA
-- Vercel 프로젝트 링크 준비 및 환경 변수 목록 정리
-- Supabase 로그인 상태 확인과 프로젝트 후보 확인
-- live repository 우발 활성화를 막는 안전 가드 추가
+- QA 문서 보강과 handoff 정리
+- `npm run lint`, `npm run build`, admin/staff coupon/onboarding smoke 재검증
+- 브라우저 QA, 모바일/데스크톱 반응형 확인, print preview 확인
+- target deployment의 Vercel/Supabase env를 read-only로 확인
+- RLS와 organization isolation을 두 기관 + platform admin 계정으로 재검증
 
-Supabase 연결 전에도 조심해야 할 작업:
+현재 기준 주의:
 
-- `vercel link`는 허용 가능하지만 실제 production 배포는 별도 승인 후 진행한다.
-- Supabase 프로젝트 링크는 2026-06-10 완료되었다.
-  - Project URL: `https://fhakjrppirmjdgqlljzd.supabase.co`
-  - Project ref: `fhakjrppirmjdgqlljzd`
-- 현재 체크아웃에는 `supabase/.temp`가 없으므로, 이 링크 정보는 문서 기준 상태다. `supabase db push` 전에는 link 상태를 다시 확인한다.
-- `supabase db push`, schema 적용, live repository 활성화는 migration/RLS 검토 후 진행한다.
-- mock repository를 유지해야 하며, 외부 API 키가 없어도 앱이 동작해야 한다.
+- Project URL: `https://fhakjrppirmjdgqlljzd.supabase.co`
+- Project ref: `fhakjrppirmjdgqlljzd`
+- Vercel production URL: `https://kidsmemo.vercel.app`
+- app은 mock/fallback 동작을 유지해야 하며, live Supabase는 명시적 env와 session guard를 통과할 때만 사용한다.
 
 ### 2026-06-17 Ops/DB Readiness Check
 
-Supabase project link를 재확인했고, 첫 timestamped migration을 원격 DB에 적용했다. production deploy와 `vercel link`는 실행하지 않았다.
+Supabase project link를 재확인했고, 첫 timestamped migration을 원격 DB에 적용했다. 이 하위 점검 시점에는 production deploy와 `vercel link`를 실행하지 않았고, Vercel link는 같은 날짜의 별도 checkpoint에서 완료되었다.
 
 확인된 로컬 상태:
 
@@ -603,53 +616,42 @@ QA/Deployment worker가 문서 범위에서 read-only live 상태를 확인했�
 해석:
 
 - Production live flags는 켜진 상태로 보인다. anonymous API가 mock events를 반환하지 않고 auth-required로 막힌다.
-- 그러나 Supabase public anon key가 없어 실제 브라우저 로그인/가입과 bearer-token 기반 user-scoped repository QA는 아직 막혀 있다.
-- 다음 live QA는 production 또는 의도한 preview 환경에 `NEXT_PUBLIC_SUPABASE_ANON_KEY`를 추가한 뒤 진행해야 한다.
+- 이 항목의 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 누락은 2026-06-19 당시 Vercel env 목록 기준이다. 현재 작업 전에는 target env를 다시 확인하고, 누락이면 해당 smoke만 보류한다.
+- 다음 live QA는 production 또는 의도한 preview 환경에서 공개 anon key와 테스트 계정 env를 확인한 뒤 진행한다.
 - `SUPABASE_SERVICE_ROLE_KEY`는 일반 사용자 CRUD에는 필요하지 않지만, 명시적 server-only job 검증에는 필요하다. 브라우저 노출 금지.
 
 ## 8. 다음 작업 계획
 
 ### 다음 CTO 액션
 
-1. QA 문서 보정
-   - reminder job smoke 기대값을 `duplicate_job` 기준으로 둘지, seed를 조정해 generated job을 검증할지 결정
-2. 현재 코드 기준 브라우저 QA
-   - `/`
+1. 현재 target env 확인
+   - Vercel/Supabase URL, public anon key, service-role key, QA owner/teacher/admin 계정 env를 확인한다.
+   - 키 값은 docs, logs, commits에 남기지 않는다.
+2. release smoke 재실행
+   - `npm run lint`
+   - `npm run build`
+   - `npm run qa:admin-browser-auth`
+   - `npm run smoke:admin-operations-live`
+   - `npm run test:staff-coupon-e2e`
+   - `npm run smoke:onboarding-invite-live`
+3. 현재 코드 기준 브라우저 QA
+   - `/`, `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, `/onboarding`
    - 320/390/768/1440 viewport
-   - print preview
-3. 모바일 quick navigation 추가 여부 결정
-4. 점보키즈 쿠폰함 카드에 핵심 운영 정보 보강
-   - 기관/역할별 제공 대상
-   - 다운로드 이력
-   - 점보키즈/고도몰 사용처
-   - 사용 완료 상태
-5. 행사 모바일 카드 정보 우선순위 정리
-6. AI 행사 도우미 입력 필드 확장
-   - 행사명
-   - 연령
-   - 장소
-   - 예산
-7. Vercel link 여부 결정
-8. Supabase 연결 착수 여부 사용자 승인 대기
+   - coupon copy/download, admin table scroll, OAuth error state, onboarding invite form
+   - `/app#ai-helper` print preview
+4. release decision
+   - smoke와 수동 QA가 통과하면 production confidence note를 업데이트한다.
+   - 실패하면 docs에 실패 조건만 남기고, source fix는 별도 작업으로 분리한다.
 
-### Supabase 연결 승인 후 작업
+### 후속 제품/연동 작업
 
-1. Supabase 프로젝트 생성/연결
-2. 기존 `supabase/schema.sql`을 제품 방향에 맞는 migration으로 재정리
-3. 점보키즈 제공 쿠폰함 중심의 쿠폰 테이블/RLS 설계
-4. Kakao/Google OAuth 설정
-5. `.env.local` 구성
-6. request cookie/session 기반 `requireUser`, `requireOrgRole` 유틸 추가
-7. API route에 org scope/role guard 적용
-8. service-role repository와 user-scoped repository 분리
-9. RLS policy 확장
-10. 행사 CRUD persistence 구현
-11. 점보키즈 제공 쿠폰/할인코드 persistence 구현
-12. 다운로드/복사/사용 상태 이력 저장
-13. 레거시 공개 쿠폰 랜딩 접근 정책은 재활성화 시 별도 설계
-14. reminder job 저장/upsert와 idempotency 구현
-15. 웹훅 처리 구현
-16. QA 재검증
+1. real push provider 선택과 retry policy 운영화
+2. Jumbokids/GodoMall 쿠폰 sync 또는 API 계약 확정
+3. Kakao/SMS/email 발송사 승인, 템플릿, 수신동의 정책 정리
+4. Naver Shopping API live key 연결과 fallback 품질 점검
+5. AI generation persistence와 organization history UX 고도화
+6. reminder job persistence/idempotency live 운영 점검
+7. 더 큰 기관/사용자 데이터셋 기준 admin performance QA
 
 ## 9. 새 PC에서 이어받는 방법
 
@@ -716,9 +718,9 @@ GitHub CLI가 PATH에 없으면:
 ```text
 이 프로젝트는 Kidsmemo라는 어린이집/유치원 행사 리마인드 SaaS입니다.
 먼저 docs/project-handoff-plan.md, docs/sprint-1-cto-review.md, docs/qa-sprint-1.md를 읽고 현재 상태를 파악해주세요.
-현재는 Supabase 연결 전 대기 상태입니다.
-Supabase 연결은 제가 명시적으로 승인하기 전까지 시작하지 마세요.
-우선 현재 mock/fallback 기반 앱의 브라우저 QA, reminder job smoke 기대값 정리, 모바일 UX 개선 계획부터 검토해주세요.
+현재는 Supabase 링크/초기 migration/live guard가 이미 들어간 상태입니다.
+production env 변경이나 destructive DB 작업은 승인 전 하지 마세요.
+우선 docs/qa-sprint-1.md의 release smoke 순서와 현재 target env를 확인하고, `/`, `/app`, `/admin`, auth/onboarding 화면의 수동 QA 계획부터 검토해주세요.
 ```
 
 ## 11. 개발 철학

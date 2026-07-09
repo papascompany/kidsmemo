@@ -4,19 +4,19 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint: Sprint 1 mock/fallback integration is complete. New PC handoff, GitHub push, CTO subagent readiness review, first visual QA pass, AI workbench response fix, mobile quick navigation, AI workbench form-depth expansion, organization workspace action/empty-state pass, deployment env inventory, mock data-backend safety flag, runtime mode status card, auth/session guard skeleton, AI/webhook guard skeletons, coupon direction correction, Supabase project link, frontend browser/print QA planning pass, RLS hardening, first Supabase DB migration push, live session resolver, and user-scoped repository split are complete. Live app CRUD remains gated behind test-user RLS smoke and explicit env opt-in.
+Current CTO checkpoint as of 2026-07-09: Sprint 1 has moved beyond the original mock/fallback checkpoint. Completed work now includes Vercel link and production readiness checks, Supabase link and first DB push, live session/user-scoped repository split, admin operations, staff coupons end-to-end into `/app`, invite/onboarding code and live smoke script, OAuth callback routing, push mock delivery with retry fields, simplified landing/dashboard UX, login/signup production error handling, and local Pretendard font loading. Remaining work is release sign-off and provider/ops hardening, not basic project linking or schema push.
 
 ## Workstreams
 
 | Role | Agent | Ownership | Expected Output | Status |
 | --- | --- | --- | --- | --- |
 | CTO | Main thread | `docs/sprint-1-cto-charter.md`, `docs/sprint-1-board.md`, integration decisions | Charter, board, review order, final merge plan | Complete for Sprint 1 mock/fallback checkpoint |
-| Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | First pass complete; explicit data-backend flag complete; Supabase auth/RLS/persistence pending |
-| Frontend | Raman | Frontend components and limited page integration | Event forms, coupon wallet, responsive improvements | First pass complete; mobile quick nav, AI form depth, workspace action/empty states, and coupon wallet correction complete |
+| Backend | Socrates | API routes, service layer, Supabase schema | Stronger API validation, JSON error handling, persistence-ready services | Live guards, user-scoped repositories, onboarding invites, staff coupon API, admin ops API, and push mock delivery complete; provider integrations remain future work |
+| Frontend | Raman | Frontend components and limited page integration | Event forms, coupon wallet, responsive improvements | `/app` staff coupon wallet, simplified landing/dashboard, auth/onboarding surfaces, admin console tabs, local Pretendard, and mobile UX passes complete |
 | AI Integration | Franklin | AI adapters and AI API routes | OpenAI/Naver adapter structure with fallback behavior | First pass complete; live provider credentials pending |
 | Designer / UX | Nash | UX audit and small frontend refinements | Director/teacher workflow review and prioritized UI improvements | First pass complete; mobile/print verification pending |
-| QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Smoke pass complete with reminder-job caveat; manual browser/print sign-off still pending |
-| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Env inventory refreshed 2026-06-17; Vercel project creation/link pending; Supabase project ref documented but local `.temp` link metadata absent; `db push` blocked |
+| QA | Faraday | QA docs and smoke scenarios | Release checklist and exact smoke-test steps | Admin browser/auth smoke, admin live smoke, staff coupon E2E, onboarding invite live smoke, and push delivery contract documented; manual browser/print sign-off still pending |
+| Deployment / Ops | CTO subagent | GitHub, Vercel CLI, Supabase CLI, Node/npm readiness | New PC operational readiness report | Vercel link complete, production URL ready, Supabase project linked, first migration pushed and linted; env values must be verified in the target environment before each live smoke |
 
 ## CTO Review Order
 
@@ -63,25 +63,19 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
   - Removed event-to-coupon-campaign coupling.
 - Main dashboard now imports `JumbokidsCouponWallet` instead of the parent campaign builder.
 
-## Next CTO Queue Before Supabase
+## Next CTO Queue
 
-1. Update QA expectation for reminder job duplicate behavior.
-2. Complete manual browser QA for `/`.
-3. Re-check 320/390/768/1440 responsive layouts, AI generate buttons, and print preview.
-4. Align frontend visual direction with the warm modern kindergarten-teacher concept:
-   - Pretendard typography polish.
-   - image-backed hero/content cards.
-   - refined magazine-like section rhythm.
-   - reduced dependence on emoji/icon decoration.
-5. Define my page / organization workspace UX:
-   - director's own kindergarten profile.
-   - organization-scoped event schedule.
-   - organization-scoped AI event advice history.
-   - organization-scoped staff coupon wallet and sending settings.
-   - clear current-organization indicator and optional organization switcher.
-6. Choose or create the intended Vercel project and run `vercel link`.
-7. Confirm Supabase login/project candidates without applying schema.
-8. Re-authenticate GitHub CLI if `gh` workflows are needed.
+1. Run current release smoke in the intended environment:
+   - `npm run lint`
+   - `npm run build`
+   - `npm run qa:admin-browser-auth`
+   - `npm run smoke:admin-operations-live`
+   - `npm run test:staff-coupon-e2e`
+   - `npm run smoke:onboarding-invite-live`
+2. Complete manual browser QA for `/`, `/app`, `/admin`, `/login`, `/signup`, `/signup/jumbokids`, and `/onboarding`.
+3. Re-check 320/390/768/1440 responsive layouts, coupon copy/download, AI generate buttons, admin table scroll, and print preview.
+4. Verify target Vercel/Supabase env values before live smoke. Old notes about Vercel link pending, initial `db push` blocked, and missing anon key were June checkpoint blockers and should not be treated as current unless re-confirmed.
+5. Decide next provider integrations separately: real push provider, Jumbokids/GodoMall coupon sync, Naver Shopping, and production email/SMS/Kakao messaging.
 
 ## Design Direction For Next Frontend Pass
 
@@ -253,10 +247,11 @@ Next execution order:
 - Coupon wallet now emphasizes code copy, shortens the mobile hero, and collapses operational guidance.
 - AI workbench now uses a two-option tool switch so teachers choose either event planning or message generation first.
 
-## Blocked Until Live App Guard Review
+## Current Release Gates
 
-- replacing mock repositories with live Supabase repositories
-- production deployment
+- Manual responsive and print QA is still required before a production confidence claim.
+- Live smoke requires valid Supabase/Vercel env in the active shell or target deployment; do not paste keys into docs.
+- External providers are still mocked or future work unless explicitly wired in a later task.
 
 ## 2026-06-19 QA/Deployment Live Status
 

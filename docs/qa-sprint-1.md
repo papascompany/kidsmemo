@@ -1,5 +1,30 @@
 # Kidsmemo Sprint 1 QA Checklist
 
+## 2026-07-09 Current QA/Handoff Snapshot
+
+- 현재 완료 범위: admin operations, staff coupon E2E into `/app`, invite/onboarding code and smoke script, OAuth callback, push mock delivery/retry fields, simplified landing/dashboard UX, login/signup production error handling, local Pretendard font loading.
+- 오래된 blocker 정리: Vercel link pending, first `db push` blocked, Supabase project link pending은 과거 checkpoint 문구다.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` 누락은 2026-06-19 Vercel env 목록 기준 기록이다. 현재 blocker로 단정하지 말고, live smoke 직전에 target env에서 다시 확인한다.
+- 현재 release gate는 env 재확인, live smoke 재실행, manual browser/print sign-off다.
+
+Recommended smoke order:
+
+```powershell
+npm run lint
+npm run build
+npm run qa:admin-browser-auth
+npm run smoke:admin-operations-live
+npm run test:staff-coupon-e2e
+npm run smoke:onboarding-invite-live
+```
+
+Required live-smoke env:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- admin/owner/teacher QA account env required by each smoke script
+
 ## 2026-07-08 Landing Simplification
 
 - `/` 첫 화면을 핵심 가치 문장, `/signup` CTA, `/app` 데모 진입 중심으로 단순화했다.
@@ -58,7 +83,7 @@ Run date: 2026-06-20
 - `POST https://kidsmemo.vercel.app/api/events` with bearer token plus the default organization header returned `201 Created`.
 - `GET https://kidsmemo.vercel.app/api/events` with the same bearer token but a non-member organization header returned `200 OK` with an empty list.
 - `POST https://kidsmemo.vercel.app/api/events` with the same bearer token and a non-member organization id returned `403 forbidden_organization`.
-- Real browser login/signup UI QA is still pending; the API-level bearer-token and RLS smoke path is now verified against production.
+- Real browser login/signup UI QA was pending at this checkpoint; current QA should use the 2026-07-09 smoke order and re-check target env first.
 
 ## 2026-06-19 Live Verification
 
@@ -69,16 +94,16 @@ Run date: 2026-06-20
 - `HEAD https://kidsmemo.vercel.app/admin`: `200 OK`.
 - `GET https://kidsmemo.vercel.app/api/events`: `401 Unauthorized` with `{ ok: false, error: { code: "authentication_required", message: "로그인이 필요한 작업입니다." } }`.
 - Vercel production env list contains `NEXT_PUBLIC_SUPABASE_URL`, `KIDSMEMO_DATA_BACKEND`, and `KIDSMEMO_ALLOW_LIVE_SUPABASE`.
-- Vercel production env list does not show `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY`.
-- The `401 authentication_required` API response implies the live backend flags are armed in production. Real browser login/signup and bearer-token API QA remain blocked until `NEXT_PUBLIC_SUPABASE_ANON_KEY` is added.
+- Vercel production env list did not show `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `SUPABASE_SERVICE_ROLE_KEY` at this checkpoint.
+- The `401 authentication_required` API response implied the live backend flags were armed in production. Treat the anon-key note as historical until target env is rechecked.
 - Supabase remote migration list matches local migration `20260617073000`.
 - No Vercel env mutation, deploy, or app-code edit was performed in this pass.
 
 ## 2026-06-19 Live QA Checklist
 
-Blocked prerequisite:
+Live prerequisite check:
 
-- Add `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the intended Vercel environment before real login/signup QA. Keep this as a public anon key only; do not use the service-role key in browser-exposed env.
+- Confirm `NEXT_PUBLIC_SUPABASE_ANON_KEY` exists in the intended Vercel/local environment before real login/signup QA. Keep this as a public anon key only; do not use the service-role key in browser-exposed env.
 - Create or identify QA users in Supabase Auth:
   - owner or manager in organization A
   - teacher in organization A
@@ -180,10 +205,11 @@ Open risks for browser sign-off:
 - Run `npm run lint` and confirm it exits with status `0`.
 - Run `npm run build` and confirm it exits with status `0`.
 - Start the app with `npm run dev` and verify `/` loads without blocking console errors.
-- Verify the `점보키즈 쿠폰함` section on `/` shows coupons provided by Jumbokids admins for directors/teachers.
+- Verify the `점보키즈 쿠폰함` section on `/app` shows coupons provided by Jumbokids admins for directors/teachers.
 - Verify each coupon card supports code copy and text-file download.
 - Verify the UI does not imply directors or teachers send coupons to parents.
 - Verify `/coupon/coupon-2` and `/api/admin/coupon-campaigns` are not part of the active route contract.
+- Run the current live smoke scripts listed in the 2026-07-09 snapshot when live env and QA accounts are available.
 
 ## Auth And Membership
 

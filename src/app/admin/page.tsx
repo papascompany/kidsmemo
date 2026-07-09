@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Send,
   Save,
-  ShieldCheck
+  ShieldCheck,
+  Trash2,
+  UserPlus
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -28,15 +30,17 @@ import type {
   AdminPushCampaign,
   AdminStaffCoupon
 } from "@/lib/admin-operations";
+import type { AdminInvite, AdminInviteRemovalResult } from "@/lib/admin-invites";
 import type { PushDeliveryLog } from "@/lib/push-operations";
 
-type AdminTab = "content" | "media" | "attendance" | "gifts" | "push" | "audit";
+type AdminTab = "content" | "media" | "attendance" | "invites" | "gifts" | "push" | "audit";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 const tabs: Array<{ id: AdminTab; label: string; icon: typeof FileText }> = [
   { id: "content", label: "콘텐츠", icon: FileText },
   { id: "media", label: "이미지", icon: ImageIcon },
   { id: "attendance", label: "출석", icon: CalendarCheck },
+  { id: "invites", label: "초대", icon: UserPlus },
   { id: "gifts", label: "상품권/코드", icon: Gift },
   { id: "push", label: "푸시알림", icon: Bell },
   { id: "audit", label: "감사로그", icon: ShieldCheck }
@@ -118,20 +122,32 @@ const defaultPushForm = {
   scheduledFor: ""
 };
 
+const defaultInviteForm = {
+  organizationId: "",
+  role: "teacher",
+  code: "",
+  expiresAt: "",
+  maxUses: ""
+};
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("content");
   const [payload, setPayload] = useState<AdminOperationsPayload>(emptyPayload);
+  const [invites, setInvites] = useState<AdminInvite[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "denied">("loading");
   const [message, setMessage] = useState("운영 콘솔 권한을 확인하고 있습니다.");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [inviteState, setInviteState] = useState<SaveState>("idle");
   const [contentForm, setContentForm] = useState(defaultContentForm);
   const [mediaForm, setMediaForm] = useState(defaultMediaForm);
   const [giftForm, setGiftForm] = useState(defaultGiftForm);
   const [staffCouponForm, setStaffCouponForm] = useState(defaultStaffCouponForm);
   const [pushForm, setPushForm] = useState(defaultPushForm);
+  const [inviteForm, setInviteForm] = useState(defaultInviteForm);
 
   useEffect(() => {
     void loadOperations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const publishedLandingCount = useMemo(
@@ -152,6 +168,7 @@ export default function AdminPage() {
     setPayload(data);
     setLoadState("ready");
     setMessage("운영 콘솔이 live 관리자 세션으로 연결되었습니다.");
+    await loadInvites();
   }
 
   async function saveResource(resource: string, formPayload: Record<string, unknown>) {
@@ -174,6 +191,56 @@ export default function AdminPage() {
     setSaveState("saved");
     setMessage("운영 설정이 저장되었습니다.");
     await loadOperations();
+  }
+
+  async function loadInvites() {
+    const response = await authenticatedFetch("/api/admin/invites");
+    if (!response.ok) {
+      setInvites([]);
+      setMessage("초대 목록을 불러오지 못했습니다. 관리자 권한을 확인해 주세요.");
+      return;
+    }
+
+    setInvites(unwrapData<{ invites: AdminInvite[] }>(await response.json()).invites);
+  }
+
+  async function createInvite() {
+    setInviteState("saving");
+    const response = await authenticatedFetch("/api/admin/invites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(normalizePayload(serializeInviteForm(inviteForm)))
+    });
+
+    if (!response.ok) {
+      setInviteState("error");
+      setMessage("초대 생성에 실패했습니다. 기관, 권한, 코드 중복 여부를 확인해 주세요.");
+      return;
+    }
+
+    const invite = unwrapData<AdminInvite>(await response.json());
+    setInvites((current) => [invite, ...current.filter((item) => item.id !== invite.id)]);
+    setInviteForm(defaultInviteForm);
+    setInviteState("saved");
+    setMessage(`초대 코드 ${invite.code}를 생성했습니다.`);
+  }
+
+  async function removeInvite(invite: AdminInvite) {
+    setInviteState("saving");
+    const response = await authenticatedFetch(`/api/admin/invites?id=${encodeURIComponent(invite.id)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      setInviteState("error");
+      setMessage("초대 삭제/회수에 실패했습니다.");
+      return;
+    }
+
+    const result = unwrapData<AdminInviteRemovalResult>(await response.json());
+    setInviteState("saved");
+    setMessage(result.action === "deleted" ? "미사용 초대를 삭제했습니다." : "사용 이력이 있는 초대를 회수했습니다.");
+    await loadInvites();
   }
 
   return (
@@ -207,10 +274,11 @@ export default function AdminPage() {
           <AccessDenied />
         ) : (
           <>
-            <section className="mt-5 grid gap-3 md:grid-cols-5">
+            <section className="mt-5 grid gap-3 md:grid-cols-6">
               <Metric label="게시 랜딩" value={`${publishedLandingCount}개`} />
               <Metric label="이미지" value={`${payload.mediaAssets.length}개`} />
               <Metric label="출석 레코드" value={`${payload.attendanceRecords.length}건`} />
+              <Metric label="활성 초대" value={`${invites.filter((invite) => getInviteStatus(invite).status === "active").length}개`} />
               <Metric label="쿠폰함 코드" value={`${payload.staffCoupons.length}개`} />
               <Metric label="푸시 캠페인" value={`${payload.pushCampaigns.length}건`} />
             </section>
@@ -261,6 +329,16 @@ export default function AdminPage() {
                   ) : null}
                   {activeTab === "attendance" ? (
                     <AttendancePanel />
+                  ) : null}
+                  {activeTab === "invites" ? (
+                    <InvitePanel
+                      invites={invites}
+                      form={inviteForm}
+                      onChange={setInviteForm}
+                      onCreate={() => void createInvite()}
+                      onRemove={(invite) => void removeInvite(invite)}
+                      saveState={inviteState}
+                    />
                   ) : null}
                   {activeTab === "gifts" ? (
                     <GiftPanel
@@ -671,6 +749,66 @@ function AttendancePanel() {
   );
 }
 
+function InvitePanel({
+  invites,
+  form,
+  onChange,
+  onCreate,
+  onRemove,
+  saveState
+}: {
+  invites: AdminInvite[];
+  form: typeof defaultInviteForm;
+  onChange: (form: typeof defaultInviteForm) => void;
+  onCreate: () => void;
+  onRemove: (invite: AdminInvite) => void;
+  saveState: SaveState;
+}) {
+  return (
+    <EditorLayout
+      title="온보딩 초대 관리"
+      description="기관별 원감/선생님 가입 초대 코드를 만들고, 미사용 초대는 삭제하거나 사용 이력이 있는 초대는 회수합니다."
+      onSave={onCreate}
+      saveState={saveState}
+      list={<InviteList invites={invites} onRemove={onRemove} saveState={saveState} />}
+    >
+      <div className="grid gap-3 md:grid-cols-2">
+        <AdminOrganizationSelect
+          label="기관"
+          value={form.organizationId}
+          required
+          onChange={(organizationId) => onChange({ ...form, organizationId })}
+          placeholder="초대를 발급할 기관 검색"
+        />
+        <SelectField
+          label="역할"
+          value={form.role}
+          onChange={(role) => onChange({ ...form, role })}
+          options={["teacher", "manager"]}
+        />
+        <Field
+          label="초대 코드"
+          value={form.code}
+          onChange={(code) => onChange({ ...form, code })}
+          placeholder="비워두면 자동 생성"
+        />
+        <Field
+          label="최대 사용 수"
+          value={form.maxUses}
+          onChange={(maxUses) => onChange({ ...form, maxUses })}
+          placeholder="비워두면 제한 없음"
+        />
+        <Field
+          label="만료 시각"
+          value={form.expiresAt}
+          onChange={(expiresAt) => onChange({ ...form, expiresAt })}
+          placeholder="2026-12-31T14:59:59.000Z"
+        />
+      </div>
+    </EditorLayout>
+  );
+}
+
 function GiftPanel({
   codes,
   staffCoupons,
@@ -877,6 +1015,63 @@ function EditorLayout({
         </button>
       </section>
       <aside className="rounded border border-line bg-white p-5 shadow-soft">{list}</aside>
+    </div>
+  );
+}
+
+function InviteList({
+  invites,
+  onRemove,
+  saveState
+}: {
+  invites: AdminInvite[];
+  onRemove: (invite: AdminInvite) => void;
+  saveState: SaveState;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold text-ink">초대 코드</h3>
+      <div className="mt-4 grid gap-3">
+        {invites.length > 0 ? (
+          invites.map((invite) => {
+            const status = getInviteStatus(invite);
+            return (
+              <div key={invite.id} className="rounded border border-line bg-surface p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-all font-mono text-sm font-semibold text-ink">{invite.code}</p>
+                    <p className="mt-1 text-sm font-semibold text-muted">
+                      {invite.organizationName || invite.organizationId}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {invite.organizationRegion || "지역 없음"} · {invite.role}
+                    </p>
+                  </div>
+                  <Badge tone={status.tone}>{status.label}</Badge>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-muted">
+                  <span>사용 {invite.usedCount}{invite.maxUses ? `/${invite.maxUses}` : ""}</span>
+                  <span>생성 {formatDateTime(invite.createdAt)}</span>
+                  {invite.expiresAt ? <span>만료 {formatDateTime(invite.expiresAt)}</span> : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove(invite)}
+                  disabled={saveState === "saving" || Boolean(invite.revokedAt)}
+                  className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-xs font-semibold text-muted hover:border-coral hover:text-coral disabled:cursor-not-allowed disabled:text-muted"
+                >
+                  {saveState === "saving" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Trash2 size={15} aria-hidden />}
+                  {invite.usedCount > 0 ? "회수" : "삭제"}
+                </button>
+              </div>
+            );
+          })
+        ) : (
+          <p className="rounded border border-dashed border-line bg-surface p-4 text-sm text-muted">
+            등록된 초대 코드가 없습니다.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -1226,6 +1421,7 @@ function normalizePayload(payload: Record<string, unknown>) {
     "organizationId",
     "assignedToProfileId",
     "expiresAt",
+    "maxUses",
     "scheduledFor",
     "targetRole"
   ]);
@@ -1236,6 +1432,16 @@ function normalizePayload(payload: Record<string, unknown>) {
       nullableKeys.has(key) && value === "" ? null : value
     ])
   );
+}
+
+function serializeInviteForm(form: typeof defaultInviteForm) {
+  return {
+    organizationId: form.organizationId,
+    role: form.role,
+    code: form.code.trim() || undefined,
+    expiresAt: form.expiresAt.trim() || null,
+    maxUses: form.maxUses.trim() || null
+  };
 }
 
 function serializeStaffCouponForm(form: typeof defaultStaffCouponForm) {
@@ -1270,6 +1476,41 @@ function parseCouponSites(value: string) {
     .filter((site): site is "jumbokids" | "godomall" => site === "jumbokids" || site === "godomall");
 
   return sites.length > 0 ? sites : ["jumbokids"];
+}
+
+function getInviteStatus(invite: AdminInvite): {
+  label: string;
+  status: "active" | "expired" | "revoked" | "used";
+  tone: "green" | "amber" | "red" | "blue" | "gray";
+} {
+  if (invite.revokedAt) {
+    return { label: "회수됨", status: "revoked", tone: "gray" };
+  }
+
+  if (invite.expiresAt && new Date(invite.expiresAt).getTime() <= Date.now()) {
+    return { label: "만료", status: "expired", tone: "amber" };
+  }
+
+  if (invite.maxUses !== null && invite.usedCount >= invite.maxUses) {
+    return { label: "사용 완료", status: "used", tone: "blue" };
+  }
+
+  return { label: "활성", status: "active", tone: "green" };
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function unwrapData<T>(payload: unknown): T {
