@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getAuthCallbackUrl } from "@/lib/auth-redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 type AuthMode = "login" | "signup";
@@ -64,8 +65,7 @@ export function AuthEmailForm({ mode }: AuthEmailFormProps) {
               email,
               password,
               options: {
-                emailRedirectTo:
-                  typeof window === "undefined" ? undefined : `${window.location.origin}/auth/callback`
+                emailRedirectTo: getAuthCallbackUrl()
               }
             });
 

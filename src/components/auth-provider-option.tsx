@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { KeyRound, Loader2, MessageCircle, ShieldCheck } from "lucide-react";
 import type { Provider } from "@supabase/supabase-js";
+import { getAuthCallbackUrl } from "@/lib/auth-redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 type AuthProviderOptionProps = {
@@ -33,11 +34,10 @@ export function AuthProviderOption({ description, provider, title, variant = "lo
 
     setIsStarting(true);
 
-    const origin = window.location.origin;
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${origin}/auth/callback`
+        redirectTo: getAuthCallbackUrl()
       }
     });
 
