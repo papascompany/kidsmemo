@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Copy, History, Printer, RotateCcw, Sparkles } from "lucide-react";
+import { Bot, ChevronDown, ChevronUp, Copy, History, Printer, RotateCcw, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import { formatDateTime } from "@/lib/format";
@@ -75,6 +75,8 @@ const sampleMessageResult: ParentMessageResult = {
 
 export function AiWorkbench({ organizationId }: { organizationId?: string }) {
   const [activeTool, setActiveTool] = useState<"assistant" | "message">("assistant");
+  const [showAssistantDetails, setShowAssistantDetails] = useState(false);
+  const [showMessageDetails, setShowMessageDetails] = useState(false);
   const [assistantResult, setAssistantResult] = useState(sampleAssistantResult);
   const [messageResult, setMessageResult] = useState(sampleMessageResult);
   const [assistantForm, setAssistantForm] = useState<EventAssistantRequest>({
@@ -226,19 +228,21 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
         <button
           type="button"
           onClick={() => setActiveTool("assistant")}
-          className={`min-h-11 rounded px-3 text-sm font-semibold transition ${
+          className={`inline-flex min-h-11 items-center justify-center gap-2 rounded px-3 text-sm font-semibold transition ${
             activeTool === "assistant" ? "bg-brand text-white" : "bg-surface text-muted"
           }`}
         >
+          <Bot size={17} aria-hidden />
           행사 도우미
         </button>
         <button
           type="button"
           onClick={() => setActiveTool("message")}
-          className={`min-h-11 rounded px-3 text-sm font-semibold transition ${
+          className={`inline-flex min-h-11 items-center justify-center gap-2 rounded px-3 text-sm font-semibold transition ${
             activeTool === "message" ? "bg-coral text-white" : "bg-surface text-muted"
           }`}
         >
+          <Sparkles size={17} aria-hidden />
           문구 생성기
         </button>
       </div>
@@ -305,9 +309,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
               <Bot size={20} aria-hidden />
               AI 행사 도우미
             </h3>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              행사 아이디어, 준비 체크리스트, 쇼핑 추천, 가정통신문 초안을 생성합니다.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-muted">행사명만 입력하면 바로 초안을 만듭니다.</p>
           </div>
           <button
             type="button"
@@ -321,94 +323,106 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
         </div>
 
         <div className="no-print mt-4 grid gap-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="행사명" htmlFor="ai-event-name">
-              <input
-                id="ai-event-name"
-                value={assistantForm.eventName}
-                onChange={(event) => updateAssistantField("eventName", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="연령/반" htmlFor="ai-age-group">
-              <input
-                id="ai-age-group"
-                value={assistantForm.ageGroup}
-                onChange={(event) => updateAssistantField("ageGroup", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="준비기간" htmlFor="ai-preparation-days">
-              <input
-                id="ai-preparation-days"
-                type="number"
-                min={1}
-                value={assistantForm.preparationDays}
-                onChange={(event) =>
-                  updateAssistantField("preparationDays", Number(event.target.value))
-                }
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="장소" htmlFor="ai-location">
-              <input
-                id="ai-location"
-                value={assistantForm.location}
-                onChange={(event) => updateAssistantField("location", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="예산" htmlFor="ai-budget">
-              <select
-                id="ai-budget"
-                value={assistantForm.budget}
-                onChange={(event) => updateAssistantField("budget", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              >
-                {budgetOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="계절" htmlFor="ai-season">
-              <select
-                id="ai-season"
-                value={assistantForm.season}
-                onChange={(event) => updateAssistantField("season", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              >
-                {seasonOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="분위기" htmlFor="ai-mood">
-              <select
-                id="ai-mood"
-                value={assistantForm.mood}
-                onChange={(event) => updateAssistantField("mood", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              >
-                {moodOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
+          <Field label="행사명" htmlFor="ai-event-name" required>
+            <input
+              id="ai-event-name"
+              value={assistantForm.eventName}
+              onChange={(event) => updateAssistantField("eventName", event.target.value)}
+              className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+          </Field>
+          <button
+            type="button"
+            onClick={() => setShowAssistantDetails((current) => !current)}
+            className="inline-flex min-h-11 items-center justify-between rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+            aria-expanded={showAssistantDetails}
+            aria-controls="assistant-details"
+          >
+            <span>{showAssistantDetails ? "상세 설정 접기" : "연령, 예산, 장소 등 상세 설정"}</span>
+            {showAssistantDetails ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+          </button>
+          {showAssistantDetails ? (
+            <div id="assistant-details" className="grid gap-3 rounded border border-line bg-surface p-3 md:grid-cols-2">
+              <Field label="연령/반" htmlFor="ai-age-group">
+                <input
+                  id="ai-age-group"
+                  value={assistantForm.ageGroup}
+                  onChange={(event) => updateAssistantField("ageGroup", event.target.value)}
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </Field>
+              <Field label="준비기간" htmlFor="ai-preparation-days">
+                <input
+                  id="ai-preparation-days"
+                  type="number"
+                  min={1}
+                  value={assistantForm.preparationDays}
+                  onChange={(event) =>
+                    updateAssistantField("preparationDays", Number(event.target.value))
+                  }
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </Field>
+              <Field label="장소" htmlFor="ai-location">
+                <input
+                  id="ai-location"
+                  value={assistantForm.location}
+                  onChange={(event) => updateAssistantField("location", event.target.value)}
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </Field>
+              <Field label="예산" htmlFor="ai-budget">
+                <select
+                  id="ai-budget"
+                  value={assistantForm.budget}
+                  onChange={(event) => updateAssistantField("budget", event.target.value)}
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                >
+                  {budgetOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="계절" htmlFor="ai-season">
+                <select
+                  id="ai-season"
+                  value={assistantForm.season}
+                  onChange={(event) => updateAssistantField("season", event.target.value)}
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                >
+                  {seasonOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="분위기" htmlFor="ai-mood">
+                <select
+                  id="ai-mood"
+                  value={assistantForm.mood}
+                  onChange={(event) => updateAssistantField("mood", event.target.value)}
+                  className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                >
+                  {moodOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={generateAssistant}
-            disabled={isGeneratingAssistant}
+            disabled={isGeneratingAssistant || !assistantForm.eventName.trim()}
             className="flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
           >
             <Sparkles size={17} aria-hidden />
-            {isGeneratingAssistant ? "생성 중" : "생성"}
+            {isGeneratingAssistant ? "계획서 만드는 중" : "행사 계획서 만들기"}
           </button>
         </div>
         {assistantStatus ? (
@@ -464,9 +478,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
               <Sparkles size={20} aria-hidden />
               AI 감동 문구 생성기
             </h3>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              원장님과 선생님이 학부모에게 보낼 따뜻한 메시지 후보를 만듭니다.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-muted">목적과 행사명만 정하면 바로 메시지 후보를 만듭니다.</p>
           </div>
         </div>
         {messageStatus ? (
@@ -493,23 +505,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
                 ))}
               </select>
             </Field>
-            <Field label="톤" htmlFor="message-tone">
-              <select
-                id="message-tone"
-                value={messageForm.tone}
-                onChange={(event) =>
-                  updateMessageField("tone", event.target.value as ParentMessageRequest["tone"])
-                }
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
-              >
-                {toneOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="행사명" htmlFor="message-event-name">
+            <Field label="행사명" htmlFor="message-event-name" required>
               <input
                 id="message-event-name"
                 value={messageForm.eventName}
@@ -517,31 +513,64 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
                 className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
               />
             </Field>
-            <Field label="발신자" htmlFor="message-sender">
-              <input
-                id="message-sender"
-                value={messageForm.senderName}
-                onChange={(event) => updateMessageField("senderName", event.target.value)}
-                className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
-              />
-            </Field>
           </div>
-          <Field label="아이/행사 맥락" htmlFor="message-child-context">
-            <textarea
-              id="message-child-context"
-              value={messageForm.childContext ?? ""}
-              onChange={(event) => updateMessageField("childContext", event.target.value)}
-              rows={3}
-              className="min-w-0 resize-y rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-coral"
-            />
-          </Field>
+          <button
+            type="button"
+            onClick={() => setShowMessageDetails((current) => !current)}
+            className="inline-flex min-h-11 items-center justify-between rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-coral hover:text-coral"
+            aria-expanded={showMessageDetails}
+            aria-controls="message-details"
+          >
+            <span>{showMessageDetails ? "상세 설정 접기" : "톤, 발신자, 상황 등 상세 설정"}</span>
+            {showMessageDetails ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+          </button>
+          {showMessageDetails ? (
+            <div id="message-details" className="grid gap-3 rounded border border-line bg-surface p-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="톤" htmlFor="message-tone">
+                  <select
+                    id="message-tone"
+                    value={messageForm.tone}
+                    onChange={(event) =>
+                      updateMessageField("tone", event.target.value as ParentMessageRequest["tone"])
+                    }
+                    className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+                  >
+                    {toneOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="발신자" htmlFor="message-sender">
+                  <input
+                    id="message-sender"
+                    value={messageForm.senderName}
+                    onChange={(event) => updateMessageField("senderName", event.target.value)}
+                    className="min-w-0 rounded border border-line px-3 py-2 text-sm outline-none focus:border-coral"
+                  />
+                </Field>
+              </div>
+              <Field label="아이/행사 맥락" htmlFor="message-child-context">
+                <textarea
+                  id="message-child-context"
+                  value={messageForm.childContext ?? ""}
+                  onChange={(event) => updateMessageField("childContext", event.target.value)}
+                  rows={3}
+                  className="min-w-0 resize-y rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-coral"
+                />
+              </Field>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={generateMessages}
-            disabled={isGeneratingMessages}
-            className="min-h-11 rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
+            disabled={isGeneratingMessages || !messageForm.eventName.trim()}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-coral px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:justify-self-start"
           >
-            {isGeneratingMessages ? "생성 중" : "생성"}
+            <Sparkles size={17} aria-hidden />
+            {isGeneratingMessages ? "문구 만드는 중" : "학부모 문구 만들기"}
           </button>
         </div>
 
@@ -581,15 +610,19 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 function Field({
   label,
   htmlFor,
-  children
+  children,
+  required = false
 }: {
   label: string;
   htmlFor: string;
   children: React.ReactNode;
+  required?: boolean;
 }) {
   return (
     <label htmlFor={htmlFor} className="grid gap-1 text-sm">
-      <span className="text-xs font-semibold text-muted">{label}</span>
+      <span className="text-xs font-semibold text-muted">
+        {label}{required ? <span className="ml-1 text-coral">*</span> : null}
+      </span>
       {children}
     </label>
   );

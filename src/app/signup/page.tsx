@@ -1,12 +1,11 @@
 import { AuthEmailForm } from "@/components/auth-email-form";
 import { AuthProviderOption } from "@/components/auth-provider-option";
-import { ArrowRight, Building2 } from "lucide-react";
 import Link from "next/link";
 
 const signupOptions = [
   {
     title: "카카오 간편가입",
-    description: "카카오계정으로 가입하고 온보딩을 이어갑니다.",
+    description: "카카오계정으로 가입하고 기관 연결을 시작합니다.",
     provider: "kakao"
   },
   {
@@ -25,66 +24,40 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const authMessage = getAuthMessage(params.auth_error);
 
   return (
-    <main className="min-h-screen bg-[#f8f6f1] px-4 py-8 text-ink sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <Link href="/" className="text-sm font-semibold text-brand">
+    <main className="min-h-screen bg-surface px-4 py-8 text-ink sm:px-6 sm:py-12">
+      <section className="mx-auto w-full max-w-md">
+        <Link href="/" className="inline-block text-lg font-semibold text-brand">
           키즈메모
         </Link>
-        <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded border border-line bg-white p-6 shadow-soft">
-            <p className="text-sm font-semibold text-brand">간편가입</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-normal">
-              계정을 만들고 내 기관을 연결합니다.
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-              가입 후 점보키즈 아이디 회원인증 또는 초대 코드 참여를 통해 기관별 대시보드로
-              이동합니다. 이메일과 비밀번호 가입은 Supabase 설정이 있을 때 실제 계정을 만듭니다.
-            </p>
+        <div className="mt-8 rounded border border-line bg-white p-6 shadow-soft sm:p-8">
+          <p className="text-sm font-semibold text-brand">간편가입</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-normal">우리 기관의 운영을 시작하세요.</h1>
+          <p className="mt-3 text-sm leading-6 text-muted">
+            가입 후 점보키즈 아이디 인증 또는 초대 코드로 기관을 연결합니다.
+          </p>
 
-            <div className="mt-6 grid gap-3">
-              {authMessage ? (
-                <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
-                  {authMessage}
-                </p>
-              ) : null}
-              {signupOptions.map((option) => {
-                return (
-                  <AuthProviderOption
-                    key={option.title}
-                    description={option.description}
-                    provider={option.provider}
-                    variant="signup"
-                    title={option.title}
-                  />
-                );
-              })}
-            </div>
-
-            <AuthEmailForm mode="signup" />
+          <div className="mt-7 grid gap-3">
+            {authMessage ? (
+              <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+                {authMessage}
+              </p>
+            ) : null}
+            {signupOptions.map((option) => (
+              <AuthProviderOption key={option.title} {...option} variant="signup" />
+            ))}
           </div>
 
-          <aside className="rounded border border-line bg-white p-6 shadow-soft">
-            <div className="grid h-12 w-12 place-items-center rounded bg-brand/10 text-brand">
-              <Building2 size={23} aria-hidden />
-            </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-normal">
-              가입 다음 단계
-            </h2>
-            <ol className="mt-5 grid gap-3 text-sm text-muted">
-              <Step title="점보키즈 아이디 인증" description="기존 점보키즈 회원과 기관 정보를 확인합니다." />
-              <Step title="기관 생성 또는 참여" description="원장님은 기관을 만들고, 선생님은 초대 코드로 참여합니다." />
-              <Step title="대시보드 시작" description="행사 일정, 쿠폰함, AI 조언을 기관별로 관리합니다." />
-            </ol>
-            <Link
-              href="/onboarding"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-3 text-sm font-semibold text-white"
-            >
-              온보딩 화면 보기
-              <ArrowRight size={17} aria-hidden />
+          <AuthEmailForm mode="signup" />
+
+          <p className="mt-6 text-sm text-muted">
+            이미 계정이 있다면{" "}
+            <Link href="/login" className="font-semibold text-brand hover:text-brand/80">
+              로그인
             </Link>
-          </aside>
-        </section>
-      </div>
+            하세요.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }
@@ -92,22 +65,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 function getAuthMessage(error: string | string[] | undefined) {
   const code = Array.isArray(error) ? error[0] : error;
 
-  if (!code) {
-    return null;
-  }
+  if (!code) return null;
 
   if (code === "config") {
     return "인증 설정이 아직 완료되지 않아 가입을 마칠 수 없습니다. 관리자에게 설정을 요청해 주세요.";
   }
 
   return "간편가입을 마치지 못했습니다. 다시 시도하거나 이메일 가입을 이용해 주세요.";
-}
-
-function Step({ title, description }: { title: string; description: string }) {
-  return (
-    <li className="rounded border border-line bg-surface p-4">
-      <p className="font-semibold text-ink">{title}</p>
-      <p className="mt-1 leading-6">{description}</p>
-    </li>
-  );
 }

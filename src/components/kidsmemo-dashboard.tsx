@@ -20,6 +20,7 @@ import { authenticatedFetch } from "@/lib/auth-fetch";
 import { messageJobs } from "@/lib/mock-data";
 import type { OrganizationContext } from "@/lib/organization-context";
 import { getReminderHealth } from "@/lib/reminders";
+import type { EventSchedule } from "@/lib/types";
 
 export function KidsmemoDashboard() {
   const [liveContext, setLiveContext] = useState<OrganizationContext | null>(null);
@@ -30,6 +31,26 @@ export function KidsmemoDashboard() {
     () => (liveContext ? [liveContext.organization] : undefined),
     [liveContext]
   );
+  const upcomingEvents = useMemo(
+    () => {
+      const today = new Date().toISOString().slice(0, 10);
+
+      return (liveContext?.events ?? [])
+        .filter((event) => event.eventDate >= today)
+        .sort((left, right) => left.eventDate.localeCompare(right.eventDate))
+        .slice(0, 3);
+    },
+    [liveContext]
+  );
+  const primaryTask = health.tomorrowEvents > 0
+    ? {
+        title: "내일 행사를 최종 점검하세요.",
+        description: `내일 예정된 ${health.tomorrowEvents}건의 행사 준비와 학부모 안내 상태를 확인합니다.`
+      }
+    : {
+        title: "다가오는 행사 준비를 시작하세요.",
+        description: "일정을 확인하고 준비물과 학부모 안내 업무를 차례로 정리합니다."
+      };
 
   useEffect(() => {
     let isMounted = true;
@@ -66,66 +87,63 @@ export function KidsmemoDashboard() {
   return (
     <AppShell>
       <section id="dashboard" className="min-w-0 scroll-mt-32 py-3 lg:scroll-mt-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.55fr)] xl:items-start">
-          <div className="min-w-0 rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <p className="text-sm font-semibold text-brand">오늘의 운영</p>
-            <h1 className="text-wrap-anywhere mt-2 max-w-3xl text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl">
-              오늘 해야 할 일만 먼저 확인하세요.
+            <h1 className="text-wrap-anywhere mt-1 text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl">
+              가장 중요한 일부터 처리하세요.
             </h1>
-            <p className="text-wrap-anywhere mt-2 max-w-2xl text-sm leading-6 text-muted">
-              행사 점검, 쿠폰 저장, 안내 문구 생성 순서로 바로 이동합니다.
-              기관 상세와 운영 기록은 아래 접힌 영역에서 필요할 때만 엽니다.
-            </p>
-
-            <div className="mt-5 grid gap-3 lg:grid-cols-3">
-              <TodayTask
-                href="#calendar"
-                icon={CalendarDays}
-                step="1"
-                title="내일 행사 점검"
-                description={`${health.tomorrowEvents}건의 행사와 준비 상태를 확인합니다.`}
-                status="일정 관리"
-              />
-              <TodayTask
-                href="#coupons"
-                icon={Gift}
-                step="2"
-                title="쿠폰 저장"
-                description={`${health.availableStaffCoupons}개의 사용 가능 쿠폰을 복사하거나 내려받습니다.`}
-                status="쿠폰함"
-              />
-              <TodayTask
-                href="#ai-helper"
-                icon={ClipboardCheck}
-                step="3"
-                title="안내 문구 만들기"
-                description="행사명만 넣고 학부모 안내 초안을 만듭니다."
-                status="AI 도움"
-              />
-            </div>
           </div>
+          <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
+            {liveStatus === "ready" ? "Live Supabase" : liveStatus === "loading" ? "세션 확인 중" : "Mock Fallback"}
+          </Badge>
+        </div>
 
-          <aside className="rounded border border-line bg-white p-4 shadow-soft">
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="green">오늘 할 일</Badge>
-              <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
-                {liveStatus === "ready" ? "Live Supabase" : liveStatus === "loading" ? "세션 확인 중" : "Mock Fallback"}
-              </Badge>
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] xl:items-start">
+          <article className="min-w-0 rounded border border-line bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center gap-3 text-sm font-semibold text-brand">
+              <span className="grid h-9 w-9 place-items-center rounded border border-line bg-surface" aria-hidden>
+                <CalendarDays size={18} />
+              </span>
+              지금 할 일
             </div>
-            <h2 className="mt-4 text-lg font-semibold text-ink">빠른 요약</h2>
-            <div className="mt-3 grid gap-2">
-              <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
-              <Metric label="사용 가능 쿠폰" value={`${health.availableStaffCoupons}개`} />
-              <Metric label="발송 대기" value={`${queuedJobs.length}건`} />
+            <h2 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight text-ink sm:text-3xl">{primaryTask.title}</h2>
+            <p className="text-wrap-anywhere mt-3 max-w-xl text-sm leading-6 text-muted">{primaryTask.description}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a href="#calendar" className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white">
+                행사 일정 열기
+                <ArrowRight size={16} aria-hidden />
+              </a>
+              <span className="text-sm text-muted">발송 대기 {queuedJobs.length}건</span>
             </div>
-            <a
-              href="#calendar"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              오늘 업무 시작
-              <ArrowRight size={16} aria-hidden />
-            </a>
+          </article>
+
+          <aside className="rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-ink">다가오는 일정과 작업</p>
+                <p className="mt-1 text-sm text-muted">날짜 순으로 바로 이어서 처리합니다.</p>
+              </div>
+              <a href="#calendar" className="shrink-0 text-sm font-semibold text-brand">전체 일정</a>
+            </div>
+            <div className="mt-4 divide-y divide-line border-y border-line">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event) => <UpcomingEvent key={event.id} event={event} />)
+              ) : (
+                <>
+                  <UpcomingAction label="오늘" title="내일 행사 점검" detail={`${health.tomorrowEvents}건의 행사 확인`} href="#calendar" />
+                  <UpcomingAction label="오늘" title="쿠폰 저장" detail={`${health.availableStaffCoupons}개 사용 가능`} href="#coupons" />
+                  <UpcomingAction label="다음" title="학부모 안내 문구" detail={`${queuedJobs.length}건 발송 대기`} href="#ai-helper" />
+                </>
+              )}
+            </div>
           </aside>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <TodayTask href="#coupons" icon={Gift} title="쿠폰함 정리" description={`${health.availableStaffCoupons}개의 사용 가능 쿠폰을 확인합니다.`} status="쿠폰함" />
+          <TodayTask href="#ai-helper" icon={ClipboardCheck} title="안내 문구 준비" description="행사 안내 초안을 만들고 저장합니다." status="AI 도움" />
+          <TodayTask href="#calendar" icon={CalendarDays} title="발송 상태 확인" description={`${queuedJobs.length}건의 대기 작업을 일정과 함께 점검합니다.`} status="일정 관리" />
         </div>
 
         <details className="group mt-5 rounded border border-line bg-white shadow-soft">
@@ -212,17 +230,53 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function UpcomingEvent({ event }: { event: EventSchedule }) {
+  const date = new Date(`${event.eventDate}T00:00:00`);
+  const month = new Intl.DateTimeFormat("ko-KR", { month: "short" }).format(date);
+  const day = new Intl.DateTimeFormat("ko-KR", { day: "numeric" }).format(date);
+  const status = event.reminderStatus === "sent"
+    ? "발송 완료"
+    : event.reminderStatus === "scheduled"
+      ? "안내 예정"
+      : "안내 설정 필요";
+
+  return (
+    <a href="#calendar" className="group flex items-center gap-3 py-3 transition hover:bg-surface">
+      <span className="grid w-12 shrink-0 place-items-center rounded border border-line bg-surface px-1 py-2 text-center leading-none">
+        <span className="text-[11px] font-semibold text-brand">{month}</span>
+        <span className="mt-1 text-lg font-semibold text-ink">{day}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-ink">{event.title}</span>
+        <span className="mt-1 block truncate text-xs text-muted">{status}</span>
+      </span>
+      <ArrowRight size={16} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" aria-hidden />
+    </a>
+  );
+}
+
+function UpcomingAction({ label, title, detail, href }: { label: string; title: string; detail: string; href: string }) {
+  return (
+    <a href={href} className="group flex items-center gap-3 py-3 transition hover:bg-surface">
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded border border-line bg-surface px-1 text-center text-xs font-semibold text-brand">{label}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-ink">{title}</span>
+        <span className="mt-1 block truncate text-xs text-muted">{detail}</span>
+      </span>
+      <ArrowRight size={16} className="shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" aria-hidden />
+    </a>
+  );
+}
+
 function TodayTask({
   href,
   icon: Icon,
-  step,
   title,
   description,
   status
 }: {
   href: string;
   icon: LucideIcon;
-  step: string;
   title: string;
   description: string;
   status: string;
@@ -230,18 +284,15 @@ function TodayTask({
   return (
     <a
       href={href}
-      className="group flex min-h-40 flex-col justify-between rounded border border-line bg-surface p-4 transition hover:border-brand hover:bg-white"
+      className="group flex min-h-32 flex-col justify-between rounded border border-line bg-white p-4 transition hover:border-brand hover:bg-surface"
     >
       <div className="min-w-0">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-white text-brand">
             <Icon size={18} aria-hidden />
           </span>
-          <span className="rounded border border-line bg-white px-2 py-1 text-xs font-semibold text-muted">
-            {step}
-          </span>
         </div>
-        <p className="mt-4 text-base font-semibold text-ink">{title}</p>
+        <p className="mt-3 text-base font-semibold text-ink">{title}</p>
         <p className="text-wrap-anywhere mt-2 text-sm leading-5 text-muted">{description}</p>
       </div>
       <div className="mt-4 flex items-center justify-between gap-3 text-sm font-semibold text-brand">

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, Pencil, RotateCcw, Save } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronUp, Pencil, RotateCcw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
@@ -207,28 +207,13 @@ export function EventManager({
             <h3 className="text-lg font-semibold text-ink">
               {editingId ? "행사 수정" : "행사 등록"}
             </h3>
-            <p className="mt-1 text-sm leading-6 text-muted">
-              행사명, 날짜, 대상만 먼저 저장하고 필요할 때 상세를 덧붙입니다.
-            </p>
+            <p className="mt-1 text-sm leading-6 text-muted">행사명과 날짜만 정하면 바로 등록할 수 있습니다.</p>
           </div>
           {editingId ? <Badge tone="blue">수정 중</Badge> : <Badge tone="green">신규</Badge>}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {eventTemplates.map((template) => (
-            <button
-              key={template.title}
-              type="button"
-              onClick={() => applyTemplate(template)}
-              className="min-h-10 rounded border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-            >
-              {template.title}
-            </button>
-          ))}
-        </div>
-
         <div className="mt-4 grid gap-3">
-          <Field label="행사명" htmlFor="event-title">
+          <Field label="행사명" htmlFor="event-title" required>
             <input
               id="event-title"
               value={form.title}
@@ -238,37 +223,41 @@ export function EventManager({
             />
           </Field>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="행사일" htmlFor="event-date">
-              <input
-                id="event-date"
-                type="date"
-                value={form.eventDate}
-                onChange={(event) => updateField("eventDate", event.target.value)}
-                className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-            <Field label="대상" htmlFor="event-audience">
-              <input
-                id="event-audience"
-                value={form.audience}
-                onChange={(event) => updateField("audience", event.target.value)}
-                placeholder="예: 만 3-5세"
-                className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-            </Field>
-          </div>
+          <Field label="행사일" htmlFor="event-date" required>
+            <input
+              id="event-date"
+              type="date"
+              value={form.eventDate}
+              onChange={(event) => updateField("eventDate", event.target.value)}
+              className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+          </Field>
 
           <button
             type="button"
             onClick={() => setShowDetails((current) => !current)}
-            className="min-h-11 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+            className="inline-flex min-h-11 items-center justify-between rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+            aria-expanded={showDetails}
+            aria-controls="event-details"
           >
-            {showDetails ? "상세 입력 접기" : "반/준비물 상세 입력"}
+            <span>{showDetails ? "상세 입력 접기" : "대상, 반, 준비물 등 상세 입력"}</span>
+            {showDetails ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
           </button>
 
           {showDetails ? (
-            <div className="grid gap-3 rounded border border-line bg-surface p-3">
+            <div id="event-details" className="grid gap-3 rounded border border-line bg-surface p-3">
+              <div className="flex flex-wrap gap-2">
+                {eventTemplates.map((template) => (
+                  <button
+                    key={template.title}
+                    type="button"
+                    onClick={() => applyTemplate(template)}
+                    className="min-h-10 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
+                  >
+                    {template.title}
+                  </button>
+                ))}
+              </div>
               <Field label="기관" htmlFor="event-organization">
                 <select
                   id="event-organization"
@@ -282,6 +271,15 @@ export function EventManager({
                     </option>
                   ))}
                 </select>
+              </Field>
+              <Field label="대상" htmlFor="event-audience">
+                <input
+                  id="event-audience"
+                  value={form.audience}
+                  onChange={(event) => updateField("audience", event.target.value)}
+                  placeholder="예: 만 3-5세"
+                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
+                />
               </Field>
               <Field label="반/학급" htmlFor="event-classes">
                 <input
@@ -399,15 +397,17 @@ function createEmptyForm(organizationId = getPrimaryOrganizationId()): EventForm
 function Field({
   label,
   htmlFor,
-  children
+  children,
+  required = false
 }: {
   label: string;
   htmlFor: string;
   children: React.ReactNode;
+  required?: boolean;
 }) {
   return (
     <label className="block text-sm font-semibold text-ink" htmlFor={htmlFor}>
-      {label}
+      {label}{required ? <span className="ml-1 text-coral">*</span> : null}
       <span className="mt-2 block">{children}</span>
     </label>
   );
