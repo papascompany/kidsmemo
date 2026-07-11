@@ -1,10 +1,9 @@
 "use client";
 
-import { CalendarPlus, ChevronDown, ChevronUp, Pencil, RotateCcw, Save } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronUp, Pencil, Plus, Save, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
-import { formatDate } from "@/lib/format";
 import { events as initialEvents, organizations } from "@/lib/mock-data";
 import { getPrimaryOrganizationId } from "@/lib/organization-context";
 import type { EventSchedule, Organization } from "@/lib/types";
@@ -60,6 +59,7 @@ export function EventManager({
   const [events, setEvents] = useState(initialEventList);
   const [form, setForm] = useState<EventFormState>(() => createEmptyForm(initialOrganizationId));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -111,7 +111,6 @@ export function EventManager({
     () => [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate)),
     [events]
   );
-  const editingEvent = events.find((event) => event.id === editingId);
 
   function updateField(name: keyof EventFormState, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -121,6 +120,7 @@ export function EventManager({
     setEditingId(event.id);
     setStatus(null);
     setShowDetails(true);
+    setIsComposerOpen(true);
     setForm({
       organizationId: event.organizationId,
       title: event.title,
@@ -137,6 +137,16 @@ export function EventManager({
     setStatus(null);
     setShowDetails(false);
     setForm(createEmptyForm(initialOrganizationId));
+  }
+
+  function startCreate() {
+    resetForm();
+    setIsComposerOpen(true);
+  }
+
+  function closeComposer() {
+    resetForm();
+    setIsComposerOpen(false);
   }
 
   function applyTemplate(template: {
@@ -189,9 +199,8 @@ export function EventManager({
         return [saved, ...current];
       });
       setStatus(editingId ? "행사 수정 요청이 저장되었습니다." : "새 행사 등록 요청이 저장되었습니다.");
-      if (!editingId) {
-        setForm({ ...createEmptyForm(initialOrganizationId), title: "", description: "", supplies: "" });
-      }
+      setIsComposerOpen(false);
+      resetForm();
     } catch {
       setStatus("저장에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
     } finally {
@@ -200,184 +209,123 @@ export function EventManager({
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[400px_1fr]">
-      <div className="rounded border border-line bg-white p-4 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-ink">
-              {editingId ? "행사 수정" : "행사 등록"}
-            </h3>
-            <p className="mt-1 text-sm leading-6 text-muted">행사명과 날짜만 정하면 바로 등록할 수 있습니다.</p>
-          </div>
-          {editingId ? <Badge tone="blue">수정 중</Badge> : <Badge tone="green">신규</Badge>}
+    <div className="rounded border border-line bg-white shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line p-4 sm:p-5">
+        <div>
+          <p className="text-sm font-semibold text-brand">행사 플래너</p>
+          <h3 className="mt-1 text-xl font-semibold tracking-normal text-ink">다가오는 행사를 준비하세요.</h3>
+          <p className="mt-2 text-sm leading-6 text-muted">일정을 등록하고, 필요한 행사만 AI 기획으로 이어갑니다.</p>
         </div>
-
-        <div className="mt-4 grid gap-3">
-          <Field label="행사명" htmlFor="event-title" required>
-            <input
-              id="event-title"
-              value={form.title}
-              onChange={(event) => updateField("title", event.target.value)}
-              placeholder="예: 가족 운동회"
-              className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-            />
-          </Field>
-
-          <Field label="행사일" htmlFor="event-date" required>
-            <input
-              id="event-date"
-              type="date"
-              value={form.eventDate}
-              onChange={(event) => updateField("eventDate", event.target.value)}
-              className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-            />
-          </Field>
-
-          <button
-            type="button"
-            onClick={() => setShowDetails((current) => !current)}
-            className="inline-flex min-h-11 items-center justify-between rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-            aria-expanded={showDetails}
-            aria-controls="event-details"
-          >
-            <span>{showDetails ? "상세 입력 접기" : "대상, 반, 준비물 등 상세 입력"}</span>
-            {showDetails ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
-          </button>
-
-          {showDetails ? (
-            <div id="event-details" className="grid gap-3 rounded border border-line bg-surface p-3">
-              <div className="flex flex-wrap gap-2">
-                {eventTemplates.map((template) => (
-                  <button
-                    key={template.title}
-                    type="button"
-                    onClick={() => applyTemplate(template)}
-                    className="min-h-10 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-                  >
-                    {template.title}
-                  </button>
-                ))}
-              </div>
-              <Field label="기관" htmlFor="event-organization">
-                <select
-                  id="event-organization"
-                  value={form.organizationId}
-                  onChange={(event) => updateField("organizationId", event.target.value)}
-                  className="w-full rounded border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
-                >
-                  {availableOrganizations.map((organization) => (
-                    <option key={organization.id} value={organization.id}>
-                      {organization.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="대상" htmlFor="event-audience">
-                <input
-                  id="event-audience"
-                  value={form.audience}
-                  onChange={(event) => updateField("audience", event.target.value)}
-                  placeholder="예: 만 3-5세"
-                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-                />
-              </Field>
-              <Field label="반/학급" htmlFor="event-classes">
-                <input
-                  id="event-classes"
-                  value={form.classNames}
-                  onChange={(event) => updateField("classNames", event.target.value)}
-                  placeholder="쉼표로 구분"
-                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-                />
-              </Field>
-              <Field label="행사 설명" htmlFor="event-description">
-                <textarea
-                  id="event-description"
-                  value={form.description}
-                  onChange={(event) => updateField("description", event.target.value)}
-                  rows={3}
-                  placeholder="행사 내용과 촬영 포인트를 적어주세요."
-                  className="w-full resize-none rounded border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-brand"
-                />
-              </Field>
-              <Field label="준비물" htmlFor="event-supplies">
-                <input
-                  id="event-supplies"
-                  value={form.supplies}
-                  onChange={(event) => updateField("supplies", event.target.value)}
-                  placeholder="쉼표로 구분"
-                  className="w-full rounded border border-line px-3 py-2 text-sm outline-none focus:border-brand"
-                />
-              </Field>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={saveEvent}
-            disabled={isSaving || !form.title.trim()}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {editingId ? <Save size={18} aria-hidden /> : <CalendarPlus size={18} aria-hidden />}
-            {isSaving ? "저장 중" : editingId ? "수정 저장" : "행사 등록"}
-          </button>
-          {editingId ? (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted"
-            >
-              <RotateCcw size={18} aria-hidden />
-              신규 등록으로 전환
-            </button>
-          ) : null}
-        </div>
-
-        {status ? <p className="mt-3 text-sm font-semibold text-muted">{status}</p> : null}
-        {editingEvent ? (
-          <p className="mt-2 text-xs leading-5 text-muted">수정 후 저장하면 행사 목록에 바로 반영됩니다.</p>
-        ) : null}
+        <button
+          type="button"
+          onClick={startCreate}
+          className="inline-flex min-h-11 items-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          <Plus size={18} aria-hidden />
+          새 행사 등록
+        </button>
       </div>
 
-      <div className="overflow-hidden rounded border border-line bg-white shadow-soft">
-        <div className="grid grid-cols-[1.4fr_0.8fr_0.6fr_auto] border-b border-line bg-surface px-4 py-3 text-sm font-semibold text-muted max-lg:hidden">
-          <span>행사</span>
-          <span>일정</span>
-          <span>상태</span>
-          <span className="text-right">관리</span>
+      {status ? <p className="mx-4 mt-4 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted sm:mx-5">{status}</p> : null}
+
+      <div className="divide-y divide-line">
+        {sortedEvents.map((event) => (
+          <article key={event.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+            <EventDate eventDate={event.eventDate} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-wrap-anywhere text-base font-semibold text-ink">{event.title}</h4>
+                <Badge tone={getReminderTone(event.reminderStatus)}>{getReminderLabel(event.reminderStatus)}</Badge>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {event.audience} · {event.classNames.join(", ")}
+                {event.description ? ` · ${event.description}` : ""}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <a
+                href="#ai-helper"
+                className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-brand transition hover:border-brand hover:bg-surface"
+              >
+                <Sparkles size={17} aria-hidden />
+                AI 기획
+              </a>
+              <button
+                type="button"
+                onClick={() => startEdit(event)}
+                className="grid min-h-11 min-w-11 place-items-center rounded border border-line bg-white text-muted transition hover:border-brand hover:text-brand"
+                aria-label={`${event.title} 수정`}
+                title="행사 수정"
+              >
+                <Pencil size={17} aria-hidden />
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {sortedEvents.length === 0 ? (
+        <div className="grid place-items-center gap-3 px-4 py-14 text-center">
+          <span className="grid h-11 w-11 place-items-center rounded bg-brand/10 text-brand"><CalendarDays size={21} aria-hidden /></span>
+          <p className="font-semibold text-ink">아직 등록한 행사가 없어요.</p>
+          <button type="button" onClick={startCreate} className="text-sm font-semibold text-brand">첫 행사 등록하기</button>
         </div>
-        <div className="divide-y divide-line">
-          {sortedEvents.map((event) => (
-            <article
-              key={event.id}
-              className="grid gap-3 px-4 py-4 lg:grid-cols-[1.4fr_0.8fr_0.6fr_auto]"
-            >
+      ) : null}
+
+      {isComposerOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-ink/45 p-0 sm:items-center sm:justify-center sm:p-6" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="event-composer-title" className="max-h-[92svh] w-full overflow-y-auto rounded-t bg-white shadow-soft sm:max-w-xl sm:rounded">
+            <div className="flex items-start justify-between gap-4 border-b border-line p-5">
               <div>
-                <h3 className="font-semibold text-ink">{event.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-muted">
-                  {event.description || "설명 없음"} · {event.classNames.join(", ")}
-                </p>
+                <p className="text-sm font-semibold text-brand">{editingId ? "행사 수정" : "새 행사"}</p>
+                <h3 id="event-composer-title" className="mt-1 text-xl font-semibold text-ink">
+                  {editingId ? "행사 내용을 다듬어 주세요." : "행사명과 날짜부터 적어 주세요."}
+                </h3>
               </div>
-              <p className="text-sm font-semibold text-ink">{formatDate(event.eventDate)}</p>
-              <div>
-                <Badge tone={getReminderTone(event.reminderStatus)}>{event.reminderStatus}</Badge>
-              </div>
-              <div className="flex justify-start lg:justify-end">
-                <button
-                  type="button"
-                  onClick={() => startEdit(event)}
-                  className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand"
-                >
-                  <Pencil size={16} aria-hidden />
-                  수정
+              <button type="button" onClick={closeComposer} className="grid min-h-11 min-w-11 place-items-center rounded border border-line text-muted" aria-label="행사 입력 닫기" title="닫기">
+                <X size={18} aria-hidden />
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-5">
+              <Field label="행사명" htmlFor="event-title" required>
+                <input id="event-title" value={form.title} onChange={(event) => updateField("title", event.target.value)} placeholder="예: 가족 운동회" className="w-full rounded border border-line px-3 py-2.5 text-sm outline-none focus:border-brand" autoFocus />
+              </Field>
+              <Field label="행사일" htmlFor="event-date" required>
+                <input id="event-date" type="date" value={form.eventDate} onChange={(event) => updateField("eventDate", event.target.value)} className="w-full rounded border border-line px-3 py-2.5 text-sm outline-none focus:border-brand" />
+              </Field>
+
+              <button type="button" onClick={() => setShowDetails((current) => !current)} className="inline-flex min-h-11 items-center justify-between rounded border border-line bg-surface px-3 text-sm font-semibold text-muted" aria-expanded={showDetails} aria-controls="event-details">
+                <span>{showDetails ? "상세 입력 접기" : "대상, 반, 준비물 더 입력하기"}</span>
+                {showDetails ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+              </button>
+
+              {showDetails ? (
+                <div id="event-details" className="grid gap-4 rounded border border-line bg-surface p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {eventTemplates.map((template) => <button key={template.title} type="button" onClick={() => applyTemplate(template)} className="min-h-10 rounded border border-line bg-white px-3 text-sm font-semibold text-muted">{template.title}</button>)}
+                  </div>
+                  <Field label="기관" htmlFor="event-organization"><select id="event-organization" value={form.organizationId} onChange={(event) => updateField("organizationId", event.target.value)} className="w-full rounded border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand">{availableOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select></Field>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="대상" htmlFor="event-audience"><input id="event-audience" value={form.audience} onChange={(event) => updateField("audience", event.target.value)} placeholder="예: 만 3-5세" className="w-full rounded border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand" /></Field>
+                    <Field label="반/학급" htmlFor="event-classes"><input id="event-classes" value={form.classNames} onChange={(event) => updateField("classNames", event.target.value)} placeholder="쉼표로 구분" className="w-full rounded border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand" /></Field>
+                  </div>
+                  <Field label="행사 설명" htmlFor="event-description"><textarea id="event-description" value={form.description} onChange={(event) => updateField("description", event.target.value)} rows={3} placeholder="행사 내용과 촬영 포인트를 적어주세요." className="w-full resize-none rounded border border-line bg-white px-3 py-2.5 text-sm leading-6 outline-none focus:border-brand" /></Field>
+                  <Field label="준비물" htmlFor="event-supplies"><input id="event-supplies" value={form.supplies} onChange={(event) => updateField("supplies", event.target.value)} placeholder="쉼표로 구분" className="w-full rounded border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand" /></Field>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+                <button type="button" onClick={closeComposer} className="inline-flex min-h-11 items-center justify-center rounded border border-line bg-white px-4 py-2.5 text-sm font-semibold text-muted">취소</button>
+                <button type="button" onClick={saveEvent} disabled={isSaving || !form.title.trim()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+                  {editingId ? <Save size={18} aria-hidden /> : <CalendarPlus size={18} aria-hidden />}
+                  {isSaving ? "저장 중" : editingId ? "수정 저장" : "행사 등록"}
                 </button>
               </div>
-            </article>
-          ))}
+            </div>
+          </section>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -392,6 +340,32 @@ function createEmptyForm(organizationId = getPrimaryOrganizationId()): EventForm
     description: "",
     supplies: ""
   };
+}
+
+function EventDate({ eventDate }: { eventDate: string }) {
+  const date = new Date(`${eventDate}T00:00:00`);
+
+  return (
+    <div className="grid w-14 shrink-0 place-items-center rounded border border-line bg-surface px-1 py-2 text-center leading-none">
+      <span className="text-[11px] font-semibold text-brand">
+        {new Intl.DateTimeFormat("ko-KR", { month: "short" }).format(date)}
+      </span>
+      <span className="mt-1 text-xl font-semibold text-ink">
+        {new Intl.DateTimeFormat("ko-KR", { day: "numeric" }).format(date)}
+      </span>
+    </div>
+  );
+}
+
+function getReminderLabel(status: EventSchedule["reminderStatus"]) {
+  const labels = {
+    not_scheduled: "안내 설정 필요",
+    scheduled: "안내 예정",
+    sent: "안내 완료",
+    failed: "확인 필요"
+  };
+
+  return labels[status];
 }
 
 function Field({
