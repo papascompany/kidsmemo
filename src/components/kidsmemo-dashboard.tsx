@@ -22,6 +22,9 @@ import type { OrganizationContext } from "@/lib/organization-context";
 import { getReminderHealth } from "@/lib/reminders";
 import type { EventSchedule } from "@/lib/types";
 
+const dashboardPhoto =
+  "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=85";
+
 export function KidsmemoDashboard() {
   const [liveContext, setLiveContext] = useState<OrganizationContext | null>(null);
   const [liveStatus, setLiveStatus] = useState<"loading" | "ready" | "fallback">("loading");
@@ -89,9 +92,9 @@ export function KidsmemoDashboard() {
       <section id="dashboard" className="min-w-0 scroll-mt-32 py-3 lg:scroll-mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-brand">오늘의 운영</p>
+            <p className="text-sm font-semibold text-brand">한샘유치원의 오늘</p>
             <h1 className="text-wrap-anywhere mt-1 text-2xl font-semibold leading-tight tracking-normal text-ink sm:text-3xl">
-              가장 중요한 일부터 처리하세요.
+              사진 한 장으로 오늘의 이야기를 시작하세요.
             </h1>
           </div>
           <Badge tone={liveStatus === "ready" ? "green" : "amber"}>
@@ -100,25 +103,31 @@ export function KidsmemoDashboard() {
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] xl:items-start">
-          <article className="min-w-0 rounded border border-line bg-white p-5 shadow-soft sm:p-6">
-            <div className="flex items-center gap-3 text-sm font-semibold text-brand">
-              <span className="grid h-9 w-9 place-items-center rounded border border-line bg-surface" aria-hidden>
+          <article
+            className="relative min-w-0 overflow-hidden rounded-2xl border border-line bg-ink p-5 text-white shadow-soft sm:p-6"
+            style={{ backgroundImage: `url(${dashboardPhoto})`, backgroundSize: "cover", backgroundPosition: "center" }}
+          >
+            <div className="absolute inset-0 bg-ink/72" />
+            <div className="relative">
+            <div className="flex items-center gap-3 text-sm font-semibold text-white/90">
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/15" aria-hidden>
                 <CalendarDays size={18} />
               </span>
-              지금 할 일
+              오늘의 한 장
             </div>
-            <h2 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight text-ink sm:text-3xl">{primaryTask.title}</h2>
-            <p className="text-wrap-anywhere mt-3 max-w-xl text-sm leading-6 text-muted">{primaryTask.description}</p>
+            <h2 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight sm:text-3xl">{primaryTask.title}</h2>
+            <p className="text-wrap-anywhere mt-3 max-w-xl text-sm leading-6 text-white/84">{primaryTask.description}</p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <a href="#calendar" className="inline-flex items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white">
+              <a href="#calendar" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink">
                 행사 일정 열기
                 <ArrowRight size={16} aria-hidden />
               </a>
-              <span className="text-sm text-muted">발송 대기 {queuedJobs.length}건</span>
+              <span className="rounded-full border border-white/30 bg-white/10 px-3 py-2 text-sm text-white/90">발송 대기 {queuedJobs.length}건</span>
+            </div>
             </div>
           </article>
 
-          <aside className="rounded border border-line bg-white p-4 shadow-soft sm:p-5">
+          <aside className="rounded-2xl border border-line bg-[#fffefa] p-4 shadow-soft sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-ink">다가오는 일정과 작업</p>
@@ -146,7 +155,7 @@ export function KidsmemoDashboard() {
           <TodayTask href="#calendar" icon={CalendarDays} title="발송 상태 확인" description={`${queuedJobs.length}건의 대기 작업을 일정과 함께 점검합니다.`} status="일정 관리" />
         </div>
 
-        <details className="group mt-5 rounded border border-line bg-white shadow-soft">
+        <details className="group mt-5 rounded-2xl border border-line bg-[#fffefa] shadow-soft">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold text-ink marker:hidden">
             <span className="inline-flex min-w-0 items-center gap-2">
               <Sparkles size={17} className="shrink-0 text-brand" aria-hidden />
@@ -174,7 +183,7 @@ export function KidsmemoDashboard() {
             initialOrganizationId={liveContext?.organization.id}
           />
 
-          <aside className="rounded border border-line bg-white p-4 shadow-soft">
+          <aside className="rounded-xl border border-line bg-[#fffefa] p-4 shadow-soft">
             <h3 className="text-lg font-semibold text-ink">내일 발송 점검</h3>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <Metric label="내일 행사" value={`${health.tomorrowEvents}건`} />
@@ -284,7 +293,7 @@ function TodayTask({
   return (
     <a
       href={href}
-      className="group flex min-h-32 flex-col justify-between rounded border border-line bg-white p-4 transition hover:border-brand hover:bg-surface"
+      className="group flex min-h-32 flex-col justify-between rounded-xl border border-line bg-[#fffefa] p-4 transition hover:border-brand hover:bg-brand/5"
     >
       <div className="min-w-0">
         <div className="flex items-center gap-3">

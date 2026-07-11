@@ -4,8 +4,8 @@
 
 :root {
   --font-pretendard: "Pretendard Variable", "Pretendard";
-  --background: #f7f9fb;
-  --foreground: #172033;
+  --background: #f6f7f2;
+  --foreground: #27332d;
 }
 
 @font-face {
@@ -39,6 +39,12 @@ body {
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   text-size-adjust: 100%;
+}
+
+.photo-paper {
+  background-color: #fffefa;
+  background-image: linear-gradient(to bottom, transparent 31px, rgba(219, 227, 220, 0.38) 32px);
+  background-size: 100% 32px;
 }
 
 @supports not (overflow: clip) {

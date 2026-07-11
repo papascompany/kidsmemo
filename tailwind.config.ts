@@ -8,16 +8,16 @@ const config: Config = {
         sans: ["var(--font-pretendard)", "Pretendard Variable", "Pretendard", "system-ui", "sans-serif"]
       },
       colors: {
-        ink: "#172033",
-        muted: "#586476",
-        line: "#dfe4ea",
-        surface: "#f7f9fb",
-        brand: "#1f8f7a",
-        coral: "#df6f5b",
-        gold: "#d39b25"
+        ink: "#27332d",
+        muted: "#65736c",
+        line: "#dbe3dc",
+        surface: "#f6f7f2",
+        brand: "#4e8a70",
+        coral: "#d97968",
+        gold: "#c99538"
       },
       boxShadow: {
-        soft: "0 12px 30px rgba(23, 32, 51, 0.08)"
+        soft: "0 14px 32px rgba(52, 71, 61, 0.10)"
       }
     }
   },

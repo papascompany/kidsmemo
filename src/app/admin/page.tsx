@@ -69,6 +69,19 @@ const defaultContentForm = {
   status: "draft"
 };
 
+const defaultLandingSettings = {
+  heroId: "",
+  appearanceId: "",
+  title: "행사는 놓치지 않고, 안내문은 더 따뜻하게.",
+  body: "키즈메모는 원장님이 행사 일정을 정리하고, 학부모님께 보낼 안내문 초안을 바로 준비할 수 있도록 돕습니다.",
+  imageUrl: "",
+  ctaLabel: "내 기관 시작하기",
+  ctaUrl: "/signup",
+  titleStyle: "soft",
+  titleSize: "large",
+  overlayTone: "dark"
+};
+
 const defaultMediaForm = {
   scope: "landing",
   organizationId: "",
@@ -139,6 +152,7 @@ export default function AdminPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [inviteState, setInviteState] = useState<SaveState>("idle");
   const [contentForm, setContentForm] = useState(defaultContentForm);
+  const [landingSettings, setLandingSettings] = useState(defaultLandingSettings);
   const [mediaForm, setMediaForm] = useState(defaultMediaForm);
   const [giftForm, setGiftForm] = useState(defaultGiftForm);
   const [staffCouponForm, setStaffCouponForm] = useState(defaultStaffCouponForm);
@@ -166,6 +180,7 @@ export default function AdminPage() {
 
     const data = unwrapData<AdminOperationsPayload>(await response.json());
     setPayload(data);
+    setLandingSettings(toLandingSettings(data.contentBlocks));
     setLoadState("ready");
     setMessage("운영 콘솔이 live 관리자 세션으로 연결되었습니다.");
     await loadInvites();
@@ -190,6 +205,56 @@ export default function AdminPage() {
 
     setSaveState("saved");
     setMessage("운영 설정이 저장되었습니다.");
+    await loadOperations();
+  }
+
+  async function saveLandingSettings() {
+    setSaveState("saving");
+    const appearancePayload = {
+      id: landingSettings.appearanceId || undefined,
+      scope: "landing",
+      organizationId: null,
+      slot: "landing-appearance",
+      title: landingSettings.titleStyle,
+      body: JSON.stringify({ titleSize: landingSettings.titleSize, overlayTone: landingSettings.overlayTone }),
+      imageUrl: "",
+      ctaLabel: "",
+      ctaUrl: "",
+      sortOrder: 1,
+      status: "published"
+    };
+    const heroPayload = {
+      id: landingSettings.heroId || undefined,
+      scope: "landing",
+      organizationId: null,
+      slot: "hero",
+      title: landingSettings.title,
+      body: landingSettings.body,
+      imageUrl: landingSettings.imageUrl,
+      ctaLabel: landingSettings.ctaLabel,
+      ctaUrl: landingSettings.ctaUrl,
+      sortOrder: 0,
+      status: "published"
+    };
+
+    const responses = await Promise.all(
+      [heroPayload, appearancePayload].map((payload) =>
+        authenticatedFetch("/api/admin/operations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resource: "contentBlocks", payload })
+        })
+      )
+    );
+
+    if (responses.some((response) => !response.ok)) {
+      setSaveState("error");
+      setMessage("랜딩 설정 저장에 실패했습니다. 관리자 권한과 입력값을 확인해 주세요.");
+      return;
+    }
+
+    setSaveState("saved");
+    setMessage("랜딩 사진, 문구, 타이포그래피 설정을 게시했습니다.");
     await loadOperations();
   }
 
@@ -315,6 +380,9 @@ export default function AdminPage() {
                       form={contentForm}
                       onChange={setContentForm}
                       onSave={() => saveResource("contentBlocks", contentForm)}
+                      landingSettings={landingSettings}
+                      onLandingSettingsChange={setLandingSettings}
+                      onLandingSave={() => void saveLandingSettings()}
                       saveState={saveState}
                     />
                   ) : null}
@@ -379,23 +447,36 @@ function ContentPanel({
   form,
   onChange,
   onSave,
+  landingSettings,
+  onLandingSettingsChange,
+  onLandingSave,
   saveState
 }: {
   blocks: AdminContentBlock[];
   form: typeof defaultContentForm;
   onChange: (form: typeof defaultContentForm) => void;
   onSave: () => void;
+  landingSettings: typeof defaultLandingSettings;
+  onLandingSettingsChange: (settings: typeof defaultLandingSettings) => void;
+  onLandingSave: () => void;
   saveState: SaveState;
 }) {
   return (
-    <EditorLayout
-      title="사이트/기관 콘텐츠 관리"
-      description="랜딩 히어로, 기능 카드, 기관별 소개 문구와 이미지 슬롯을 운영자가 관리합니다."
-      onSave={onSave}
-      saveState={saveState}
-      list={<ContentList blocks={blocks} />}
-    >
-      <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-5">
+      <LandingSettingsPanel
+        settings={landingSettings}
+        onChange={onLandingSettingsChange}
+        onSave={onLandingSave}
+        saveState={saveState}
+      />
+      <EditorLayout
+        title="기타 사이트/기관 콘텐츠"
+        description="랜딩의 기능 카드, 기관별 소개 문구 등 추가 콘텐츠 슬롯을 관리합니다."
+        onSave={onSave}
+        saveState={saveState}
+        list={<ContentList blocks={blocks} />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
         <SelectField
           label="범위"
           value={form.scope}
@@ -415,9 +496,52 @@ function ContentPanel({
         <Field label="이미지 URL" value={form.imageUrl} onChange={(imageUrl) => onChange({ ...form, imageUrl })} placeholder="https://..." />
         <Field label="CTA 라벨" value={form.ctaLabel} onChange={(ctaLabel) => onChange({ ...form, ctaLabel })} placeholder="간편가입 시작하기" />
         <Field label="CTA URL" value={form.ctaUrl} onChange={(ctaUrl) => onChange({ ...form, ctaUrl })} placeholder="/signup" />
+        </div>
+        <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="콘텐츠 본문" />
+      </EditorLayout>
+    </div>
+  );
+}
+
+function LandingSettingsPanel({
+  settings,
+  onChange,
+  onSave,
+  saveState
+}: {
+  settings: typeof defaultLandingSettings;
+  onChange: (settings: typeof defaultLandingSettings) => void;
+  onSave: () => void;
+  saveState: SaveState;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-line bg-[#fffefa] shadow-soft">
+      <div className="relative min-h-44 overflow-hidden bg-ink p-5 text-white sm:p-6">
+        {settings.imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-35" style={{ backgroundImage: `url(${settings.imageUrl})` }} /> : null}
+        <div className="relative max-w-2xl">
+          <p className="text-sm font-semibold text-white/82">랜딩 첫 화면 설정</p>
+          <h2 className="mt-1 text-2xl font-semibold">사진, 문구, 타이포그래피를 한 번에 편집합니다.</h2>
+          <p className="mt-2 text-sm leading-6 text-white/84">이미지 탭에서 업로드한 사진의 URL을 붙여 넣고 게시하면 즉시 랜딩 히어로에 반영됩니다.</p>
+        </div>
       </div>
-      <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="콘텐츠 본문" />
-    </EditorLayout>
+      <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_280px] sm:p-6">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Field label="메인 제목" value={settings.title} onChange={(title) => onChange({ ...settings, title })} placeholder="랜딩 메인 제목" />
+          <Field label="대표 사진 URL" value={settings.imageUrl} onChange={(imageUrl) => onChange({ ...settings, imageUrl })} placeholder="이미지 탭에서 업로드한 URL" />
+          <Field label="버튼 문구" value={settings.ctaLabel} onChange={(ctaLabel) => onChange({ ...settings, ctaLabel })} placeholder="내 기관 시작하기" />
+          <Field label="버튼 링크" value={settings.ctaUrl} onChange={(ctaUrl) => onChange({ ...settings, ctaUrl })} placeholder="/signup" />
+          <SelectField label="제목 스타일" value={settings.titleStyle} onChange={(titleStyle) => onChange({ ...settings, titleStyle })} options={["soft", "clear", "editorial"]} />
+          <SelectField label="제목 크기" value={settings.titleSize} onChange={(titleSize) => onChange({ ...settings, titleSize })} options={["standard", "large"]} />
+          <SelectField label="사진 위 글자 대비" value={settings.overlayTone} onChange={(overlayTone) => onChange({ ...settings, overlayTone })} options={["dark", "calm", "strong"]} />
+          <div className="flex items-end"><button type="button" onClick={onSave} disabled={saveState === "saving"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"><Save size={17} aria-hidden />{saveState === "saving" ? "게시 중" : "랜딩 설정 게시"}</button></div>
+          <div className="md:col-span-2"><TextArea label="소개 문구" value={settings.body} onChange={(body) => onChange({ ...settings, body })} placeholder="메인 제목 아래에 보일 소개 문구" /></div>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="h-36 bg-ink bg-cover bg-center" style={settings.imageUrl ? { backgroundImage: `url(${settings.imageUrl})` } : undefined} />
+          <div className="p-4"><p className="text-xs font-semibold text-brand">미리보기</p><p className="mt-2 font-semibold text-ink">{settings.title || "메인 제목"}</p><p className="mt-2 text-sm leading-6 text-muted">{settings.body || "소개 문구가 이 위치에 표시됩니다."}</p><span className="mt-3 inline-flex rounded-full bg-brand px-3 py-2 text-xs font-semibold text-white">{settings.ctaLabel || "버튼 문구"}</span></div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1432,6 +1556,37 @@ function normalizePayload(payload: Record<string, unknown>) {
       nullableKeys.has(key) && value === "" ? null : value
     ])
   );
+}
+
+function toLandingSettings(blocks: AdminContentBlock[]): typeof defaultLandingSettings {
+  const hero = blocks.find((block) => block.scope === "landing" && block.slot === "hero");
+  const appearance = blocks.find((block) => block.scope === "landing" && block.slot === "landing-appearance");
+  const parsedAppearance = parseLandingAppearance(appearance?.body);
+
+  return {
+    heroId: hero?.id ?? "",
+    appearanceId: appearance?.id ?? "",
+    title: hero?.title || defaultLandingSettings.title,
+    body: hero?.body || defaultLandingSettings.body,
+    imageUrl: hero?.imageUrl || "",
+    ctaLabel: hero?.ctaLabel || defaultLandingSettings.ctaLabel,
+    ctaUrl: hero?.ctaUrl || defaultLandingSettings.ctaUrl,
+    titleStyle: appearance?.title || defaultLandingSettings.titleStyle,
+    titleSize: parsedAppearance.titleSize,
+    overlayTone: parsedAppearance.overlayTone
+  };
+}
+
+function parseLandingAppearance(value?: string) {
+  try {
+    const parsed = JSON.parse(value ?? "{}") as { titleSize?: string; overlayTone?: string };
+    return {
+      titleSize: parsed.titleSize === "standard" ? "standard" : "large",
+      overlayTone: ["dark", "calm", "strong"].includes(parsed.overlayTone ?? "") ? parsed.overlayTone! : "dark"
+    };
+  } catch {
+    return { titleSize: "large", overlayTone: "dark" };
+  }
 }
 
 function serializeInviteForm(form: typeof defaultInviteForm) {

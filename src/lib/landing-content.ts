@@ -32,6 +32,28 @@ export function findLandingBlock(blocks: AdminContentBlock[], slot: string) {
   return blocks.find((block) => block.slot === slot);
 }
 
+export type LandingAppearance = {
+  titleStyle: "soft" | "clear" | "editorial";
+  titleSize: "standard" | "large";
+  overlayTone: "dark" | "calm" | "strong";
+};
+
+export function getLandingAppearance(blocks: AdminContentBlock[]): LandingAppearance {
+  const appearance = findLandingBlock(blocks, "landing-appearance");
+  const titleStyle = appearance?.title === "clear" || appearance?.title === "editorial" ? appearance.title : "soft";
+
+  try {
+    const parsed = JSON.parse(appearance?.body || "{}") as Partial<LandingAppearance>;
+    return {
+      titleStyle,
+      titleSize: parsed.titleSize === "standard" ? "standard" : "large",
+      overlayTone: parsed.overlayTone === "calm" || parsed.overlayTone === "strong" ? parsed.overlayTone : "dark"
+    };
+  } catch {
+    return { titleStyle, titleSize: "large", overlayTone: "dark" };
+  }
+}
+
 function mapContentBlock(row: Row): AdminContentBlock {
   return {
     id: asString(row.id),

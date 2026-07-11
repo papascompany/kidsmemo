@@ -17,9 +17,9 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen overflow-x-hidden bg-surface">
-      <aside className="no-print fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-white px-5 py-6 lg:block">
+      <aside className="no-print fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-[#fffefa] px-5 py-6 lg:block">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded bg-brand text-white">
+          <div className="grid h-10 w-10 place-items-center rounded-full border-4 border-brand/15 bg-brand text-white">
             <ShieldCheck size={22} aria-hidden />
           </div>
           <div>
@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="mt-8 grid gap-1">
+        <nav className="mt-8 grid gap-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
 
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 rounded px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-surface hover:text-ink"
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-brand/10 hover:text-ink"
               >
                 <Icon size={18} aria-hidden />
                 {item.label}
@@ -45,13 +45,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="absolute bottom-6 left-5 right-5 rounded border border-line bg-surface p-4 text-sm text-muted">
-          <p className="font-semibold text-ink">빠른 흐름</p>
-          <p className="mt-1">행사 확인 → 쿠폰 저장 → 문구 생성</p>
+        <div className="absolute bottom-6 left-5 right-5 rounded-xl border border-line bg-brand/5 p-4 text-sm text-muted">
+          <p className="font-semibold text-ink">오늘의 작은 흐름</p>
+          <p className="mt-1">사진 고르기 → 행사 정리 → 안내 전하기</p>
         </div>
       </aside>
 
-      <header className="no-print sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur lg:hidden">
+      <header className="no-print sticky top-0 z-20 border-b border-line bg-[#fffefa]/95 backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div>
             <p className="text-xs font-semibold text-brand">점보키즈 연동</p>

@@ -30,6 +30,8 @@ const toneOptions: Array<{ value: ParentMessageRequest["tone"]; label: string }>
 const budgetOptions = ["낮은 예산", "중간 예산", "넉넉한 예산"];
 const seasonOptions = ["봄", "여름", "가을", "겨울", "실내 계절 무관"];
 const moodOptions = ["밝고 활기찬", "차분하고 따뜻한", "감동적인", "놀이 중심", "학부모 참여형"];
+const aiCoverImage =
+  "https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=1400&q=85";
 
 const sampleAssistantResult: EventAssistantResult = {
   ideas: [
@@ -224,12 +226,12 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
   return (
     <div className="grid gap-4">
-      <div className="no-print grid grid-cols-2 gap-2 rounded border border-line bg-white p-2 shadow-soft">
+      <div className="no-print grid grid-cols-2 gap-2 rounded-2xl border border-line bg-[#fffefa] p-2 shadow-soft">
         <button
           type="button"
           onClick={() => setActiveTool("assistant")}
           className={`inline-flex min-h-11 items-center justify-center gap-2 rounded px-3 text-sm font-semibold transition ${
-            activeTool === "assistant" ? "bg-brand text-white" : "bg-surface text-muted"
+            activeTool === "assistant" ? "rounded-xl bg-brand text-white" : "rounded-xl bg-surface text-muted"
           }`}
         >
           <Bot size={17} aria-hidden />
@@ -239,7 +241,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
           type="button"
           onClick={() => setActiveTool("message")}
           className={`inline-flex min-h-11 items-center justify-center gap-2 rounded px-3 text-sm font-semibold transition ${
-            activeTool === "message" ? "bg-coral text-white" : "bg-surface text-muted"
+            activeTool === "message" ? "rounded-xl bg-coral text-white" : "rounded-xl bg-surface text-muted"
           }`}
         >
           <Sparkles size={17} aria-hidden />
@@ -247,7 +249,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
         </button>
       </div>
 
-      <section className="no-print rounded border border-line bg-white p-4 shadow-soft">
+      <section className="no-print rounded-2xl border border-line bg-[#fffefa] p-4 shadow-soft">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <h3 className="flex items-center gap-2 text-base font-semibold text-ink">
@@ -301,28 +303,31 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
       <div
         id="event-assistant-panel"
-        className={`${activeTool === "assistant" ? "block" : "hidden"} rounded border border-line bg-white p-4 shadow-soft`}
+        className={`${activeTool === "assistant" ? "block" : "hidden"} overflow-hidden rounded-2xl border border-line bg-[#fffefa] shadow-soft`}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="relative overflow-hidden bg-ink p-4 text-white">
+          <div className="absolute inset-0 bg-cover bg-center opacity-35" style={{ backgroundImage: `url(${aiCoverImage})` }} />
+          <div className="relative flex items-start justify-between gap-3">
           <div>
-            <h3 className="flex items-center gap-2 text-lg font-semibold text-ink">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
               <Bot size={20} aria-hidden />
               AI 행사 도우미
             </h3>
-            <p className="mt-2 text-sm leading-6 text-muted">행사명만 입력하면 바로 초안을 만듭니다.</p>
+            <p className="mt-2 text-sm leading-6 text-white/84">행사명만 입력하면 사진 같은 하루를 위한 초안을 만듭니다.</p>
           </div>
           <button
             type="button"
             onClick={() => window.print()}
-            className="no-print grid min-h-11 min-w-11 place-items-center rounded border border-line text-muted hover:text-ink"
+            className="no-print grid min-h-11 min-w-11 place-items-center rounded-full border border-white/35 bg-white/10 text-white hover:bg-white/20"
             aria-label="행사 계획서 인쇄"
             title="행사 계획서 인쇄"
           >
             <Printer size={18} />
           </button>
+          </div>
         </div>
 
-        <div className="no-print mt-4 grid gap-3">
+        <div className="no-print grid gap-3 p-4">
           <Field label="행사명" htmlFor="ai-event-name" required>
             <input
               id="ai-event-name"
@@ -426,12 +431,12 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
           </button>
         </div>
         {assistantStatus ? (
-          <p className="no-print mt-3 rounded border border-line bg-white px-3 py-2 text-sm text-muted">
+          <p className="no-print mx-4 rounded border border-line bg-white px-3 py-2 text-sm text-muted">
             {assistantStatus}
           </p>
         ) : null}
 
-        <div className="print-page mt-4 rounded border border-line bg-surface p-4">
+        <div className="print-page m-4 rounded-xl border border-line bg-surface p-4">
           <h4 className="text-base font-semibold text-ink">{assistantForm.eventName} 계획서</h4>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <ResultList title="아이디어" items={assistantResult.ideas} />
@@ -470,7 +475,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
       <div
         id="message-writer"
-        className={`${activeTool === "message" ? "block" : "hidden"} rounded border border-line bg-white p-4 shadow-soft`}
+        className={`${activeTool === "message" ? "block" : "hidden"} rounded-2xl border border-line bg-[#fffefa] p-4 shadow-soft`}
       >
         <div>
           <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarPlus, ChevronDown, ChevronUp, Pencil, Plus, Save, Sparkles, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronDown, ChevronUp, Image as ImageIcon, Pencil, Plus, Save, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "./badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
@@ -209,28 +209,34 @@ export function EventManager({
   }
 
   return (
-    <div className="rounded border border-line bg-white shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line p-4 sm:p-5">
-        <div>
-          <p className="text-sm font-semibold text-brand">행사 플래너</p>
-          <h3 className="mt-1 text-xl font-semibold tracking-normal text-ink">다가오는 행사를 준비하세요.</h3>
-          <p className="mt-2 text-sm leading-6 text-muted">일정을 등록하고, 필요한 행사만 AI 기획으로 이어갑니다.</p>
+    <div className="overflow-hidden rounded-2xl border border-line bg-[#fffefa] shadow-soft">
+      <div className="relative overflow-hidden border-b border-line bg-ink p-4 sm:p-5">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-45"
+          style={{ backgroundImage: "url(https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1400&q=85)" }}
+        />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div className="text-white">
+          <p className="text-sm font-semibold text-white/80">우리 반의 다음 이야기</p>
+          <h3 className="mt-1 text-xl font-semibold tracking-normal">사진처럼 기억될 행사를 준비하세요.</h3>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-white/84">행사명과 날짜부터 적고, 나머지는 필요할 때 차분히 덧붙입니다.</p>
         </div>
         <button
           type="button"
           onClick={startCreate}
-          className="inline-flex min-h-11 items-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink"
         >
           <Plus size={18} aria-hidden />
           새 행사 등록
         </button>
+        </div>
       </div>
 
       {status ? <p className="mx-4 mt-4 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted sm:mx-5">{status}</p> : null}
 
       <div className="divide-y divide-line">
         {sortedEvents.map((event) => (
-          <article key={event.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+          <article key={event.id} className="flex flex-col gap-4 p-4 transition hover:bg-brand/[0.035] sm:flex-row sm:items-center sm:p-5">
             <EventDate eventDate={event.eventDate} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -245,7 +251,7 @@ export function EventManager({
             <div className="flex shrink-0 items-center gap-2">
               <a
                 href="#ai-helper"
-                className="inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold text-brand transition hover:border-brand hover:bg-surface"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-white px-3 text-sm font-semibold text-brand transition hover:border-brand hover:bg-brand/5"
               >
                 <Sparkles size={17} aria-hidden />
                 AI 기획
@@ -253,7 +259,7 @@ export function EventManager({
               <button
                 type="button"
                 onClick={() => startEdit(event)}
-                className="grid min-h-11 min-w-11 place-items-center rounded border border-line bg-white text-muted transition hover:border-brand hover:text-brand"
+                className="grid min-h-11 min-w-11 place-items-center rounded-full border border-line bg-white text-muted transition hover:border-brand hover:text-brand"
                 aria-label={`${event.title} 수정`}
                 title="행사 수정"
               >
@@ -274,10 +280,10 @@ export function EventManager({
 
       {isComposerOpen ? (
         <div className="fixed inset-0 z-50 flex items-end bg-ink/45 p-0 sm:items-center sm:justify-center sm:p-6" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="event-composer-title" className="max-h-[92svh] w-full overflow-y-auto rounded-t bg-white shadow-soft sm:max-w-xl sm:rounded">
+          <section role="dialog" aria-modal="true" aria-labelledby="event-composer-title" className="max-h-[92svh] w-full overflow-y-auto rounded-t bg-[#fffefa] shadow-soft sm:max-w-xl sm:rounded-2xl">
             <div className="flex items-start justify-between gap-4 border-b border-line p-5">
               <div>
-                <p className="text-sm font-semibold text-brand">{editingId ? "행사 수정" : "새 행사"}</p>
+                <p className="text-sm font-semibold text-brand">{editingId ? "행사 기록 다듬기" : "새로운 행사 기록"}</p>
                 <h3 id="event-composer-title" className="mt-1 text-xl font-semibold text-ink">
                   {editingId ? "행사 내용을 다듬어 주세요." : "행사명과 날짜부터 적어 주세요."}
                 </h3>
@@ -288,6 +294,12 @@ export function EventManager({
             </div>
 
             <div className="grid gap-4 p-5">
+              {!editingId ? (
+                <div className="flex items-center gap-3 rounded-xl border border-line bg-brand/5 p-3 text-sm text-muted">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-brand"><ImageIcon size={18} aria-hidden /></span>
+                  <span>행사 등록 뒤 대표 사진을 더하면, 우리 기관의 행사 앨범과 안내문에 함께 활용할 수 있어요.</span>
+                </div>
+              ) : null}
               <Field label="행사명" htmlFor="event-title" required>
                 <input id="event-title" value={form.title} onChange={(event) => updateField("title", event.target.value)} placeholder="예: 가족 운동회" className="w-full rounded border border-line px-3 py-2.5 text-sm outline-none focus:border-brand" autoFocus />
               </Field>
