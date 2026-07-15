@@ -26,14 +26,6 @@ async function main() {
 
   const runId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const qaPrefix = `QA-ADMIN-OPERATIONS-LIVE-SMOKE-${runId}`;
-  const scope = {
-    organizationId: "",
-    attendanceDate: futureDate(14),
-    className: `${qaPrefix}-CLASS`
-  };
-  const childName = `${qaPrefix}-CHILD`;
-  const note = `${qaPrefix} attendance note`;
-
   console.log(`[START] admin operations live smoke (${runId})`);
 
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
@@ -52,20 +44,13 @@ async function main() {
   const accessToken = authData.session?.access_token;
   if (!accessToken) throw new Error("admin login did not return an access token");
 
-  let cleanupCompleted = false;
-
   try {
     await assertAnonymous401("/api/admin/organizations?limit=1");
     console.log("[PASS] anonymous organization lookup is rejected");
 
-    await assertAnonymous401(attendanceUrl({ ...scope, organizationId: randomUUID() }));
-    console.log("[PASS] anonymous attendance lookup is rejected");
-
     const organizations = await listOrganizations(accessToken);
     assert(Array.isArray(organizations), "organizations response must include an array");
     assert(organizations.length > 0, "admin organizations lookup returned no organizations");
-    scope.organizationId = config.organizationId || organizations[0].id;
-    assert(scope.organizationId, "selected organization did not include an id");
     console.log(`[PASS] admin listed organizations (${organizations.length})`);
 
     if (config.organizationId) {
@@ -77,67 +62,6 @@ async function main() {
       console.log("[PASS] configured organization is visible to admin");
     }
 
-    const initialRoster = await getAttendance(accessToken, scope);
-    assertAttendanceRoster(initialRoster, scope);
-    assert(initialRoster.isClosed === false, "fresh QA attendance scope should start open");
-    console.log("[PASS] admin attendance GET returned the QA scope");
-
-    await setAttendanceStatus(accessToken, { ...scope, action: "reopen" }, false);
-    console.log("[PASS] admin reopened attendance scope");
-
-    const saved = await putAttendance(accessToken, {
-      ...scope,
-      records: [
-        {
-          childName,
-          status: "late",
-          note
-        }
-      ]
-    });
-    assert(saved.saved === true, "attendance PUT did not report saved=true");
-    assert(saved.count === 1, "attendance PUT did not report one saved record");
-    console.log("[PASS] admin attendance PUT saved a QA record");
-
-    const afterPut = await getAttendance(accessToken, scope);
-    assertRosterRecord(afterPut, childName, "late", note);
-    console.log("[PASS] admin attendance GET returned the saved QA record");
-
-    const closed = await setAttendanceStatus(accessToken, { ...scope, action: "close" }, true);
-    assert(closed.isClosed === true, "attendance close did not set isClosed=true");
-    console.log("[PASS] admin closed attendance scope");
-
-    const blockedWrite = await requestJson("/api/admin/attendance", {
-      method: "PUT",
-      accessToken,
-      body: {
-        ...scope,
-        records: [
-          {
-            childName,
-            status: "present",
-            note: `${qaPrefix} should be blocked while closed`
-          }
-        ]
-      },
-      expectedStatuses: [409]
-    });
-    assert(
-      blockedWrite.error?.code === "attendance_closed",
-      `closed attendance PUT returned unexpected error code: ${blockedWrite.error?.code ?? "missing"}`
-    );
-    console.log("[PASS] closed attendance scope rejects PUT");
-
-    const reopened = await setAttendanceStatus(accessToken, { ...scope, action: "reopen" }, false);
-    assert(reopened.isClosed === false, "attendance reopen did not set isClosed=false");
-    console.log("[PASS] admin reopened attendance scope after close");
-
-    if (!config.keepRecord) {
-      await cleanupQaRecords(supabase, scope, childName);
-      cleanupCompleted = true;
-      console.log("[PASS] cleaned up QA attendance records");
-    }
-
     console.log(
       JSON.stringify(
         {
@@ -146,30 +70,14 @@ async function main() {
           checks: [
             "admin_login",
             "anonymous_401",
-            "admin_organizations_get",
-            "attendance_get",
-            "attendance_put",
-            "attendance_close",
-            "attendance_closed_write_rejected",
-            "attendance_reopen"
+            "admin_organizations_get"
           ],
-          organizationId: scope.organizationId,
-          attendanceDate: scope.attendanceDate,
-          className: scope.className,
-          cleanup: config.keepRecord ? "kept_by_request" : "deleted"
         },
         null,
         2
       )
     );
   } finally {
-    if (!config.keepRecord && scope.organizationId && !cleanupCompleted) {
-      try {
-        await cleanupQaRecords(supabase, scope, childName);
-      } catch (error) {
-        console.error(`[WARN] cleanup may be incomplete: ${redact(errorMessage(error))}`);
-      }
-    }
     await supabase.auth.signOut();
   }
 }
@@ -178,31 +86,6 @@ async function listOrganizations(accessToken, organizationId) {
   const query = organizationId ? `id=${encodeURIComponent(organizationId)}&limit=1` : "limit=20";
   const response = await requestJson(`/api/admin/organizations?${query}`, { accessToken });
   return response.data?.organizations;
-}
-
-async function getAttendance(accessToken, scope) {
-  const response = await requestJson(attendanceUrl(scope), { accessToken });
-  return response.data;
-}
-
-async function putAttendance(accessToken, body) {
-  const response = await requestJson("/api/admin/attendance", {
-    method: "PUT",
-    accessToken,
-    body
-  });
-  return response.data;
-}
-
-async function setAttendanceStatus(accessToken, body, expectedClosed) {
-  const response = await requestJson("/api/admin/attendance/status", {
-    method: "PATCH",
-    accessToken,
-    body
-  });
-  assert(response.data?.updated === true, `attendance ${body.action} did not report updated=true`);
-  assert(response.data?.isClosed === expectedClosed, `attendance ${body.action} returned the wrong closure state`);
-  return response.data;
 }
 
 async function assertAnonymous401(path) {
@@ -264,48 +147,6 @@ async function parseJson(response, path) {
   } catch {
     throw new Error(`${path} returned invalid JSON (${response.status})`);
   }
-}
-
-async function cleanupQaRecords(supabase, scope, childName) {
-  const records = await supabase
-    .from("attendance_records")
-    .delete()
-    .eq("organization_id", scope.organizationId)
-    .eq("attendance_date", scope.attendanceDate)
-    .eq("class_name", scope.className)
-    .eq("child_name", childName);
-  if (records.error) throw new Error(`attendance_records cleanup failed: ${records.error.message}`);
-
-  const closures = await supabase
-    .from("attendance_closures")
-    .delete()
-    .eq("organization_id", scope.organizationId)
-    .eq("attendance_date", scope.attendanceDate)
-    .eq("class_name", scope.className);
-  if (closures.error) throw new Error(`attendance_closures cleanup failed: ${closures.error.message}`);
-}
-
-function attendanceUrl(scope) {
-  const query = new URLSearchParams({
-    organizationId: scope.organizationId,
-    attendanceDate: scope.attendanceDate,
-    className: scope.className
-  });
-  return `/api/admin/attendance?${query.toString()}`;
-}
-
-function assertAttendanceRoster(roster, scope) {
-  assert(roster?.organizationId === scope.organizationId, "attendance roster organization did not match");
-  assert(roster?.attendanceDate === scope.attendanceDate, "attendance roster date did not match");
-  assert(roster?.className === scope.className, "attendance roster class did not match");
-  assert(Array.isArray(roster?.roster), "attendance roster must include a roster array");
-}
-
-function assertRosterRecord(roster, childName, status, note) {
-  const record = roster?.roster?.find((item) => item?.childName === childName);
-  assert(record, "saved QA attendance record was not returned by GET");
-  assert(record.status === status, `saved QA attendance status was ${record.status}, expected ${status}`);
-  assert(record.note === note, "saved QA attendance note did not match");
 }
 
 function validateConfig() {

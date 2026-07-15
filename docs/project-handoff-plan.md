@@ -311,10 +311,7 @@ UX 원칙:
 
 - 기관별 `content_blocks`와 `media_assets`의 published 데이터를 `/api/session/context`에서 기관 멤버십 범위로 조회하도록 연결했다.
 - `/app` 기관 워크스페이스의 히어로, 기관 프로필, AI, 쿠폰 영역이 관리자 CMS 슬롯과 기관 미디어를 소비한다.
-- 교사·원장·관리자용 `/api/attendance`와 `/app` 오늘의 출석 빠른 입력 UI를 추가했다. 기관 범위와 RLS를 적용하고 출석 마감은 관리자 API에 유지했다.
-- `20260715090000_staff_attendance_write.sql`은 적용되었고 owner staff bearer 기준 출석 저장·조회 및 RLS live smoke를 통과했다. 확인된 teacher 역할 계정과 타 기관 계정이 확보되면 teacher 전용 경로를 추가 검증한다.
 - 운영 `/app`의 320/390/768/1440 폭에서 수평 overflow가 없음을 확인했다.
-- 직원 연차·휴가 기반과 관리자 연차 탭을 추가했다. 공식 기준과 입력 제한은 `docs/annual-leave-policy.md`에 고정했으며, `20260715160000_staff_leave_foundation.sql`의 Supabase 적용과 실제 admin 저장 smoke가 다음 게이트다.
 
 완료된 핵심 작업:
 
@@ -323,7 +320,7 @@ UX 원칙:
 - live session guard, membership guard, user-scoped Supabase repositories, service-role 전용 작업 분리가 들어가 있다.
 - `/`는 단순한 공개 랜딩, `/app`는 운영 데모/워크스페이스, `/admin`은 platform admin 운영 콘솔로 분리되어 있다.
 - staff coupon 흐름은 `/app` 점보키즈 쿠폰함에서 API 조회/다운로드까지 연결되어 있고, `npm run test:staff-coupon-e2e`로 검증한다.
-- admin operations는 content/media/attendance/gift code/staff coupon/push/audit 영역과 smoke scripts가 있다.
+- admin operations는 content/media/gift code/staff coupon/push/audit 영역과 smoke scripts가 있다.
 - invite/onboarding은 기관 생성, 초대 코드 생성, teacher join 흐름과 `npm run smoke:onboarding-invite-live`가 있다.
 - Kakao/Google/email auth entry와 `/auth/callback` 라우팅이 구현되어 membership이 있으면 `/app`, 없으면 `/onboarding`으로 보낸다.
 - push delivery는 mock provider 기준으로 발송 요청, delivery log 조회, `failureReason`, `retryCount`, `nextRetryAt` 기록을 지원한다.

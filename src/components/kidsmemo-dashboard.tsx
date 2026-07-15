@@ -10,12 +10,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AiWorkbench } from "@/components/ai-workbench";
-import { AttendanceQuickCheck } from "@/components/attendance-quick-check";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge";
 import { EventManager } from "@/components/event-manager";
 import { JumbokidsCouponWallet } from "@/components/jumbokids-coupon-wallet";
-import { LeaveRequestPanel } from "@/components/leave-request-panel";
 import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
 import { authenticatedFetch } from "@/lib/auth-fetch";
@@ -156,19 +154,6 @@ export function KidsmemoDashboard() {
           <TodayTask href="#ai-helper" icon={ClipboardCheck} title="안내 문구 준비" description="행사 안내 초안을 만들고 저장합니다." status="AI 도움" />
           <TodayTask href="#calendar" icon={CalendarDays} title="발송 상태 확인" description={`${queuedJobs.length}건의 대기 작업을 일정과 함께 점검합니다.`} status="일정 관리" />
         </div>
-
-        <div className="mt-5">
-          <AttendanceQuickCheck context={liveContext} />
-        </div>
-
-        {liveContext ? (
-          <div className="mt-5">
-            <LeaveRequestPanel
-              organizationId={liveContext.organization.id}
-              userRole={liveContext.director?.role ?? "teacher"}
-            />
-          </div>
-        ) : null}
 
         <details className="group mt-5 rounded-2xl border border-line bg-[#fffefa] shadow-soft">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold text-ink marker:hidden">

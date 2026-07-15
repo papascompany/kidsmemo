@@ -2,7 +2,6 @@ import type { CouponUseSite, Role, StaffCouponAssignee, StaffCouponStatus } from
 
 export type ContentScope = "landing" | "organization";
 export type ContentStatus = "draft" | "published" | "archived";
-export type AttendanceStatus = "present" | "absent" | "late" | "excused";
 export type GiftCodeStatus = "available" | "issued" | "redeemed" | "expired" | "void";
 export type PushCampaignStatus = "draft" | "scheduled" | "sent" | "failed" | "cancelled";
 
@@ -31,16 +30,6 @@ export interface AdminMediaAsset {
   usageSlot: string;
   status: ContentStatus;
   createdAt?: string;
-}
-
-export interface AdminAttendanceRecord {
-  id: string;
-  organizationId: string;
-  attendanceDate: string;
-  className: string;
-  childName: string;
-  status: AttendanceStatus;
-  note: string;
 }
 
 export interface AdminGiftCode {
@@ -91,7 +80,6 @@ export interface AdminAuditLog {
 export interface AdminOperationsPayload {
   contentBlocks: AdminContentBlock[];
   mediaAssets: AdminMediaAsset[];
-  attendanceRecords: AdminAttendanceRecord[];
   giftCodes: AdminGiftCode[];
   staffCoupons: AdminStaffCoupon[];
   pushCampaigns: AdminPushCampaign[];
@@ -115,7 +103,6 @@ export const adminMockOperations: AdminOperationsPayload = {
     }
   ],
   mediaAssets: [],
-  attendanceRecords: [],
   giftCodes: [],
   staffCoupons: [],
   pushCampaigns: [],

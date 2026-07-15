@@ -5,7 +5,6 @@ const REQUEST_TIMEOUT_MS = Number(readEnv("KIDSMEMO_ADMIN_BROWSER_QA_TIMEOUT_MS"
 const ADMIN_TABS = [
   { id: "content", label: "콘텐츠", panelHeading: "사이트/기관 콘텐츠 관리" },
   { id: "media", label: "이미지", panelHeading: "이미지 등록/교체" },
-  { id: "attendance", label: "출석", panelHeading: "출석체크 관리" },
   { id: "gifts", label: "상품권/코드", panelHeading: "교직원 쿠폰함 코드" },
   { id: "push", label: "푸시알림", panelHeading: "푸시알림/운영 메시지" },
   { id: "audit", label: "감사로그", panelHeading: "운영 감사로그" }
@@ -251,7 +250,6 @@ async function assertAdminApiShape(baseUrl, accessToken) {
   const collections = [
     "contentBlocks",
     "mediaAssets",
-    "attendanceRecords",
     "giftCodes",
     "staffCoupons",
     "pushCampaigns",

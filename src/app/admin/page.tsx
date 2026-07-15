@@ -2,8 +2,6 @@
 
 import {
   Bell,
-  CalendarCheck,
-  ClipboardList,
   FileText,
   Gift,
   Image as ImageIcon,
@@ -20,10 +18,8 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdminOrganizationSelect } from "@/components/admin-organization-select";
-import { AdminLeavePanel } from "@/components/admin-leave-panel";
 import { Badge } from "@/components/badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
-import type { AttendanceRoster, AttendanceRosterItem } from "@/lib/attendance-operations";
 import type {
   AdminContentBlock,
   AdminGiftCode,
@@ -35,14 +31,12 @@ import type {
 import type { AdminInvite, AdminInviteRemovalResult } from "@/lib/admin-invites";
 import type { PushDeliveryLog } from "@/lib/push-operations";
 
-type AdminTab = "content" | "media" | "attendance" | "leave" | "invites" | "gifts" | "push" | "audit";
+type AdminTab = "content" | "media" | "invites" | "gifts" | "push" | "audit";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 const tabs: Array<{ id: AdminTab; label: string; icon: typeof FileText }> = [
   { id: "content", label: "콘텐츠", icon: FileText },
   { id: "media", label: "이미지", icon: ImageIcon },
-  { id: "attendance", label: "출석", icon: CalendarCheck },
-  { id: "leave", label: "연차·휴가", icon: ClipboardList },
   { id: "invites", label: "초대", icon: UserPlus },
   { id: "gifts", label: "상품권/코드", icon: Gift },
   { id: "push", label: "푸시알림", icon: Bell },
@@ -52,7 +46,6 @@ const tabs: Array<{ id: AdminTab; label: string; icon: typeof FileText }> = [
 const emptyPayload: AdminOperationsPayload = {
   contentBlocks: [],
   mediaAssets: [],
-  attendanceRecords: [],
   giftCodes: [],
   staffCoupons: [],
   pushCampaigns: [],
@@ -93,15 +86,6 @@ const defaultMediaForm = {
   altText: "",
   usageSlot: "",
   status: "draft"
-};
-
-const defaultAttendanceForm = {
-  organizationId: "",
-  attendanceDate: new Date().toISOString().slice(0, 10),
-  className: "",
-  childName: "",
-  status: "present",
-  note: ""
 };
 
 const defaultGiftForm = {
@@ -322,7 +306,7 @@ export default function AdminPage() {
               </Link>
               <h1 className="mt-2 text-3xl font-semibold tracking-normal">운영 관리자 콘솔</h1>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-muted">
-                랜딩 콘텐츠, 기관별 이미지, 출석, 상품권/쿠폰 코드, 푸시알림을 관리하는
+                랜딩 콘텐츠, 기관별 이미지, 상품권/쿠폰 코드, 푸시알림을 관리하는
                 platform admin 전용 운영 화면입니다.
               </p>
             </div>
@@ -345,7 +329,6 @@ export default function AdminPage() {
             <section className="mt-5 grid gap-3 md:grid-cols-6">
               <Metric label="게시 랜딩" value={`${publishedLandingCount}개`} />
               <Metric label="이미지" value={`${payload.mediaAssets.length}개`} />
-              <Metric label="출석 레코드" value={`${payload.attendanceRecords.length}건`} />
               <Metric label="활성 초대" value={`${invites.filter((invite) => getInviteStatus(invite).status === "active").length}개`} />
               <Metric label="쿠폰함 코드" value={`${payload.staffCoupons.length}개`} />
               <Metric label="푸시 캠페인" value={`${payload.pushCampaigns.length}건`} />
@@ -398,10 +381,6 @@ export default function AdminPage() {
                       saveState={saveState}
                     />
                   ) : null}
-                  {activeTab === "attendance" ? (
-                    <AttendancePanel />
-                  ) : null}
-                  {activeTab === "leave" ? <AdminLeavePanel /> : null}
                   {activeTab === "invites" ? (
                     <InvitePanel
                       invites={invites}
@@ -655,225 +634,6 @@ function MediaPanel({
         ) : null}
       </div>
     </EditorLayout>
-  );
-}
-
-function AttendancePanel() {
-  const [scope, setScope] = useState(defaultAttendanceForm);
-  const [roster, setRoster] = useState<AttendanceRoster | null>(null);
-  const [newChildName, setNewChildName] = useState("");
-  const [actionState, setActionState] = useState<SaveState>("idle");
-  const [statusMessage, setStatusMessage] = useState("기관, 날짜, 반을 선택해 출석부를 조회하세요.");
-
-  const canLoad = Boolean(scope.organizationId && scope.attendanceDate && scope.className.trim());
-
-  async function loadRoster() {
-    if (!canLoad) {
-      setStatusMessage("기관, 날짜, 반을 모두 입력해 주세요.");
-      return;
-    }
-
-    setActionState("saving");
-    const params = new URLSearchParams({
-      organizationId: scope.organizationId,
-      attendanceDate: scope.attendanceDate,
-      className: scope.className.trim()
-    });
-    const response = await authenticatedFetch(`/api/admin/attendance?${params}`);
-    if (!response.ok) {
-      setActionState("error");
-      setStatusMessage("출석부를 불러오지 못했습니다.");
-      return;
-    }
-
-    setRoster(unwrapData<AttendanceRoster>(await response.json()));
-    setActionState("idle");
-    setStatusMessage("출석부를 불러왔습니다.");
-  }
-
-  function updateRosterItem(index: number, patch: Partial<AttendanceRosterItem>) {
-    setRoster((current) =>
-      current
-        ? {
-            ...current,
-            roster: current.roster.map((item, itemIndex) =>
-              itemIndex === index ? { ...item, ...patch } : item
-            )
-          }
-        : current
-    );
-  }
-
-  function addChild() {
-    const childName = newChildName.trim();
-    if (!childName || !roster || roster.roster.some((item) => item.childName === childName)) return;
-    setRoster({
-      ...roster,
-      roster: [
-        ...roster.roster,
-        { id: null, childName, status: "present", note: "", updatedAt: null }
-      ]
-    });
-    setNewChildName("");
-  }
-
-  async function saveRoster() {
-    if (!roster || roster.roster.length === 0) return;
-    setActionState("saving");
-    const response = await authenticatedFetch("/api/admin/attendance", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        organizationId: roster.organizationId,
-        attendanceDate: roster.attendanceDate,
-        className: roster.className,
-        records: roster.roster.map(({ childName, status, note }) => ({ childName, status, note }))
-      })
-    });
-    if (!response.ok) {
-      setActionState("error");
-      setStatusMessage("출석 저장에 실패했습니다. 마감 여부와 입력값을 확인해 주세요.");
-      return;
-    }
-    const data = unwrapData<{ roster: AttendanceRoster }>(await response.json());
-    setRoster(data.roster);
-    setActionState("saved");
-    setStatusMessage(`${data.roster.roster.length}명의 출석을 저장했습니다.`);
-  }
-
-  async function changeClosure(action: "close" | "reopen") {
-    if (!roster) return;
-    setActionState("saving");
-    const response = await authenticatedFetch("/api/admin/attendance/status", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        organizationId: roster.organizationId,
-        attendanceDate: roster.attendanceDate,
-        className: roster.className,
-        action
-      })
-    });
-    if (!response.ok) {
-      setActionState("error");
-      setStatusMessage("출석부 상태를 변경하지 못했습니다.");
-      return;
-    }
-    const data = unwrapData<{ isClosed: boolean; closedAt: string | null }>(await response.json());
-    setRoster({ ...roster, isClosed: data.isClosed, closedAt: data.closedAt });
-    setActionState("saved");
-    setStatusMessage(data.isClosed ? "출석부를 마감했습니다." : "출석부를 재오픈했습니다.");
-  }
-
-  return (
-    <div className="grid gap-5">
-      <section className="rounded border border-line bg-white p-5 shadow-soft">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-normal">출석체크 관리</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              기관·날짜·반별 출석부를 불러와 일괄 저장하고 마감 상태를 관리합니다.
-            </p>
-          </div>
-          {roster ? <Badge tone={roster.isClosed ? "amber" : "green"}>{roster.isClosed ? "마감됨" : "작성 중"}</Badge> : null}
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <AdminOrganizationSelect
-            value={scope.organizationId}
-            required
-            onChange={(organizationId) => setScope({ ...scope, organizationId })}
-          />
-          <Field label="날짜" value={scope.attendanceDate} onChange={(attendanceDate) => setScope({ ...scope, attendanceDate })} placeholder="2026-06-24" />
-          <Field label="반" value={scope.className} onChange={(className) => setScope({ ...scope, className })} placeholder="햇님반" />
-        </div>
-        <button
-          type="button"
-          onClick={() => void loadRoster()}
-          disabled={!canLoad || actionState === "saving"}
-          className="mt-4 inline-flex min-h-11 items-center gap-2 rounded border border-line bg-white px-4 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:text-muted"
-        >
-          <RefreshCw size={17} className={actionState === "saving" ? "animate-spin" : ""} aria-hidden />
-          출석부 조회
-        </button>
-        <p className="mt-4 rounded border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted">
-          {statusMessage}
-        </p>
-      </section>
-
-      {roster ? (
-        <section className="rounded border border-line bg-white p-5 shadow-soft">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-ink">{roster.className} 출석부</h3>
-              <p className="mt-1 text-sm text-muted">{roster.attendanceDate} · {roster.roster.length}명</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void changeClosure(roster.isClosed ? "reopen" : "close")}
-              disabled={actionState === "saving"}
-              className="inline-flex min-h-10 items-center justify-center rounded border border-line bg-white px-3 text-sm font-semibold text-muted hover:border-brand hover:text-brand"
-            >
-              {roster.isClosed ? "재오픈" : "출석부 마감"}
-            </button>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={newChildName}
-              onChange={(event) => setNewChildName(event.target.value)}
-              disabled={roster.isClosed}
-              placeholder="원아명 추가"
-              className="min-h-11 flex-1 rounded border border-line bg-surface px-3 text-sm outline-none focus:border-brand"
-            />
-            <button
-              type="button"
-              onClick={addChild}
-              disabled={roster.isClosed || !newChildName.trim()}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded border border-line bg-white px-4 text-sm font-semibold disabled:text-muted"
-            >
-              <Plus size={17} aria-hidden />
-              원아 추가
-            </button>
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            {roster.roster.map((item, index) => (
-              <div key={item.childName} className="grid gap-3 rounded border border-line bg-surface p-3 md:grid-cols-[minmax(120px,1fr)_180px_2fr] md:items-center">
-                <p className="font-semibold text-ink">{item.childName}</p>
-                <select
-                  value={item.status}
-                  disabled={roster.isClosed}
-                  onChange={(event) => updateRosterItem(index, { status: event.target.value as AttendanceRosterItem["status"] })}
-                  className="min-h-10 rounded border border-line bg-white px-3 text-sm"
-                >
-                  <option value="present">출석</option>
-                  <option value="absent">결석</option>
-                  <option value="late">지각</option>
-                  <option value="excused">인정결석</option>
-                </select>
-                <input
-                  value={item.note}
-                  disabled={roster.isClosed}
-                  onChange={(event) => updateRosterItem(index, { note: event.target.value })}
-                  placeholder="메모"
-                  className="min-h-10 rounded border border-line bg-white px-3 text-sm"
-                />
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void saveRoster()}
-            disabled={roster.isClosed || roster.roster.length === 0 || actionState === "saving"}
-            className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {actionState === "saving" ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <Save size={17} aria-hidden />}
-            출석 일괄 저장
-          </button>
-        </section>
-      ) : null}
-    </div>
   );
 }
 

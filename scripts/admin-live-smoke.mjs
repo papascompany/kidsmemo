@@ -146,7 +146,6 @@ function assertOperationsPayload(data) {
   const collections = [
     "contentBlocks",
     "mediaAssets",
-    "attendanceRecords",
     "giftCodes",
     "staffCoupons",
     "pushCampaigns",

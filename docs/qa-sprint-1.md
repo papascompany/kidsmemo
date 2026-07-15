@@ -66,8 +66,6 @@ Push delivery API contract:
 
 - 관리자 기관 입력을 UUID 직접 입력에서 기관명/지역 검색 선택기로 교체했다.
 - `GET /api/admin/organizations`는 platform admin만 기관 목록을 조회할 수 있다.
-- 출석 운영 API는 기관/날짜/반별 조회, 최대 500명 일괄 저장, 마감/재오픈을 지원한다.
-- 마감된 출석부는 API와 DB trigger 양쪽에서 변경을 거부한다.
 - 관리자 저장 smoke: `npm run smoke:admin-live`
 - 쿠폰 전체 흐름 E2E: `npm run test:staff-coupon-e2e`
 - 두 live 스크립트는 Supabase 로그인 환경변수가 있는 로컬 터미널에서 실행하며 토큰과 비밀번호를 출력하지 않는다.
@@ -172,7 +170,7 @@ Static findings:
 - `/app` still renders the mock/fallback dashboard through `KidsmemoDashboard` and preserves the `dashboard`, `calendar`, `coupons`, and `ai-helper` anchors.
 - `next.config.ts` keeps transitional redirects from legacy intent routes to `/app` anchors.
 - `/admin` is visually and structurally separate from the teacher/director dashboard and requires a live platform admin session before operational data is shown.
-- `/admin` includes content, image, attendance, gift-code, push-campaign, and audit-log management tabs.
+- `/admin` includes content, image, gift-code, push-campaign, and audit-log management tabs.
 - Auth pages describe Kakao, Google, and email paths as UI/IA skeletons or "ready/preparing" flows rather than live auth.
 - Print CSS hides dashboard chrome and operational sections while keeping `#ai-helper` and `.print-page` content printable.
 
@@ -525,16 +523,9 @@ $env:KIDSMEMO_ADMIN_EMAIL="<platform-admin-email>"
 $env:KIDSMEMO_ADMIN_PASSWORD="<platform-admin-password>"
 $env:KIDSMEMO_TEACHER_EMAIL="<teacher-email>"
 $env:KIDSMEMO_TEACHER_PASSWORD="<teacher-password>"
-npm run smoke:staff-attendance-live
 npm run smoke:organization-cms-live
 ```
 
-`smoke:staff-attendance-live`는 익명 401, 교사 bearer 출석 저장/조회, 동일 bearer의 `attendance_records` RLS 조회, 선택적 타 기관 교사 쓰기 차단을 확인합니다. `KIDSMEMO_OTHER_TEACHER_EMAIL`과 `KIDSMEMO_OTHER_TEACHER_PASSWORD`를 추가하면 타 기관 차단도 수행합니다.
-
 `smoke:organization-cms-live`는 관리자 bearer로 기관 범위 `workspace-hero`를 published 상태로 저장하고, 교사 bearer의 `/api/session/context`에서 동일 콘텐츠가 반환되는지 확인한 뒤 기존 콘텐츠를 복원합니다. 기존 콘텐츠가 없었던 경우 관리자 bearer의 RLS 권한으로 임시 행을 삭제합니다.
 
-2026-07-15 live checkpoint: 기존 확인 계정의 owner bearer로 staff 출석 저장·조회와 `attendance_records` RLS 조회를 통과했고, admin bearer의 기관 CMS 저장 후 운영 컨텍스트 반영도 통과했습니다. 현재 Supabase 이메일 확인이 완료된 teacher 역할 QA 계정이 없어 teacher 전용 bearer와 타 기관 쓰기 차단은 후속 검증 대상으로 남아 있습니다.
-
-2026-07-15 annual leave checkpoint: `20260715160000_staff_leave_foundation.sql`을 Supabase에 적용했고, 관리자 bearer가 기관 연차 설정과 직원 고용정보를 저장한 뒤 2024-01-10 입사·출근율 100% 케이스의 2026-07-15 누적 30일 및 잔여 30일을 읽는 live smoke를 통과했습니다. 테스트 설정과 직원 레코드는 smoke 종료 시 복구·삭제했습니다. 실제 월별 개근 자료가 없을 때는 임의 부여하지 않고 `자료 필요`로 표시합니다.
-
-2026-07-15 leave request checkpoint: owner bearer의 휴가 신청·조회·대기 취소와 platform-admin bearer의 기관별 요청 조회·승인·반려 live smoke를 통과했습니다. 390px 모바일에서 `/`, `/signup`, `/onboarding`, `/app`, `/admin`을 확인했고 가로 넘침 없이 로드되며, 인증된 `/app` 출석 영역과 `/admin` 연차·휴가 탭도 확인했습니다. 승인된 휴가를 연차 사용 원장에 반영하는 잔여일수 차감 연결과 실제 이메일 확인이 완료된 teacher bearer smoke는 후속 작업입니다.
+2026-07-15 scope correction: 직원 휴가·연차와 원아 출석체크 기능은 제품 범위가 아니므로 화면, API, 계산기, smoke 및 운영 문서에서 제거했습니다. 기존 Supabase에 생성된 관련 테이블은 제거 migration으로 정리합니다.

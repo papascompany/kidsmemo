@@ -10,7 +10,6 @@ type Row = Record<string, unknown>;
 const resourceSchema = z.enum([
   "contentBlocks",
   "mediaAssets",
-  "attendanceRecords",
   "giftCodes",
   "staffCoupons",
   "pushCampaigns"
@@ -39,16 +38,6 @@ const mediaAssetSchema = z.object({
   altText: z.string().default(""),
   usageSlot: z.string().trim().default(""),
   status: z.enum(["draft", "published", "archived"]).default("draft")
-});
-
-const attendanceRecordSchema = z.object({
-  id: z.string().uuid().optional(),
-  organizationId: z.string().uuid(),
-  attendanceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  className: z.string().trim().min(1),
-  childName: z.string().trim().min(1),
-  status: z.enum(["present", "absent", "late", "excused"]).default("present"),
-  note: z.string().default("")
 });
 
 const giftCodeSchema = z.object({
@@ -90,7 +79,6 @@ const pushCampaignSchema = z.object({
 const mutationSchemaBase = z.discriminatedUnion("resource", [
   z.object({ resource: z.literal("contentBlocks"), payload: contentBlockSchema }),
   z.object({ resource: z.literal("mediaAssets"), payload: mediaAssetSchema }),
-  z.object({ resource: z.literal("attendanceRecords"), payload: attendanceRecordSchema }),
   z.object({ resource: z.literal("giftCodes"), payload: giftCodeSchema }),
   z.object({ resource: z.literal("staffCoupons"), payload: staffCouponSchema }),
   z.object({ resource: z.literal("pushCampaigns"), payload: pushCampaignSchema })
@@ -127,10 +115,6 @@ const resourceConfig = {
     table: "media_assets",
     order: "created_at"
   },
-  attendanceRecords: {
-    table: "attendance_records",
-    order: "attendance_date"
-  },
   giftCodes: {
     table: "gift_codes",
     order: "created_at"
@@ -158,11 +142,10 @@ export async function GET(request: Request) {
     }
 
     const supabase = requireSupabase(access.accessToken);
-    const [contentBlocks, mediaAssets, attendanceRecords, giftCodes, staffCoupons, pushCampaigns, auditLogs] =
+    const [contentBlocks, mediaAssets, giftCodes, staffCoupons, pushCampaigns, auditLogs] =
       await Promise.all([
         fetchRows(supabase, "contentBlocks"),
         fetchRows(supabase, "mediaAssets"),
-        fetchRows(supabase, "attendanceRecords"),
         fetchRows(supabase, "giftCodes"),
         fetchRows(supabase, "staffCoupons"),
         fetchRows(supabase, "pushCampaigns"),
@@ -178,7 +161,6 @@ export async function GET(request: Request) {
     return ok({
       contentBlocks: contentBlocks.map(mapContentBlock),
       mediaAssets: mediaAssets.map(mapMediaAsset),
-      attendanceRecords: attendanceRecords.map(mapAttendanceRecord),
       giftCodes: giftCodes.map(mapGiftCode),
       staffCoupons: staffCoupons.map(mapStaffCoupon),
       pushCampaigns: pushCampaigns.map(mapPushCampaign),
@@ -251,7 +233,7 @@ async function fetchRows(
   const { data, error } = await supabase
     .from(config.table)
     .select("*")
-    .order(config.order, { ascending: resource === "contentBlocks" || resource === "attendanceRecords" });
+    .order(config.order, { ascending: resource === "contentBlocks" });
   if (error) throw error;
   return (data ?? []) as Row[];
 }
@@ -288,19 +270,6 @@ function toRow(
       usage_slot: payload.usageSlot || null,
       status: payload.status,
       created_by: profileId
-    };
-  }
-
-  if (resource === "attendanceRecords") {
-    return {
-      organization_id: payload.organizationId,
-      attendance_date: payload.attendanceDate,
-      class_name: payload.className,
-      child_name: payload.childName,
-      status: payload.status,
-      note: payload.note,
-      recorded_by: profileId,
-      updated_at: new Date().toISOString()
     };
   }
 
@@ -348,7 +317,6 @@ function toRow(
 function mapResource(resource: z.infer<typeof resourceSchema>, row: Row) {
   if (resource === "contentBlocks") return mapContentBlock(row);
   if (resource === "mediaAssets") return mapMediaAsset(row);
-  if (resource === "attendanceRecords") return mapAttendanceRecord(row);
   if (resource === "giftCodes") return mapGiftCode(row);
   if (resource === "staffCoupons") return mapStaffCoupon(row);
   return mapPushCampaign(row);
@@ -382,18 +350,6 @@ function mapMediaAsset(row: Row) {
     usageSlot: asString(row.usage_slot),
     status: asString(row.status),
     createdAt: asString(row.created_at)
-  };
-}
-
-function mapAttendanceRecord(row: Row) {
-  return {
-    id: asString(row.id),
-    organizationId: asString(row.organization_id),
-    attendanceDate: asString(row.attendance_date),
-    className: asString(row.class_name),
-    childName: asString(row.child_name),
-    status: asString(row.status),
-    note: asString(row.note)
   };
 }
 
