@@ -59,7 +59,7 @@ async function main() {
         weeklyHours: 40,
         annualAttendanceRate: 1,
         employmentType: "regular",
-        monthlyAttendance: {}
+        monthlyAttendance: Object.fromEntries(Array.from({ length: 11 }, (_, index) => [`2024-${String(index + 2).padStart(2, "0")}`, false]))
       }
     });
     assert(employment.data?.saved === true, "employment record was not saved");
