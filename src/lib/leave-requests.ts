@@ -57,14 +57,20 @@ export async function requireLeaveStaff(request: Request, organizationId?: strin
 }
 
 export async function requireLeaveReviewer(request: Request, organizationId?: string) {
-  const access = await resolveScopedAccess(request, organizationId);
+  // Platform admins may review any institution, so resolve their global role
+  // before applying the requested organization scope.
+  const access = await resolveRequestAccessContext(withoutOrganizationHeader(request));
   if (access.source === "anonymous") {
     throw new AccessControlError("authentication_required", "관리자 로그인이 필요합니다.", 401);
   }
   assertRoleScope(access, ["owner", "manager", "admin"], "원장·매니저·관리자만 휴가 요청을 검토할 수 있습니다.");
   if (!access.profileId || !access.organizationId) {
-    throw new AccessControlError("membership_required", "기관 멤버십을 확인할 수 없습니다.", 403);
+    if (access.role !== "admin" || !organizationId) {
+      throw new AccessControlError("membership_required", "기관 멤버십을 확인할 수 없습니다.", 403);
+    }
   }
+  if (access.role === "admin" && organizationId) return { ...access, organizationId };
+  if (organizationId) assertOrganizationScope(access, organizationId);
   return access;
 }
 
@@ -209,6 +215,12 @@ function requireSupabase(access: RequestAccessContext) {
     throw new AccessControlError("supabase_not_configured", "Supabase 인증 설정이 필요합니다.", 500);
   }
   return client;
+}
+
+function withoutOrganizationHeader(request: Request) {
+  const headers = new Headers(request.headers);
+  headers.delete("x-kidmemo-organization-id");
+  return new Request(request.url, { method: "GET", headers });
 }
 
 function validateDateRange(
