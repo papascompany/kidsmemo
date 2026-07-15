@@ -307,6 +307,14 @@ UX 원칙:
 
 ### 2026-07-09 현재 상태 요약
 
+### 2026-07-15 CTO 실행 추가
+
+- 기관별 `content_blocks`와 `media_assets`의 published 데이터를 `/api/session/context`에서 기관 멤버십 범위로 조회하도록 연결했다.
+- `/app` 기관 워크스페이스의 히어로, 기관 프로필, AI, 쿠폰 영역이 관리자 CMS 슬롯과 기관 미디어를 소비한다.
+- 교사·원장·관리자용 `/api/attendance`와 `/app` 오늘의 출석 빠른 입력 UI를 추가했다. 기관 범위와 RLS를 적용하고 출석 마감은 관리자 API에 유지했다.
+- `20260715090000_staff_attendance_write.sql`은 Supabase 적용 대기 상태이며, 적용 후 bearer-token 교사 계정의 출석 저장을 live smoke로 검증해야 한다.
+- 운영 `/app`의 320/390/768/1440 폭에서 수평 overflow가 없음을 확인했다.
+
 완료된 핵심 작업:
 
 - Vercel 프로젝트 링크와 production URL 확인이 완료되어 있다.

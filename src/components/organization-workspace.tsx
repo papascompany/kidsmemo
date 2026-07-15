@@ -16,7 +16,8 @@ import {
 import { Badge } from "./badge";
 import { messageDeliveries, messageJobs } from "@/lib/mock-data";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { getOrganizationContext, type OrganizationContext } from "@/lib/organization-context";
+import { getOrganizationContext, type OrganizationContext, type OrganizationContent } from "@/lib/organization-context";
+import type { AdminContentBlock } from "@/lib/admin-operations";
 import type { EventSchedule, Profile, StaffCoupon } from "@/lib/types";
 
 const workspaceImage =
@@ -27,6 +28,30 @@ const aiImage =
   "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80";
 const couponImage =
   "https://images.unsplash.com/photo-1492725764893-90b379c2b6e7?auto=format&fit=crop&w=900&q=80";
+
+type ContentBlock = Pick<AdminContentBlock, "title" | "body" | "imageUrl">;
+
+function getWorkspaceContent(content: OrganizationContent) {
+  const blockBySlot = new Map(content.blocks.map((block) => [block.slot, block]));
+  const mediaBySlot = new Map(content.media.filter((asset) => asset.usageSlot).map((asset) => [asset.usageSlot, asset]));
+
+  function contentFor(slot: string): ContentBlock {
+    const block = blockBySlot.get(slot);
+    const media = mediaBySlot.get(slot);
+    return {
+      title: block?.title || "",
+      body: block?.body || "",
+      imageUrl: block?.imageUrl || media?.url || ""
+    };
+  }
+
+  return {
+    hero: contentFor("workspace-hero"),
+    profile: contentFor("organization-profile"),
+    ai: contentFor("ai-helper"),
+    coupon: contentFor("coupon-wallet")
+  };
+}
 
 const aiAdviceHistory = [
   {
@@ -52,8 +77,9 @@ export function OrganizationWorkspace({
   context?: OrganizationContext | null;
   liveMode?: boolean;
 }) {
-  const { organization: currentOrganization, director, events: organizationEvents, coupons: organizationCoupons } =
+  const { organization: currentOrganization, director, events: organizationEvents, coupons: organizationCoupons, content } =
     context ?? getOrganizationContext();
+  const workspaceContent = getWorkspaceContent(content);
   const organizationEventIds = new Set(organizationEvents.map((event) => event.id));
   const organizationJobs = messageJobs.filter((job) => organizationEventIds.has(job.eventId));
   const organizationDeliveries = messageDeliveries.filter((delivery) =>
@@ -64,7 +90,7 @@ export function OrganizationWorkspace({
     <div className="grid min-w-0 gap-5">
       <section
         className="relative min-w-0 overflow-hidden rounded border border-line bg-ink text-white shadow-soft"
-        style={{ backgroundImage: `url(${workspaceImage})` }}
+        style={{ backgroundImage: `url(${workspaceContent.hero.imageUrl || workspaceImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-ink/88 via-ink/62 to-ink/18" />
         <div className="relative grid min-h-[430px] content-between gap-8 p-5 sm:p-7 lg:grid-cols-[1fr_360px] lg:p-8">
@@ -77,11 +103,10 @@ export function OrganizationWorkspace({
                 </span>
               </div>
               <h1 className="text-wrap-anywhere mt-5 max-w-2xl text-2xl font-semibold leading-tight tracking-normal sm:text-4xl lg:text-5xl">
-                {currentOrganization.name} 운영실
+                {workspaceContent.hero.title || `${currentOrganization.name} 운영실`}
               </h1>
               <p className="text-wrap-anywhere mt-4 max-w-2xl text-sm leading-7 text-white/86 sm:text-base">
-                내 기관의 행사, AI 조언, 점보키즈 쿠폰함, 발송 상태를 한 화면에서 확인합니다.
-                지금 선택된 기관 범위 안에서 필요한 운영 정보를 먼저 확인하고, 세부 관리는 아래 도구에서 이어갑니다.
+                {workspaceContent.hero.body || "내 기관의 행사, AI 조언, 점보키즈 쿠폰함, 발송 상태를 한 화면에서 확인합니다."}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <HeroAction href="#calendar" icon={CalendarDays} label="일정 관리" />
@@ -119,16 +144,17 @@ export function OrganizationWorkspace({
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <ProfileCard director={director} organizationName={currentOrganization.name} />
+        <ProfileCard director={director} organizationName={currentOrganization.name} content={workspaceContent.profile} />
         <ScheduleCard events={organizationEvents} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <AiHistoryCard />
+        <AiHistoryCard content={workspaceContent.ai} />
         <CouponStatusCard
           coupons={organizationCoupons}
           jobs={organizationJobs}
           deliveries={organizationDeliveries}
+          content={workspaceContent.coupon}
         />
       </div>
     </div>
@@ -158,19 +184,21 @@ function HeroAction({ href, icon: Icon, label }: { href: string; icon: LucideIco
 
 function ProfileCard({
   director,
-  organizationName
+  organizationName,
+  content
 }: {
   director?: Profile;
   organizationName: string;
+  content: ContentBlock;
 }) {
   return (
     <article className="overflow-hidden rounded border border-line bg-white shadow-soft">
       <div
         className="min-h-44 bg-cover bg-center p-4"
-        style={{ backgroundImage: `linear-gradient(180deg, rgba(23,32,51,0.08), rgba(23,32,51,0.58)), url(${profileImage})` }}
+        style={{ backgroundImage: `linear-gradient(180deg, rgba(23,32,51,0.08), rgba(23,32,51,0.58)), url(${content.imageUrl || profileImage})` }}
       >
         <div className="flex h-36 flex-col justify-end">
-          <p className="text-sm font-semibold text-white/82">내 유치원 프로필</p>
+          <p className="text-sm font-semibold text-white/82">{content.title || "내 유치원 프로필"}</p>
           <h2 className="mt-1 text-2xl font-semibold text-white">{organizationName}</h2>
         </div>
       </div>
@@ -231,16 +259,16 @@ function ScheduleCard({ events: organizationEvents }: { events: EventSchedule[] 
   );
 }
 
-function AiHistoryCard() {
+function AiHistoryCard({ content }: { content: ContentBlock }) {
   return (
     <article className="overflow-hidden rounded border border-line bg-white shadow-soft">
       <div
         className="min-h-36 bg-cover bg-center p-4"
-        style={{ backgroundImage: `linear-gradient(90deg, rgba(23,32,51,0.78), rgba(23,32,51,0.16)), url(${aiImage})` }}
+        style={{ backgroundImage: `linear-gradient(90deg, rgba(23,32,51,0.78), rgba(23,32,51,0.16)), url(${content.imageUrl || aiImage})` }}
       >
         <div className="flex min-h-28 flex-col justify-end">
-          <p className="text-sm font-semibold text-white/78">AI 행사 조언</p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">저장된 행사 조언</h2>
+          <p className="text-sm font-semibold text-white/78">{content.title || "AI 행사 조언"}</p>
+          <h2 className="mt-1 text-2xl font-semibold text-white">{content.body || "저장된 행사 조언"}</h2>
         </div>
       </div>
       <div className="grid gap-3 p-4">
@@ -293,11 +321,13 @@ const assignedToLabels: Record<StaffCoupon["assignedTo"], string> = {
 function CouponStatusCard({
   coupons,
   jobs,
-  deliveries
+  deliveries,
+  content
 }: {
   coupons: StaffCoupon[];
   jobs: typeof messageJobs;
   deliveries: typeof messageDeliveries;
+  content: ContentBlock;
 }) {
   const latestJob = jobs[0];
 
@@ -306,14 +336,12 @@ function CouponStatusCard({
       <div className="grid md:grid-cols-[0.9fr_1.1fr]">
         <div
           className="min-h-64 bg-cover bg-center p-4 text-white"
-          style={{ backgroundImage: `linear-gradient(180deg, rgba(23,32,51,0.06), rgba(23,32,51,0.78)), url(${couponImage})` }}
+          style={{ backgroundImage: `linear-gradient(180deg, rgba(23,32,51,0.06), rgba(23,32,51,0.78)), url(${content.imageUrl || couponImage})` }}
         >
           <div className="flex h-full min-h-56 flex-col justify-end">
-            <p className="text-sm font-semibold text-white/78">점보키즈 쿠폰함</p>
-            <h2 className="mt-1 text-2xl font-semibold">쿠폰 다운로드와 사용처</h2>
-            <p className="mt-3 text-sm leading-6 text-white/82">
-              점보키즈 관리자가 제공한 혜택과 사용 가능한 사이트, 다운로드 상태를 함께 확인합니다.
-            </p>
+            <p className="text-sm font-semibold text-white/78">{content.title || "점보키즈 쿠폰함"}</p>
+            <h2 className="mt-1 text-2xl font-semibold">{content.body || "쿠폰 다운로드와 사용처"}</h2>
+            <p className="mt-3 text-sm leading-6 text-white/82">점보키즈 관리자가 제공한 혜택과 사용 가능한 사이트, 다운로드 상태를 함께 확인합니다.</p>
           </div>
         </div>
 

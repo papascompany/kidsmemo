@@ -94,6 +94,18 @@ export async function requireAttendanceAdmin(request: Request) {
   return access;
 }
 
+export async function requireAttendanceStaff(request: Request) {
+  const access = await resolveRequestAccessContext(request);
+  if (access.source === "anonymous") {
+    throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+  }
+  assertRoleScope(access, ["admin", "owner", "manager", "teacher"]);
+  if (!access.organizationId) {
+    throw new AccessControlError("membership_required", "기관 멤버십이 필요합니다.", 403);
+  }
+  return access;
+}
+
 export async function getAttendanceRoster(access: RequestAccessContext, scope: AttendanceScope) {
   if (!isLiveSupabaseMode()) {
     return getMockRoster(scope);
@@ -185,9 +197,11 @@ export async function bulkUpsertAttendance(access: RequestAccessContext, input: 
     .select("id");
   if (error) throw error;
 
-  await writeAuditLog(supabase, access.profileId, "bulk_upsert", input, {
-    recordCount: rows.length
-  });
+  if (access.role === "admin") {
+    await writeAuditLog(supabase, access.profileId, "bulk_upsert", input, {
+      recordCount: rows.length
+    });
+  }
 
   return {
     saved: true,

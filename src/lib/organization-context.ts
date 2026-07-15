@@ -1,5 +1,11 @@
 import { events, organizations, profiles, staffCoupons } from "./mock-data";
+import type { AdminContentBlock, AdminMediaAsset } from "./admin-operations";
 import type { EventSchedule, Organization, Profile, StaffCoupon } from "./types";
+
+export interface OrganizationContent {
+  blocks: AdminContentBlock[];
+  media: AdminMediaAsset[];
+}
 
 export interface OrganizationContext {
   organization: Organization;
@@ -7,6 +13,7 @@ export interface OrganizationContext {
   members: Profile[];
   events: EventSchedule[];
   coupons: StaffCoupon[];
+  content: OrganizationContent;
 }
 
 export function getPrimaryOrganization() {
@@ -32,7 +39,8 @@ export function getOrganizationContext(organizationId = getPrimaryOrganizationId
       director: undefined,
       members: [],
       events: [],
-      coupons: []
+      coupons: [],
+      content: { blocks: [], media: [] }
     };
   }
 
@@ -46,6 +54,7 @@ export function getOrganizationContext(organizationId = getPrimaryOrganizationId
     director,
     members,
     events: organizationEvents,
-    coupons: organizationCoupons
+    coupons: organizationCoupons,
+    content: { blocks: [], media: [] }
   };
 }

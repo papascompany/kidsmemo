@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       throw new AccessControlError("supabase_not_configured", "Supabase 인증 설정이 필요합니다.", 500);
     }
 
-    const [organizationResult, profileResult, membershipCountResult, events] = await Promise.all([
+    const [organizationResult, profileResult, membershipCountResult, events, contentBlocks, mediaAssets] = await Promise.all([
       supabase
         .from("organizations")
         .select("id, name, type, region")
@@ -49,7 +49,21 @@ export async function GET(request: Request) {
         .from("memberships")
         .select("profile_id", { count: "exact", head: true })
         .eq("organization_id", access.organizationId),
-      getRepositories(access).events.list()
+      getRepositories(access).events.list(),
+      supabase
+        .from("content_blocks")
+        .select("*")
+        .eq("scope", "organization")
+        .eq("organization_id", access.organizationId)
+        .eq("status", "published")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("media_assets")
+        .select("*")
+        .eq("scope", "organization")
+        .eq("organization_id", access.organizationId)
+        .eq("status", "published")
+        .order("created_at", { ascending: true })
     ]);
 
     if (organizationResult.error) {
@@ -62,6 +76,14 @@ export async function GET(request: Request) {
 
     if (membershipCountResult.error) {
       throw membershipCountResult.error;
+    }
+
+    if (contentBlocks.error) {
+      throw contentBlocks.error;
+    }
+
+    if (mediaAssets.error) {
+      throw mediaAssets.error;
     }
 
     const organization = organizationResult.data as OrganizationRow;
@@ -87,9 +109,48 @@ export async function GET(request: Request) {
         : undefined,
       members: [],
       events,
-      coupons: []
+      coupons: [],
+      content: {
+        blocks: (contentBlocks.data ?? []).map(mapContentBlock),
+        media: (mediaAssets.data ?? []).map(mapMediaAsset)
+      }
     });
   } catch (error) {
     return handleApiError(error);
   }
+}
+
+function mapContentBlock(row: Record<string, unknown>) {
+  return {
+    id: asString(row.id),
+    scope: "organization" as const,
+    organizationId: asString(row.organization_id),
+    slot: asString(row.slot),
+    title: asString(row.title),
+    body: asString(row.body),
+    imageUrl: asString(row.image_url),
+    ctaLabel: asString(row.cta_label),
+    ctaUrl: asString(row.cta_url),
+    sortOrder: Number(row.sort_order ?? 0),
+    status: "published" as const,
+    updatedAt: asString(row.updated_at)
+  };
+}
+
+function mapMediaAsset(row: Record<string, unknown>) {
+  return {
+    id: asString(row.id),
+    scope: "organization" as const,
+    organizationId: asString(row.organization_id),
+    label: asString(row.label),
+    url: asString(row.url),
+    altText: asString(row.alt_text),
+    usageSlot: asString(row.usage_slot),
+    status: "published" as const,
+    createdAt: asString(row.created_at)
+  };
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
 }

@@ -4,7 +4,7 @@
 
 Sprint started by CTO on 2026-06-02.
 
-Current CTO checkpoint as of 2026-07-09: Sprint 1 has moved beyond the original mock/fallback checkpoint. Completed work now includes Vercel link and production readiness checks, Supabase link and first DB push, live session/user-scoped repository split, admin operations, staff coupons end-to-end into `/app`, invite/onboarding code and live smoke script, OAuth callback routing, push mock delivery with retry fields, simplified landing/dashboard UX, login/signup production error handling, and local Pretendard font loading. Remaining work is release sign-off and provider/ops hardening, not basic project linking or schema push.
+Current CTO checkpoint as of 2026-07-15: Sprint 1 has moved beyond the original mock/fallback checkpoint. Completed work now includes Vercel link and production readiness checks, Supabase link and first DB push, live session/user-scoped repository split, admin operations, staff coupons end-to-end into `/app`, invite/onboarding code and live smoke script, OAuth callback routing, push mock delivery with retry fields, simplified landing/dashboard UX, login/signup production error handling, local Pretendard font loading, organization-scoped CMS content consumption in `/app`, and staff attendance quick-check API/UI. Remaining work is release sign-off and provider/ops hardening, not basic project linking or schema push.
 
 ## Workstreams
 
@@ -76,6 +76,13 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
 3. Re-check 320/390/768/1440 responsive layouts, coupon copy/download, AI generate buttons, admin table scroll, and print preview.
 4. Verify target Vercel/Supabase env values before live smoke. Old notes about Vercel link pending, initial `db push` blocked, and missing anon key were June checkpoint blockers and should not be treated as current unless re-confirmed.
 5. Decide next provider integrations separately: real push provider, Jumbokids/GodoMall coupon sync, Naver Shopping, and production email/SMS/Kakao messaging.
+
+## 2026-07-15 CTO Orchestration Checkpoint
+
+- Organization CMS is now consumed by the live session context and `/app` workspace. Published `workspace-hero`, `organization-profile`, `ai-helper`, and `coupon-wallet` blocks plus organization media slots can change the corresponding workspace surfaces.
+- Staff attendance quick-check is available at `/api/attendance` and in the `/app` dashboard. Owner, manager, and teacher sessions can read and bulk-save their current organization attendance; closure remains an admin operation.
+- Migration `20260715090000_staff_attendance_write.sql` adds organization-staff insert/update RLS for attendance records.
+- Responsive smoke on the production `/app` route found no horizontal overflow at 320, 390, 768, or 1440 px. Authenticated attendance and CMS live verification remain deployment gates.
 
 ## Design Direction For Next Frontend Pass
 
