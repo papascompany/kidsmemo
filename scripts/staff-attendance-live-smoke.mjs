@@ -12,6 +12,8 @@ const config = {
   teacherPassword: readEnv("KIDSMEMO_TEACHER_PASSWORD"),
   otherTeacherEmail: readEnv("KIDSMEMO_OTHER_TEACHER_EMAIL"),
   otherTeacherPassword: readEnv("KIDSMEMO_OTHER_TEACHER_PASSWORD"),
+  cleanupAdminEmail: readEnv("KIDSMEMO_CLEANUP_ADMIN_EMAIL", readEnv("KIDSMEMO_ADMIN_EMAIL")),
+  cleanupAdminPassword: readEnv("KIDSMEMO_CLEANUP_ADMIN_PASSWORD", readEnv("KIDSMEMO_ADMIN_PASSWORD")),
   serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
   keepRecord: readEnv("KIDSMEMO_ATTENDANCE_SMOKE_KEEP_RECORD").toLowerCase() === "true"
 };
@@ -34,7 +36,7 @@ async function main() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-  const cleanupClient = config.serviceRoleKey
+  const serviceCleanupClient = config.serviceRoleKey
     ? createClient(config.supabaseUrl, config.serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false }
       })
@@ -48,6 +50,7 @@ async function main() {
   if (authError) throw new Error(`teacher login failed: ${authError.message}`);
   const accessToken = authData.session?.access_token;
   if (!accessToken) throw new Error("teacher login did not return an access token");
+  const cleanupClient = serviceCleanupClient || await createAdminCleanupClient();
 
   let cleanupCompleted = false;
   try {
@@ -103,7 +106,6 @@ async function main() {
     }
 
     if (!config.keepRecord) {
-      if (!cleanupClient) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for cleanup; set KEEP_RECORD=true to retain QA data.");
       await cleanupClient.from("attendance_records").delete().eq("organization_id", scope.organizationId).eq("attendance_date", scope.attendanceDate).eq("class_name", scope.className).eq("child_name", childName).throwOnError();
       cleanupCompleted = true;
       console.log("[PASS] cleaned up QA attendance record");
@@ -147,6 +149,27 @@ async function assertOtherTeacherCannotWrite(scope, childName, originalToken) {
   } finally {
     await other.auth.signOut();
   }
+}
+
+async function createAdminCleanupClient() {
+  if (!config.cleanupAdminEmail || !config.cleanupAdminPassword) {
+    if (config.keepRecord) return null;
+    throw new Error("cleanup requires SUPABASE_SERVICE_ROLE_KEY or KIDSMEMO_ADMIN_EMAIL/PASSWORD; set KEEP_RECORD=true to retain QA data.");
+  }
+  const admin = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  const { data, error } = await admin.auth.signInWithPassword({
+    email: config.cleanupAdminEmail,
+    password: config.cleanupAdminPassword
+  });
+  if (error) throw new Error(`cleanup admin login failed: ${error.message}`);
+  const token = data.session?.access_token;
+  if (!token) throw new Error("cleanup admin login did not return an access token");
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
 }
 
 async function assertAnonymous401(path) {

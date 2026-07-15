@@ -12,7 +12,6 @@ const config = {
   teacherEmail: readEnv("KIDSMEMO_TEACHER_EMAIL"),
   teacherPassword: readEnv("KIDSMEMO_TEACHER_PASSWORD"),
   organizationId: readEnv("KIDSMEMO_CMS_SMOKE_ORGANIZATION_ID"),
-  serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY")
 };
 
 main().catch((error) => {
@@ -24,10 +23,13 @@ async function main() {
   validateConfig();
   const runId = `${Date.now()}-${randomUUID().slice(0, 8)}`;
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, { auth: { autoRefreshToken: false, persistSession: false } });
-  const service = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
   console.log(`[START] organization CMS live smoke (${runId})`);
 
   const adminToken = await signIn(supabase, config.adminEmail, config.adminPassword, "admin");
+  const adminCleanup = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${adminToken}` } },
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
   const teacherToken = await signIn(supabase, config.teacherEmail, config.teacherPassword, "teacher");
   const teacherContext = await requestJson("/api/session/context", { accessToken: teacherToken });
   const organizationId = config.organizationId || teacherContext.data?.organization?.id;
@@ -86,7 +88,7 @@ async function main() {
     } else {
       const insertedId = saved.data?.item?.id;
       if (!insertedId) throw new Error("created CMS content did not return an id for cleanup");
-      const { error } = await service.from("content_blocks").delete().eq("id", insertedId);
+      const { error } = await adminCleanup.from("content_blocks").delete().eq("id", insertedId);
       if (error) throw error;
       console.log("[PASS] deleted temporary organization CMS content");
     }
@@ -118,7 +120,7 @@ async function requestJson(path, options = {}) {
 }
 
 function validateConfig() {
-  const missing = ["supabaseUrl", "supabaseAnonKey", "adminEmail", "adminPassword", "teacherEmail", "teacherPassword", "serviceRoleKey"].filter((key) => !config[key]);
+  const missing = ["supabaseUrl", "supabaseAnonKey", "adminEmail", "adminPassword", "teacherEmail", "teacherPassword"].filter((key) => !config[key]);
   if (missing.length) throw new Error(`missing environment variables: ${missing.join(", ")}`);
 }
 function readEnv(name, fallback = "") { return process.env[name]?.trim() || fallback; }
