@@ -534,3 +534,5 @@ npm run smoke:organization-cms-live
 `smoke:organization-cms-live`는 관리자 bearer로 기관 범위 `workspace-hero`를 published 상태로 저장하고, 교사 bearer의 `/api/session/context`에서 동일 콘텐츠가 반환되는지 확인한 뒤 기존 콘텐츠를 복원합니다. 기존 콘텐츠가 없었던 경우 관리자 bearer의 RLS 권한으로 임시 행을 삭제합니다.
 
 2026-07-15 live checkpoint: 기존 확인 계정의 owner bearer로 staff 출석 저장·조회와 `attendance_records` RLS 조회를 통과했고, admin bearer의 기관 CMS 저장 후 운영 컨텍스트 반영도 통과했습니다. 현재 Supabase 이메일 확인이 완료된 teacher 역할 QA 계정이 없어 teacher 전용 bearer와 타 기관 쓰기 차단은 후속 검증 대상으로 남아 있습니다.
+
+2026-07-15 annual leave checkpoint: `20260715160000_staff_leave_foundation.sql`을 Supabase에 적용했고, 관리자 bearer가 기관 연차 설정과 직원 고용정보를 저장한 뒤 2024-01-10 입사·출근율 100% 케이스의 2026-07-15 누적 30일 및 잔여 30일을 읽는 live smoke를 통과했습니다. 테스트 설정과 직원 레코드는 smoke 종료 시 복구·삭제했습니다. 실제 월별 개근 자료가 없을 때는 임의 부여하지 않고 `자료 필요`로 표시합니다.
