@@ -18,6 +18,7 @@
     "smoke:organization-cms-live": "node scripts/organization-cms-live-smoke.mjs",
     "smoke:annual-leave": "node --experimental-strip-types scripts/annual-leave-calculation-smoke.mjs",
     "smoke:annual-leave-live": "node scripts/annual-leave-live-smoke.mjs",
+    "smoke:leave-request-live": "node scripts/leave-request-live-smoke.mjs",
     "smoke:onboarding-invite-live": "node scripts/onboarding-invite-live-smoke.mjs",
     "test:staff-coupon-e2e": "node scripts/staff-coupon-e2e.mjs"
   },

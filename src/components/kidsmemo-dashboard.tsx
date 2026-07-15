@@ -15,6 +15,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/badge";
 import { EventManager } from "@/components/event-manager";
 import { JumbokidsCouponWallet } from "@/components/jumbokids-coupon-wallet";
+import { LeaveRequestPanel } from "@/components/leave-request-panel";
 import { OrganizationWorkspace } from "@/components/organization-workspace";
 import { Section } from "@/components/section";
 import { authenticatedFetch } from "@/lib/auth-fetch";
@@ -159,6 +160,15 @@ export function KidsmemoDashboard() {
         <div className="mt-5">
           <AttendanceQuickCheck context={liveContext} />
         </div>
+
+        {liveContext ? (
+          <div className="mt-5">
+            <LeaveRequestPanel
+              organizationId={liveContext.organization.id}
+              userRole={liveContext.director?.role ?? "teacher"}
+            />
+          </div>
+        ) : null}
 
         <details className="group mt-5 rounded-2xl border border-line bg-[#fffefa] shadow-soft">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold text-ink marker:hidden">
