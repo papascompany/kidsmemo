@@ -514,3 +514,22 @@ Manual checks:
 - Confirm `/admin` does not reintroduce parent-facing coupon campaigns or public coupon landing language.
 - Confirm `/admin` surfaces Jumbokids verification state as a managed platform-admin concept.
 - Confirm `/admin` denies anonymous and non-admin sessions before any operational data is shown.
+## 2026-07-15 live 운영 검증 명령
+
+실제 운영 smoke는 아래 환경변수를 현재 PowerShell 세션에만 설정한 뒤 실행합니다. 이메일과 비밀번호, service-role key는 저장소나 로그에 기록하지 않습니다.
+
+```powershell
+$env:NEXT_PUBLIC_SUPABASE_URL="https://fhakjrppirmjdgqlljzd.supabase.co"
+$env:NEXT_PUBLIC_SUPABASE_ANON_KEY="<public-anon-key>"
+$env:KIDSMEMO_ADMIN_EMAIL="<platform-admin-email>"
+$env:KIDSMEMO_ADMIN_PASSWORD="<platform-admin-password>"
+$env:KIDSMEMO_TEACHER_EMAIL="<teacher-email>"
+$env:KIDSMEMO_TEACHER_PASSWORD="<teacher-password>"
+$env:SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
+npm run smoke:staff-attendance-live
+npm run smoke:organization-cms-live
+```
+
+`smoke:staff-attendance-live`는 익명 401, 교사 bearer 출석 저장/조회, 동일 bearer의 `attendance_records` RLS 조회, 선택적 타 기관 교사 쓰기 차단을 확인합니다. `KIDSMEMO_OTHER_TEACHER_EMAIL`과 `KIDSMEMO_OTHER_TEACHER_PASSWORD`를 추가하면 타 기관 차단도 수행합니다.
+
+`smoke:organization-cms-live`는 관리자 bearer로 기관 범위 `workspace-hero`를 published 상태로 저장하고, 교사 bearer의 `/api/session/context`에서 동일 콘텐츠가 반환되는지 확인한 뒤 기존 콘텐츠를 복원합니다. 기존 콘텐츠가 없었던 경우 임시 행을 service-role로 삭제합니다.
