@@ -536,3 +536,5 @@ npm run smoke:organization-cms-live
 2026-07-15 live checkpoint: 기존 확인 계정의 owner bearer로 staff 출석 저장·조회와 `attendance_records` RLS 조회를 통과했고, admin bearer의 기관 CMS 저장 후 운영 컨텍스트 반영도 통과했습니다. 현재 Supabase 이메일 확인이 완료된 teacher 역할 QA 계정이 없어 teacher 전용 bearer와 타 기관 쓰기 차단은 후속 검증 대상으로 남아 있습니다.
 
 2026-07-15 annual leave checkpoint: `20260715160000_staff_leave_foundation.sql`을 Supabase에 적용했고, 관리자 bearer가 기관 연차 설정과 직원 고용정보를 저장한 뒤 2024-01-10 입사·출근율 100% 케이스의 2026-07-15 누적 30일 및 잔여 30일을 읽는 live smoke를 통과했습니다. 테스트 설정과 직원 레코드는 smoke 종료 시 복구·삭제했습니다. 실제 월별 개근 자료가 없을 때는 임의 부여하지 않고 `자료 필요`로 표시합니다.
+
+2026-07-15 leave request checkpoint: owner bearer의 휴가 신청·조회·대기 취소와 platform-admin bearer의 기관별 요청 조회·승인·반려 live smoke를 통과했습니다. 390px 모바일에서 `/`, `/signup`, `/onboarding`, `/app`, `/admin`을 확인했고 가로 넘침 없이 로드되며, 인증된 `/app` 출석 영역과 `/admin` 연차·휴가 탭도 확인했습니다. 승인된 휴가를 연차 사용 원장에 반영하는 잔여일수 차감 연결과 실제 이메일 확인이 완료된 teacher bearer smoke는 후속 작업입니다.
