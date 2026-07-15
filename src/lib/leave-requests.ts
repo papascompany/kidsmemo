@@ -196,7 +196,8 @@ async function resolveScopedAccess(request: Request, organizationId?: string) {
 
   const headers = new Headers(request.headers);
   headers.set("x-kidmemo-organization-id", organizationId);
-  return resolveRequestAccessContext(new Request(request.url, { method: request.method, headers, body: request.body }));
+  // Access resolution only reads headers; do not reuse a consumed POST body.
+  return resolveRequestAccessContext(new Request(request.url, { method: "GET", headers }));
 }
 
 function requireSupabase(access: RequestAccessContext) {
