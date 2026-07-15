@@ -3,6 +3,7 @@
 import {
   Bell,
   CalendarCheck,
+  ClipboardList,
   FileText,
   Gift,
   Image as ImageIcon,
@@ -19,6 +20,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdminOrganizationSelect } from "@/components/admin-organization-select";
+import { AdminLeavePanel } from "@/components/admin-leave-panel";
 import { Badge } from "@/components/badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import type { AttendanceRoster, AttendanceRosterItem } from "@/lib/attendance-operations";
@@ -33,13 +35,14 @@ import type {
 import type { AdminInvite, AdminInviteRemovalResult } from "@/lib/admin-invites";
 import type { PushDeliveryLog } from "@/lib/push-operations";
 
-type AdminTab = "content" | "media" | "attendance" | "invites" | "gifts" | "push" | "audit";
+type AdminTab = "content" | "media" | "attendance" | "leave" | "invites" | "gifts" | "push" | "audit";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 const tabs: Array<{ id: AdminTab; label: string; icon: typeof FileText }> = [
   { id: "content", label: "콘텐츠", icon: FileText },
   { id: "media", label: "이미지", icon: ImageIcon },
   { id: "attendance", label: "출석", icon: CalendarCheck },
+  { id: "leave", label: "연차·휴가", icon: ClipboardList },
   { id: "invites", label: "초대", icon: UserPlus },
   { id: "gifts", label: "상품권/코드", icon: Gift },
   { id: "push", label: "푸시알림", icon: Bell },
@@ -398,6 +401,7 @@ export default function AdminPage() {
                   {activeTab === "attendance" ? (
                     <AttendancePanel />
                   ) : null}
+                  {activeTab === "leave" ? <AdminLeavePanel /> : null}
                   {activeTab === "invites" ? (
                     <InvitePanel
                       invites={invites}

@@ -84,6 +84,14 @@ CTO will collect agent results, identify conflicts, and integrate in the review 
 - Migration `20260715090000_staff_attendance_write.sql` adds organization-staff insert/update RLS for attendance records.
 - Responsive smoke on the production `/app` route found no horizontal overflow at 320, 390, 768, or 1440 px. Authenticated attendance and CMS live verification remain deployment gates.
 
+## 2026-07-15 Annual Leave Foundation Checkpoint
+
+- Added a separate staff leave foundation migration for organization leave settings, staff employment records, annual leave grants, and leave requests. It is intentionally separate from the child `attendance_records` domain.
+- Added `src/lib/annual-leave.ts`, a pure calculator using the statutory 5-person/15-hour applicability gate, 1-year-under monthly leave up to 11 days, 80% attendance threshold, service-year additions, and 25-day cap.
+- Added `/api/admin/leave` and an `연차·휴가` admin tab for institution settings and staff employment inputs. Missing attendance evidence is surfaced as `자료 필요` rather than silently granting leave.
+- Migration application and live admin save smoke remain deployment gates because Supabase CLI authentication is not available in the current shell.
+- Official policy reference: `docs/annual-leave-policy.md`.
+
 ## Design Direction For Next Frontend Pass
 
 - Target users are kindergarten/nursery directors and teachers.
