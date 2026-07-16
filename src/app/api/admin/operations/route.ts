@@ -2,7 +2,7 @@ import { z } from "zod";
 import { handleApiError, ok } from "@/lib/api-response";
 import { AccessControlError, assertRoleScope, resolveRequestAccessContext } from "@/lib/access-control";
 import { adminMockOperations } from "@/lib/admin-operations";
-import { isLiveSupabaseMode } from "@/lib/env-flags";
+import { isEnabledEnvFlag, isLiveSupabaseMode } from "@/lib/env-flags";
 import { createSupabaseUserClient } from "@/lib/supabase";
 
 type Row = Record<string, unknown>;
@@ -172,7 +172,8 @@ export async function GET(request: Request) {
       giftCodes: giftCodes.map(mapGiftCode),
       staffCoupons: staffCoupons.map(mapStaffCoupon),
       pushCampaigns: pushCampaigns.map(mapPushCampaign),
-      auditLogs: ((auditLogs.data ?? []) as Row[]).map(mapAuditLog)
+      auditLogs: ((auditLogs.data ?? []) as Row[]).map(mapAuditLog),
+      capabilities: getCapabilities()
     });
   } catch (error) {
     return handleApiError(error);
@@ -231,6 +232,28 @@ function requireSupabase(accessToken?: string) {
     throw new Error("Supabase user client is not configured.");
   }
   return supabase;
+}
+
+function getCapabilities() {
+  const live = isLiveSupabaseMode();
+  const pushSimulation = isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_MOCK_PUSH);
+  const messagingSimulation = isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_MOCK_MESSAGING);
+
+  return {
+    push: live
+      ? pushSimulation
+        ? { mode: "simulation" as const, detail: "QA simulation · 실제 발송 아님" }
+        : { mode: "unavailable" as const, detail: "실제 push provider 미연결" }
+      : { mode: "simulation" as const, detail: "개발/QA 시뮬레이션" },
+    messaging: live
+      ? messagingSimulation
+        ? { mode: "simulation" as const, detail: "QA simulation · 실제 발송 아님" }
+        : { mode: "unavailable" as const, detail: "실제 메시지 provider 미연결" }
+      : { mode: "simulation" as const, detail: "개발/QA 시뮬레이션" },
+    ai: process.env.OPENAI_API_KEY
+      ? { mode: "configured" as const, detail: "운영 AI provider 키 설정됨" }
+      : { mode: "fallback" as const, detail: "운영 AI 키 미설정" }
+  };
 }
 
 async function fetchRows(

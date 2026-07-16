@@ -4,6 +4,22 @@ export type ContentScope = "landing" | "organization";
 export type ContentStatus = "draft" | "published" | "archived";
 export type GiftCodeStatus = "available" | "issued" | "redeemed" | "expired" | "void";
 export type PushCampaignStatus = "draft" | "scheduled" | "sent" | "failed" | "cancelled";
+export type AdminDeliveryCapabilityMode = "live" | "simulation" | "unavailable";
+
+export interface AdminOperationsCapabilities {
+  push: {
+    mode: AdminDeliveryCapabilityMode;
+    detail: string;
+  };
+  messaging: {
+    mode: AdminDeliveryCapabilityMode;
+    detail: string;
+  };
+  ai: {
+    mode: "configured" | "fallback";
+    detail: string;
+  };
+}
 
 export interface AdminContentBlock {
   id: string;
@@ -84,6 +100,7 @@ export interface AdminOperationsPayload {
   staffCoupons: AdminStaffCoupon[];
   pushCampaigns: AdminPushCampaign[];
   auditLogs: AdminAuditLog[];
+  capabilities?: AdminOperationsCapabilities;
 }
 
 export const adminMockOperations: AdminOperationsPayload = {
@@ -106,5 +123,10 @@ export const adminMockOperations: AdminOperationsPayload = {
   giftCodes: [],
   staffCoupons: [],
   pushCampaigns: [],
-  auditLogs: []
+  auditLogs: [],
+  capabilities: {
+    push: { mode: "simulation", detail: "개발/QA 시뮬레이션" },
+    messaging: { mode: "simulation", detail: "개발/QA 시뮬레이션" },
+    ai: { mode: "fallback", detail: "운영 AI 키 미설정" }
+  }
 };

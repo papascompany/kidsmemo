@@ -25,6 +25,7 @@ import type {
   AdminGiftCode,
   AdminMediaAsset,
   AdminOperationsPayload,
+  AdminOperationsCapabilities,
   AdminPushCampaign,
   AdminStaffCoupon
 } from "@/lib/admin-operations";
@@ -410,6 +411,7 @@ export default function AdminPage() {
                     <PushPanel
                       campaigns={payload.pushCampaigns}
                       form={pushForm}
+                      capability={payload.capabilities?.push ?? { mode: "unavailable", detail: "provider 상태 확인 필요" }}
                       onChange={setPushForm}
                       onSave={() => saveResource("pushCampaigns", pushForm)}
                       saveState={saveState}
@@ -778,12 +780,14 @@ function GiftPanel({
 function PushPanel({
   campaigns,
   form,
+  capability,
   onChange,
   onSave,
   saveState
 }: {
   campaigns: AdminPushCampaign[];
   form: typeof defaultPushForm;
+  capability: AdminOperationsCapabilities["push"];
   onChange: (form: typeof defaultPushForm) => void;
   onSave: () => void;
   saveState: SaveState;
@@ -876,6 +880,7 @@ function PushPanel({
           sendState={sendState}
           deliveryLogState={deliveryLogState}
           activeDeliveryCampaignId={activeDeliveryCampaignId}
+          capability={capability}
           onSend={sendCampaign}
           onLoadDeliveryLog={loadDeliveryLog}
         />
@@ -888,6 +893,10 @@ function PushPanel({
         <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "scheduled", "failed", "cancelled"]} />
         <Field label="예약 시각" value={form.scheduledFor} onChange={(scheduledFor) => onChange({ ...form, scheduledFor })} placeholder="2026-06-23T00:00:00.000Z" />
       </div>
+      <p className={`rounded border px-3 py-2 text-sm font-semibold ${capability.mode === "live" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : capability.mode === "simulation" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-coral/30 bg-coral/5 text-coral"}`}>
+        {capability.detail}
+        {capability.mode === "unavailable" ? " · provider 연결 전에는 발송 요청을 진행할 수 없습니다." : null}
+      </p>
       <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="알림 본문" />
       {sendMessage ? <p className="text-sm font-semibold text-brand">{sendMessage}</p> : null}
       <PushDeliveryLogPanel log={deliveryLog} state={deliveryLogState} />
@@ -1042,6 +1051,7 @@ function PushCampaignList({
   sendState,
   deliveryLogState,
   activeDeliveryCampaignId,
+  capability,
   onSend,
   onLoadDeliveryLog
 }: {
@@ -1049,6 +1059,7 @@ function PushCampaignList({
   sendState: Record<string, SaveState>;
   deliveryLogState: SaveState;
   activeDeliveryCampaignId: string | null;
+  capability: AdminOperationsCapabilities["push"];
   onSend: (campaign: AdminPushCampaign) => void;
   onLoadDeliveryLog: (campaign: AdminPushCampaign) => void;
 }) {
@@ -1059,7 +1070,7 @@ function PushCampaignList({
         {campaigns.length > 0 ? (
           campaigns.map((campaign) => {
             const state = sendState[campaign.id] ?? "idle";
-            const canSend = campaign.status === "draft";
+            const canSend = campaign.status === "draft" && capability.mode !== "unavailable";
             return (
               <div key={campaign.id} className="rounded border border-line bg-surface p-3">
                 <p className="font-semibold text-ink">{campaign.title}</p>
@@ -1073,7 +1084,11 @@ function PushCampaignList({
                   className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-xs font-semibold text-muted hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:text-muted"
                 >
                   {state === "saving" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Send size={15} aria-hidden />}
-                  {canSend ? "발송 요청" : campaign.status === "scheduled" ? "자동 발송 대기" : "발송 불가"}
+                  {capability.mode === "unavailable"
+                    ? "provider 연결 필요"
+                    : canSend
+                      ? capability.mode === "simulation" ? "시뮬레이션" : "발송 요청"
+                      : campaign.status === "scheduled" ? "자동 발송 대기" : "발송 불가"}
                 </button>
                 <button
                   type="button"
