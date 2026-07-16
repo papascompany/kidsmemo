@@ -34,7 +34,8 @@ export async function GET(request: Request) {
       throw new AccessControlError("supabase_not_configured", "Supabase 인증 설정이 필요합니다.", 500);
     }
 
-    const [organizationResult, profileResult, membershipCountResult, events, contentBlocks, mediaAssets] = await Promise.all([
+    const repositories = getRepositories(access);
+    const [organizationResult, profileResult, membershipCountResult, events, coupons, contentBlocks, mediaAssets] = await Promise.all([
       supabase
         .from("organizations")
         .select("id, name, type, region")
@@ -49,7 +50,8 @@ export async function GET(request: Request) {
         .from("memberships")
         .select("profile_id", { count: "exact", head: true })
         .eq("organization_id", access.organizationId),
-      getRepositories(access).events.list(),
+      repositories.events.list(),
+      repositories.staffCoupons.list(),
       supabase
         .from("content_blocks")
         .select("*")
@@ -109,7 +111,7 @@ export async function GET(request: Request) {
         : undefined,
       members: [],
       events,
-      coupons: [],
+      coupons,
       content: {
         blocks: (contentBlocks.data ?? []).map(mapContentBlock),
         media: (mediaAssets.data ?? []).map(mapMediaAsset)

@@ -79,6 +79,7 @@ const defaultLandingSettings = {
 };
 
 const defaultMediaForm = {
+  id: "",
   scope: "landing",
   organizationId: "",
   label: "",
@@ -574,8 +575,13 @@ function MediaPanel({
       return;
     }
 
-    const result = unwrapData<{ publicUrl: string }>(await response.json());
-    onChange({ ...form, url: result.publicUrl, label: form.label || file.name });
+    const result = unwrapData<{ mediaAssetId: string | null; publicUrl: string }>(await response.json());
+    onChange({
+      ...form,
+      id: result.mediaAssetId || form.id,
+      url: result.publicUrl,
+      label: form.label || file.name
+    });
     setUploadState("saved");
     setUploadMessage("이미지를 업로드했고 URL을 입력칸에 반영했습니다.");
   }
