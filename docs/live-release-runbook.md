@@ -39,6 +39,7 @@
 - [ ] **DB migration 확인:** 현재 코드에 포함된 모든 migration이 target Supabase에 적용되었고, migration 목록과 RLS 상태가 일치하는지 확인한다. 기존 운영 데이터를 임의로 삭제하지 않는다.
 - [ ] **정적 검증 재실행:** `npm run lint`, `npx tsc --noEmit`, `npm run build`.
 - [ ] **live API smoke 재실행:** 아래 순서를 지키고 각 결과와 실행 target을 기록한다.
+- [ ] **비인증 guard smoke:** 공개 로그인/가입 route와 주요 GET/POST 보호 API의 `401 authentication_required`를 확인한다.
 - [ ] **브라우저 QA:** `/`, `/login`, `/signup`, `/onboarding`, `/app`, `/admin`을 확인한다. 데스크톱과 모바일에서 auth 오류, organization 전환, CMS 반영, 쿠폰 조회·다운로드, admin 탭·테이블, AI 영역을 확인한다.
 - [ ] **print preview:** `/app#ai-helper`에서 인쇄 미리보기, 긴 문구, 페이지 잘림을 확인한다.
 - [ ] **격리·정리 확인:** smoke가 만든 QA organization, invite, campaign, coupon, CMS marker가 의도한 정책에 따라 정리되었는지 확인한다.
@@ -127,13 +128,14 @@ bootstrap 작업을 할 때만 추가로 `KIDSMEMO_BOOTSTRAP_EMAIL`, `KIDSMEMO_B
 1. `npm run lint`
 2. `npx tsc --noEmit`
 3. `npm run build`
-4. `npm run qa:admin-browser-auth`
-5. `npm run smoke:admin-live`
-6. `npm run smoke:admin-operations-live`
-7. `npm run smoke:organization-cms-live`
-8. `npm run test:staff-coupon-e2e`
-9. `npm run smoke:onboarding-invite-live`
-10. 브라우저 수동 QA와 print preview
+4. `npm run qa:production-guards`
+5. `npm run qa:admin-browser-auth`
+6. `npm run smoke:admin-live`
+7. `npm run smoke:admin-operations-live`
+8. `npm run smoke:organization-cms-live`
+9. `npm run test:staff-coupon-e2e`
+10. `npm run smoke:onboarding-invite-live`
+11. 브라우저 수동 QA와 print preview
 
 실행 규칙:
 
