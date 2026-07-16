@@ -222,7 +222,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
       setActiveTool("assistant");
       setAssistantForm(record.input);
       setAssistantResult(record.output);
-      setAssistantStatus("저장된 행사 도우미 결과를 불러왔습니다.");
+      setAssistantStatus(`저장된 행사 도우미 결과를 불러왔습니다. ${getProviderLabel(record.output.providerMode)}`);
       return;
     }
 
@@ -230,7 +230,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
       setActiveTool("message");
       setMessageForm(record.input);
       setMessageResult(record.output);
-      setMessageStatus("저장된 학부모 메시지 결과를 불러왔습니다.");
+      setMessageStatus(`저장된 학부모 메시지 결과를 불러왔습니다. ${getProviderLabel(record.output.providerMode)}`);
     }
   }
 
@@ -448,6 +448,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
         <div className="print-page m-4 rounded-xl border border-line bg-surface p-4">
           <h4 className="text-base font-semibold text-ink">{assistantForm.eventName} 계획서</h4>
+          <ProviderNotice mode={assistantResult.providerMode} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <ResultList title="아이디어" items={assistantResult.ideas} />
             <ResultList title="체크리스트" items={assistantResult.checklist} />
@@ -590,6 +591,7 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
         </div>
 
         <div className="print-page mt-4 grid gap-3">
+          <ProviderNotice mode={messageResult.providerMode} />
           {messageResult.candidates.map((message, index) => (
             <div key={message} className="rounded border border-line bg-surface p-4">
               <div className="flex items-start justify-between gap-3">
@@ -669,6 +671,24 @@ function unwrapData<T>(payload: unknown): T {
   }
 
   return payload as T;
+}
+
+function ProviderNotice({ mode }: { mode?: "openai" | "fallback" }) {
+  const isFallback = mode === "fallback";
+  const label = mode === "openai" ? "OpenAI 실제 생성 결과" : isFallback ? "AI 미연결 fallback 템플릿" : "AI provider 출처 미기록";
+
+  return (
+    <p className={`mt-3 rounded border px-3 py-2 text-xs font-semibold ${isFallback ? "border-amber-200 bg-amber-50 text-amber-800" : "border-line bg-white text-muted"}`}>
+      {label}
+      {isFallback ? " · 실제 AI 결과나 발송을 의미하지 않습니다." : null}
+    </p>
+  );
+}
+
+function getProviderLabel(mode?: "openai" | "fallback") {
+  if (mode === "openai") return "OpenAI 실제 생성 결과입니다.";
+  if (mode === "fallback") return "AI 미연결 fallback 결과입니다.";
+  return "AI provider 출처가 기록되지 않은 결과입니다.";
 }
 
 function isEventAssistantRequest(value: unknown): value is EventAssistantRequest {
