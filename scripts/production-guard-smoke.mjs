@@ -31,6 +31,26 @@ async function main() {
     supplies: []
   });
   checks.push("events_post_401");
+  await assertUnauthorized("POST", "/api/events/import-year-plan", {
+    organizationId: "00000000-0000-0000-0000-000000000000",
+    year: 2026,
+    events: [
+      {
+        title: "guard smoke",
+        eventDate: "2026-10-15",
+        audience: "all"
+      }
+    ]
+  });
+  checks.push("year_plan_import_post_401");
+  await assertUnauthorized("POST", "/api/onboarding", {
+    action: "create",
+    profileName: "guard smoke",
+    organizationName: "guard smoke",
+    organizationType: "daycare",
+    organizationRegion: "서울"
+  });
+  checks.push("onboarding_post_401");
   await assertUnauthorized("POST", "/api/admin/operations", { resource: "pushCampaigns", payload: {} });
   checks.push("admin_operations_post_401");
   await assertUnauthorized("POST", "/api/jobs/send-reminders", {});
@@ -52,6 +72,16 @@ async function main() {
     senderName: "키즈메모"
   });
   checks.push("ai_parent_message_post_401");
+  await assertUnauthorized("POST", "/api/webhooks/message-provider", {
+    providerMessageId: "guard-smoke",
+    status: "sent"
+  });
+  checks.push("message_webhook_post_401");
+  await assertUnauthorized("POST", "/api/webhooks/jumbokids-benefits", {
+    benefitId: "guard-smoke",
+    status: "issued"
+  });
+  checks.push("jumbokids_webhook_post_401");
 
   console.log(JSON.stringify({ ok: true, baseUrl, checks }, null, 2));
 }

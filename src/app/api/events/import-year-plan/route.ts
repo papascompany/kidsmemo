@@ -5,8 +5,8 @@ import { yearPlanImportSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
-    const payload = yearPlanImportSchema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const payload = yearPlanImportSchema.parse(await request.json());
     const repositories = getRepositories(access);
     assertOrganizationScope(access, payload.organizationId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);

@@ -4,8 +4,8 @@ import { messageProviderWebhookSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
-    const payload = messageProviderWebhookSchema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const payload = messageProviderWebhookSchema.parse(await request.json());
     assertRoleScope(access, ["admin"]);
 
     return ok({

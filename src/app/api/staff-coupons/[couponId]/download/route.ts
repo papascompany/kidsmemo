@@ -20,8 +20,8 @@ export async function POST(
 ) {
   try {
     const { couponId } = await params;
-    const payload = schema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const payload = schema.parse(await request.json());
     const profileId = access.profileId ?? payload.profileId;
 
     if (!profileId) {

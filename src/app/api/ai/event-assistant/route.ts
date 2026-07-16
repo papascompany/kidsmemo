@@ -16,6 +16,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const access = await resolveRequestAccessContext(request);
     const body = await readJson(request);
 
     if (!body.ok) {
@@ -23,7 +24,6 @@ export async function POST(request: Request) {
     }
 
     const payload = schema.parse(body.value);
-    const access = await resolveRequestAccessContext(request);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
     const result = await generateEventAssistantPlan(payload);
     await saveAiGeneration(access, {

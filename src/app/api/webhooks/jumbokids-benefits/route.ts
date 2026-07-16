@@ -4,8 +4,8 @@ import { jumbokidsBenefitsWebhookSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
-    const payload = jumbokidsBenefitsWebhookSchema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const payload = jumbokidsBenefitsWebhookSchema.parse(await request.json());
     assertRoleScope(access, ["admin"]);
 
     return ok({

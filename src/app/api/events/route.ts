@@ -17,8 +17,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const payload = eventCreateSchema.parse(await request.json());
     const access = await resolveRequestAccessContext(request);
+    const payload = eventCreateSchema.parse(await request.json());
     const repositories = getRepositories(access);
     assertOrganizationScope(access, payload.organizationId);
     assertRoleScope(access, ["owner", "manager", "teacher"]);
