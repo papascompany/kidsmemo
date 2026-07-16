@@ -1,5 +1,5 @@
 import type { Role } from "./types";
-import { isLiveSupabaseMode } from "./env-flags";
+import { isLiveSupabaseMode, isMockRuntimeAllowed } from "./env-flags";
 import { createSupabaseUserClient } from "./supabase";
 
 type MembershipRow = {
@@ -53,6 +53,10 @@ export function assertLiveSupabaseAnonConfigured() {
 }
 
 export function getRequestAccessContext(request: Request): RequestAccessContext {
+  if (!isMockRuntimeAllowed()) {
+    return anonymousAccess();
+  }
+
   const profileId = normalizeHeader(request.headers.get(`${ACCESS_HEADER_PREFIX}profile-id`));
   const organizationId = normalizeHeader(request.headers.get(`${ACCESS_HEADER_PREFIX}organization-id`));
   const role = parseRole(request.headers.get(`${ACCESS_HEADER_PREFIX}role`));
@@ -128,9 +132,7 @@ export function assertOrganizationScope(
   message = "선택한 기관에 접근할 권한이 없습니다."
 ) {
   if (access.source === "anonymous") {
-    if (isLiveSupabaseMode()) {
-      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
-    }
+    assertRuntimeCanProceedWithoutSession();
     return;
   }
 
@@ -155,9 +157,7 @@ export function assertRoleScope(
   message = "이 작업을 수행할 권한이 없습니다."
 ) {
   if (access.source === "anonymous") {
-    if (isLiveSupabaseMode()) {
-      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
-    }
+    assertRuntimeCanProceedWithoutSession();
     return;
   }
 
@@ -182,9 +182,7 @@ export function assertProfileScope(
   message = "선택한 사용자로 작업할 권한이 없습니다."
 ) {
   if (access.source === "anonymous") {
-    if (isLiveSupabaseMode()) {
-      throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
-    }
+    assertRuntimeCanProceedWithoutSession();
     return;
   }
 
@@ -215,6 +213,20 @@ function anonymousAccess(): RequestAccessContext {
     role: null,
     source: "anonymous"
   };
+}
+
+function assertRuntimeCanProceedWithoutSession() {
+  if (isLiveSupabaseMode()) {
+    throw new AccessControlError("authentication_required", "로그인이 필요한 작업입니다.", 401);
+  }
+
+  if (!isMockRuntimeAllowed()) {
+    throw new AccessControlError(
+      "live_backend_required",
+      "Production API는 live Supabase 인증 설정이 필요합니다.",
+      503
+    );
+  }
 }
 
 function getBearerToken(request: Request) {

@@ -5,7 +5,7 @@ import {
   resolveRequestAccessContext,
   type RequestAccessContext
 } from "./access-control";
-import { isLiveSupabaseMode } from "./env-flags";
+import { isEnabledEnvFlag, isLiveSupabaseMode } from "./env-flags";
 import { createSupabaseUserClient } from "./supabase";
 import type { Role } from "./types";
 
@@ -263,8 +263,25 @@ export async function getPushDeliveryLog(
   };
 }
 
-function resolvePushProvider(_input: PushSendRequest): PushProvider {
-  return mockPushProvider;
+function resolvePushProvider(input: PushSendRequest): PushProvider {
+  if (input.providerMode === "mock") {
+    if (!isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_MOCK_PUSH)) {
+      throw new AccessControlError(
+        "push_mock_disabled",
+        "실제 푸시 provider가 연결되지 않은 환경에서는 mock 발송을 사용할 수 없습니다.",
+        503
+      );
+    }
+
+    return mockPushProvider;
+  }
+
+  throw new AccessControlError(
+    "push_provider_not_configured",
+    "실제 푸시 provider가 연결되지 않아 자동 발송을 진행할 수 없습니다.",
+    503,
+    { providerMode: input.providerMode }
+  );
 }
 
 async function getCampaign(supabase: SupabaseClient, campaignId: string): Promise<CampaignRow> {

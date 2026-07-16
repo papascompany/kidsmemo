@@ -44,7 +44,7 @@ async function main() {
 
   console.log(`[START] onboarding invite live smoke (${runId})`);
 
-  const [ownerUser, joinerUser] = await Promise.all([
+  const [ownerAccount, joinerAccount] = await Promise.all([
     ensureUser(service, {
       email: config.ownerEmail,
       password: config.ownerPassword,
@@ -131,8 +131,9 @@ async function main() {
     if (!config.keepRecord) {
       await cleanupQaRecords(service, {
         organizationId,
-        ownerProfileId: ownerUser.id,
-        joinerProfileId: joinerUser.id
+        createdAuthUserIds: [ownerAccount, joinerAccount]
+          .filter((account) => account.created)
+          .map((account) => account.user.id)
       });
       cleanupCompleted = true;
       console.log("[PASS] cleaned up QA organization, memberships, and invites");
@@ -162,8 +163,9 @@ async function main() {
       try {
         await cleanupQaRecords(service, {
           organizationId,
-          ownerProfileId: ownerUser.id,
-          joinerProfileId: joinerUser.id
+          createdAuthUserIds: [ownerAccount, joinerAccount]
+            .filter((account) => account.created)
+            .map((account) => account.user.id)
         });
       } catch (error) {
         console.error(`[WARN] cleanup may be incomplete: ${redact(errorMessage(error))}`);
@@ -175,7 +177,10 @@ async function main() {
 async function ensureUser(supabase, user) {
   const existing = await findUserByEmail(supabase, user.email);
   if (existing) {
-    return existing;
+    return {
+      user: existing,
+      created: false
+    };
   }
 
   const { data, error } = await supabase.auth.admin.createUser({
@@ -188,7 +193,10 @@ async function ensureUser(supabase, user) {
   });
 
   if (error) throw error;
-  return data.user;
+  return {
+    user: data.user,
+    created: true
+  };
 }
 
 async function findUserByEmail(supabase, email) {
@@ -273,8 +281,7 @@ async function parseJson(response, path) {
   }
 }
 
-async function cleanupQaRecords(supabase, { organizationId, ownerProfileId, joinerProfileId }) {
-  const profileIds = [ownerProfileId, joinerProfileId].filter(Boolean);
+async function cleanupQaRecords(supabase, { organizationId, createdAuthUserIds }) {
   const memberships = await supabase.from("memberships").delete().eq("organization_id", organizationId);
   if (memberships.error) throw new Error(`memberships cleanup failed: ${memberships.error.message}`);
 
@@ -284,9 +291,14 @@ async function cleanupQaRecords(supabase, { organizationId, ownerProfileId, join
   const organization = await supabase.from("organizations").delete().eq("id", organizationId);
   if (organization.error) throw new Error(`organization cleanup failed: ${organization.error.message}`);
 
-  if (profileIds.length > 0) {
-    const profiles = await supabase.from("profiles").delete().in("id", profileIds);
+  if (createdAuthUserIds.length > 0) {
+    const profiles = await supabase.from("profiles").delete().in("id", createdAuthUserIds);
     if (profiles.error) throw new Error(`profiles cleanup failed: ${profiles.error.message}`);
+
+    for (const userId of createdAuthUserIds) {
+      const user = await supabase.auth.admin.deleteUser(userId);
+      if (user.error) throw new Error(`auth user cleanup failed: ${user.error.message}`);
+    }
   }
 }
 

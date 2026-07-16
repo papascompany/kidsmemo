@@ -8,3 +8,7 @@ export function isLiveSupabaseMode() {
     isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_LIVE_SUPABASE)
   );
 }
+
+export function isMockRuntimeAllowed() {
+  return process.env.NODE_ENV !== "production" || isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_MOCK_RUNTIME);
+}

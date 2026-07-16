@@ -816,12 +816,13 @@ function PushPanel({
     const response = await authenticatedFetch(`/api/admin/push/campaigns/${campaign.id}/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ providerMode: "mock", mockResult: "sent" })
+      body: JSON.stringify({ providerMode: "auto" })
     });
 
     if (!response.ok) {
       setSendState((current) => ({ ...current, [campaign.id]: "error" }));
-      setSendMessage("푸시 발송 요청에 실패했습니다.");
+      const errorBody = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+      setSendMessage(errorBody?.error?.message || "푸시 발송 요청에 실패했습니다.");
       return;
     }
 

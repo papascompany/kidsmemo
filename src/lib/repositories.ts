@@ -1,5 +1,5 @@
 import { events, messageJobs, staffCouponDownloads, staffCoupons } from "./mock-data";
-import { isLiveSupabaseMode } from "./env-flags";
+import { isLiveSupabaseMode, isMockRuntimeAllowed } from "./env-flags";
 import { isTomorrow } from "./format";
 import { AccessControlError, assertLiveSupabaseAnonConfigured, type RequestAccessContext } from "./access-control";
 import { createSupabaseServiceClient, createSupabaseUserClient } from "./supabase";
@@ -157,6 +157,14 @@ export function getRepositories(_access?: RequestAccessContext): RepositorySet {
   const dataBackend = process.env.KIDSMEMO_DATA_BACKEND ?? "mock";
 
   if (dataBackend !== "supabase" || !isLiveSupabaseMode()) {
+    if (!isMockRuntimeAllowed()) {
+      throw new AccessControlError(
+        "live_backend_required",
+        "Production API는 live Supabase backend 설정이 필요합니다.",
+        503
+      );
+    }
+
     return {
       events: mockEventRepository,
       messageJobs: mockMessageJobRepository,
