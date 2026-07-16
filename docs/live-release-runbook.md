@@ -28,6 +28,10 @@
 - [x] `/app`의 320/390/768/1440 폭 수평 overflow 점검 기록.
 - [x] 관리자 운영, 기관 CMS, 초대·온보딩, 교직원 쿠폰 흐름과 대응 smoke script가 저장소에 존재.
 - [x] 직원 휴가·연차 및 원아 출석 기능을 제품 범위에서 제외하는 정리 migration이 추가됨.
+- [x] 2026-07-16 배포 `b731f74`가 Vercel production `Ready` 상태로 alias에 반영됨.
+- [x] production guard smoke 13개 통과: `/login`, `/signup` 200 및 행사·연간계획·온보딩·관리자·AI·웹훅 보호 API 비인증 401 확인.
+- [x] Supabase linked migration 목록이 로컬·원격 모두 `20260716100000`까지 일치하고 `supabase db lint --linked`가 schema 오류 없이 통과함.
+- [x] 최신 Vercel production env 이름 확인 결과 Supabase 연결 변수만 존재하며, push·메시지·OpenAI·Naver provider 변수는 아직 설정되지 않음.
 
 근거 문서: `docs/deployment-env-inventory.md`, `docs/project-handoff-plan.md`, `docs/qa-sprint-1.md`, `docs/sprint-1-board.md`.
 
