@@ -1,5 +1,6 @@
 import { events, staffCoupons } from "./mock-data";
-import type { RequestAccessContext } from "./access-control";
+import { AccessControlError, type RequestAccessContext } from "./access-control";
+import { isEnabledEnvFlag, isLiveSupabaseMode } from "./env-flags";
 import { isTomorrow } from "./format";
 import { sendMessageWithFallback } from "./messages";
 import {
@@ -24,6 +25,14 @@ export async function runReminderJob(options: RunReminderJobOptions = {}): Promi
   const generatedJobs: MessageJob[] = [];
   const jobSummaries: ReminderRunResult["jobSummaries"] = [];
   const scheduledDate = now.toISOString().slice(0, 10);
+
+  if (isLiveSupabaseMode() && !isEnabledEnvFlag(process.env.KIDSMEMO_ALLOW_MOCK_MESSAGING)) {
+    throw new AccessControlError(
+      "message_provider_not_configured",
+      "실제 메시지 provider가 연결되지 않아 리마인더 발송을 진행할 수 없습니다.",
+      503
+    );
+  }
 
   for (const event of await eventRepository.findTomorrow(now)) {
     const existingJob = await messageJobRepository.findExistingJob(event.id, scheduledDate);

@@ -63,7 +63,8 @@ const sampleAssistantResult: EventAssistantResult = {
       url: "https://search.shopping.naver.com/search/all?query=%EC%8A%A4%ED%83%AC%ED%94%84%20%EB%AF%B8%EC%85%98%20%EC%B9%B4%EB%93%9C",
       reason: "아이들이 행사 흐름을 놀이처럼 따라갈 수 있습니다."
     }
-  ]
+  ],
+  providerMode: "fallback"
 };
 
 const sampleMessageResult: ParentMessageResult = {
@@ -72,7 +73,8 @@ const sampleMessageResult: ParentMessageResult = {
     "함께해 주신 마음에 감사드립니다. 아이들의 소중한 순간을 오래 간직하실 수 있도록 사진 안내도 곧 전해드리겠습니다.",
     "아이들이 준비한 작은 순간마다 큰 성장이 담겨 있었습니다. 늘 믿고 응원해 주시는 부모님께 감사드립니다."
   ],
-  safetyNotes: ["민감 정보 제외", "구매 강요 표현 제외", "실제 발송 전 행사명과 날짜 확인 필요"]
+  safetyNotes: ["민감 정보 제외", "구매 강요 표현 제외", "실제 발송 전 행사명과 날짜 확인 필요"],
+  providerMode: "fallback"
 };
 
 export function AiWorkbench({ organizationId }: { organizationId?: string }) {
@@ -166,7 +168,11 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
       const payload = unwrapData<EventAssistantResult>(await response.json());
       setAssistantResult(payload);
-      setAssistantStatus("행사 계획서가 새로 생성되었습니다.");
+      setAssistantStatus(
+        payload.providerMode === "fallback"
+          ? "AI 연결 전 fallback 결과입니다. 실제 AI 결과가 필요하면 운영 키를 설정해 주세요."
+          : "행사 계획서가 새로 생성되었습니다."
+      );
       await loadHistory();
     } catch {
       setAssistantStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");
@@ -198,7 +204,11 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
 
       const payload = unwrapData<ParentMessageResult>(await response.json());
       setMessageResult(payload);
-      setMessageStatus("학부모 메시지 후보가 새로 생성되었습니다.");
+      setMessageStatus(
+        payload.providerMode === "fallback"
+          ? "AI 연결 전 fallback 문구입니다. 실제 AI 결과가 필요하면 운영 키를 설정해 주세요."
+          : "학부모 메시지 후보가 새로 생성되었습니다."
+      );
       await loadHistory();
     } catch {
       setMessageStatus("생성에 실패했습니다. 입력값과 API 상태를 확인해주세요.");

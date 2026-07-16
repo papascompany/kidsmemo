@@ -24,12 +24,14 @@ export const eventAssistantResultSchema = z.object({
   checklist: z.array(nonEmptyStringSchema).min(4).max(8),
   timeline: z.array(nonEmptyStringSchema).min(4).max(8),
   parentNoticeDraft: nonEmptyStringSchema,
-  shoppingRecommendations: z.array(shoppingRecommendationSchema).min(1).max(5)
+  shoppingRecommendations: z.array(shoppingRecommendationSchema).min(1).max(5),
+  providerMode: z.enum(["openai", "fallback"]).optional()
 });
 
 export const parentMessageResultSchema = z.object({
   candidates: z.array(nonEmptyStringSchema).min(3).max(3),
-  safetyNotes: z.array(nonEmptyStringSchema).min(2).max(5)
+  safetyNotes: z.array(nonEmptyStringSchema).min(2).max(5),
+  providerMode: z.enum(["openai", "fallback"]).optional()
 });
 
 export async function generateEventAssistantPlan(
@@ -55,7 +57,9 @@ export async function generateEventAssistantPlan(
     })
   });
 
-  return generated ?? generateEventAssistantFallback(input, shoppingRecommendations);
+  return generated
+    ? { ...generated, providerMode: "openai" }
+    : { ...generateEventAssistantFallback(input, shoppingRecommendations), providerMode: "fallback" };
 }
 
 export async function generateParentMessages(
@@ -75,7 +79,9 @@ export async function generateParentMessages(
     })
   });
 
-  return generated ?? generateParentMessagesFallback(input);
+  return generated
+    ? { ...generated, providerMode: "openai" }
+    : { ...generateParentMessagesFallback(input), providerMode: "fallback" };
 }
 
 function generateEventAssistantFallback(

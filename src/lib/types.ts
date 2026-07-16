@@ -103,6 +103,7 @@ export interface EventAssistantResult {
   timeline: string[];
   parentNoticeDraft: string;
   shoppingRecommendations: ShoppingRecommendation[];
+  providerMode?: "openai" | "fallback";
 }
 
 export interface ShoppingRecommendation {
@@ -124,6 +125,7 @@ export interface ParentMessageRequest {
 export interface ParentMessageResult {
   candidates: string[];
   safetyNotes: string[];
+  providerMode?: "openai" | "fallback";
 }
 
 export type AiGenerationKind = "event_assistant" | "parent_message";

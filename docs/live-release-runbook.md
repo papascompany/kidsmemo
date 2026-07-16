@@ -62,6 +62,7 @@
 | `KIDSMEMO_ALLOW_LIVE_SUPABASE` | live Supabase 명시적 unlock | 별도 승인 전에는 unlock하지 않음 |
 | `KIDSMEMO_ALLOW_MOCK_RUNTIME` | production에서 mock 인증·repository를 임시 허용하는 개발/QA flag | Production에서는 반드시 `false` 또는 미설정 |
 | `KIDSMEMO_ALLOW_MOCK_PUSH` | live 환경에서 mock push를 임시 허용하는 개발/QA flag | Production에서는 반드시 `false` 또는 미설정 |
+| `KIDSMEMO_ALLOW_MOCK_MESSAGING` | live 환경에서 mock 메시지 리마인더를 임시 허용하는 개발/QA flag | Production에서는 반드시 `false` 또는 미설정 |
 | `NEXT_PUBLIC_SUPABASE_URL` | 브라우저·서버 Supabase URL | target 환경에 존재해야 함 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 브라우저 로그인·RLS 사용자 client | 브라우저 공개 가능 범위만 사용 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용 bootstrap·운영 job | public/client env와 로그에 절대 노출하지 않음 |
@@ -157,6 +158,8 @@ bootstrap 작업을 할 때만 추가로 `KIDSMEMO_BOOTSTRAP_EMAIL`, `KIDSMEMO_B
 
 현재 live mode의 `auto` 발송은 실제 provider가 연결되지 않으면 `503 provider_not_configured`로 종료한다. 관리자 화면도 mock provider를 직접 요청하지 않는다. `KIDSMEMO_ALLOW_MOCK_PUSH=true`는 격리된 개발/QA 환경에서만 임시로 사용하며 Production에서는 허용하지 않는다.
 
+메시지 리마인더도 실제 provider가 없으면 `503 message_provider_not_configured`로 종료한다. AI 결과는 `providerMode: "openai"` 또는 `providerMode: "fallback"`을 포함해 출처를 구분한다.
+
 결정이 필요한 항목:
 
 - push 및 운영 메시지의 실제 provider와 채널 우선순위.
@@ -169,6 +172,7 @@ bootstrap 작업을 할 때만 추가로 `KIDSMEMO_BOOTSTRAP_EMAIL`, `KIDSMEMO_B
 
 - [ ] `MESSAGE_PROVIDER_API_BASE_URL`, `MESSAGE_PROVIDER_API_KEY`를 실값으로 채웠다고 해서 provider를 활성화하지 않는다.
 - [ ] `KIDSMEMO_ALLOW_MOCK_PUSH=true`를 Production에 설정하지 않는다.
+- [ ] `KIDSMEMO_ALLOW_MOCK_MESSAGING=true`를 Production에 설정하지 않는다.
 - [ ] mock delivery log의 `sent`를 외부 수신 성공으로 해석하지 않는다.
 - [ ] provider 승인·템플릿·수신동의·dry-run·모니터링 기준이 모두 확인될 때까지 실수신자 발송을 하지 않는다.
 
