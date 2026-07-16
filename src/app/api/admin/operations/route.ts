@@ -72,7 +72,7 @@ const pushCampaignSchema = z.object({
   title: z.string().trim().min(1),
   body: z.string().trim().min(1),
   targetRole: z.enum(["owner", "manager", "teacher", "admin"]).nullable().optional(),
-  status: z.enum(["draft", "scheduled", "sent", "failed", "cancelled"]).default("draft"),
+  status: z.enum(["draft", "scheduled", "failed", "cancelled"]).default("draft"),
   scheduledFor: z.string().datetime().nullable().optional()
 });
 

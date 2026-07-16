@@ -826,16 +826,20 @@ function PushPanel({
       return;
     }
 
-    const result = unwrapData<{ sent: number; skipped: number }>(await response.json());
+    const result = unwrapData<{ mode?: "live" | "simulation"; sent: number; skipped: number }>(await response.json());
     setSendState((current) => ({ ...current, [campaign.id]: "saved" }));
-    setSendMessage(`발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`);
+    setSendMessage(
+      result.mode === "simulation"
+        ? `시뮬레이션 완료: 실제 발송 아님 · 대상 ${result.sent + result.skipped}건`
+        : `발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`
+    );
     await loadDeliveryLog(campaign);
   }
 
   return (
     <EditorLayout
       title="푸시알림/운영 메시지"
-      description="대상 기관/역할, 예약 시간, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다."
+      description="대상 기관/역할, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다. 예약 시각은 provider와 자동 발송 worker가 연결되기 전까지 기록으로만 보관됩니다."
       onSave={onSave}
       saveState={saveState}
       list={
@@ -853,7 +857,7 @@ function PushPanel({
         <AdminOrganizationSelect label="기관" value={form.organizationId} onChange={(organizationId) => onChange({ ...form, organizationId })} />
         <Field label="제목" value={form.title} onChange={(title) => onChange({ ...form, title })} placeholder="내일 행사 안내" />
         <SelectField label="대상 역할" value={form.targetRole} onChange={(targetRole) => onChange({ ...form, targetRole })} options={["", "owner", "manager", "teacher"]} />
-        <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "scheduled", "sent", "failed", "cancelled"]} />
+        <SelectField label="상태" value={form.status} onChange={(status) => onChange({ ...form, status })} options={["draft", "scheduled", "failed", "cancelled"]} />
         <Field label="예약 시각" value={form.scheduledFor} onChange={(scheduledFor) => onChange({ ...form, scheduledFor })} placeholder="2026-06-23T00:00:00.000Z" />
       </div>
       <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="알림 본문" />
@@ -1032,7 +1036,7 @@ function PushCampaignList({
               <div key={campaign.id} className="rounded border border-line bg-surface p-3">
                 <p className="font-semibold text-ink">{campaign.title}</p>
                 <p className="mt-1 text-xs font-semibold text-brand">
-                  {campaign.status} · {campaign.scheduledFor ?? "즉시"} · {campaign.targetRole ?? "전체"}
+                  {formatPushCampaignStatus(campaign.status)} · {campaign.scheduledFor ?? "즉시"} · {campaign.targetRole ?? "전체"}
                 </p>
                 <button
                   type="button"
@@ -1090,8 +1094,13 @@ function PushDeliveryLogPanel({ log, state }: { log: PushDeliveryLog | null; sta
   return (
     <section className="rounded border border-line bg-surface p-4">
       <div className="flex flex-wrap gap-2">
+        <Badge tone={log.mode === "simulation" ? "amber" : "green"}>
+          {log.mode === "simulation" ? "시뮬레이션 · 실제 발송 아님" : "실제 provider"}
+        </Badge>
         <Badge tone="blue">총 {log.summary.total}건</Badge>
-        <Badge tone="green">전송 {log.summary.sent}건</Badge>
+        <Badge tone={log.mode === "simulation" ? "amber" : "green"}>
+          {log.mode === "simulation" ? "시뮬레이션" : "전송"} {log.summary.sent}건
+        </Badge>
         <Badge tone="amber">제외 {log.summary.skipped}건</Badge>
         <Badge tone={log.summary.failed > 0 ? "red" : "blue"}>실패 {log.summary.failed}건</Badge>
       </div>
@@ -1101,12 +1110,12 @@ function PushDeliveryLogPanel({ log, state }: { log: PushDeliveryLog | null; sta
             <div key={delivery.id ?? `${delivery.recipientProfileId}-${delivery.createdAt}`} className="rounded border border-line bg-white p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-mono text-xs font-semibold text-muted">{delivery.recipientProfileId}</p>
-                <Badge tone={delivery.status === "sent" ? "green" : delivery.status === "failed" ? "red" : "amber"}>
-                  {delivery.status}
+                <Badge tone={delivery.status === "sent" && log.mode === "live" ? "green" : delivery.status === "failed" ? "red" : "amber"}>
+                  {delivery.status === "sent" && log.mode === "simulation" ? "시뮬레이션" : delivery.status}
                 </Badge>
               </div>
               <p className="mt-2 text-xs font-semibold text-brand">
-                {delivery.provider} · {delivery.recipientRole} · {delivery.createdAt}
+                {log.mode === "simulation" ? "simulation" : delivery.provider} · {delivery.recipientRole} · {delivery.createdAt}
               </p>
               {delivery.skippedReason || delivery.failureReason ? (
                 <p className="mt-1 text-xs text-muted">
@@ -1422,6 +1431,18 @@ function getInviteStatus(invite: AdminInvite): {
   }
 
   return { label: "활성", status: "active", tone: "green" };
+}
+
+function formatPushCampaignStatus(status: string) {
+  const labels: Record<string, string> = {
+    draft: "초안",
+    scheduled: "예약 정보 저장",
+    sent: "발송 완료",
+    failed: "실패",
+    cancelled: "취소"
+  };
+
+  return labels[status] ?? status;
 }
 
 function formatDateTime(value: string) {

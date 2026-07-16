@@ -15,6 +15,7 @@ export type PushCampaignStatus = "draft" | "scheduled" | "sent" | "failed" | "ca
 export type MockResult = "sent" | "skipped" | "failed" | "mixed";
 export type PushDeliveryProviderName = "mock";
 export type PushDeliveryStatus = "sent" | "skipped" | "failed";
+export type PushDeliveryMode = "live" | "simulation";
 
 const retryDelayMs = 5 * 60 * 1000;
 
@@ -72,6 +73,7 @@ export interface MembershipRow {
 
 interface DeliverySummary {
   campaignId: string;
+  mode: PushDeliveryMode;
   provider: PushDeliveryProviderName;
   requested: number;
   sent: number;
@@ -98,6 +100,7 @@ export interface PushDeliveryItem {
 
 export interface PushDeliveryLog {
   campaignId: string;
+  mode: PushDeliveryMode;
   summary: {
     total: number;
     sent: number;
@@ -216,6 +219,7 @@ export async function sendPushCampaign(
 
   return {
     campaignId: campaign.id,
+    mode: "live",
     provider: provider.name,
     requested: memberships.length,
     sent: sentCount,
@@ -258,6 +262,7 @@ export async function getPushDeliveryLog(
 
   return {
     campaignId: campaign.id,
+    mode: "live",
     summary,
     deliveries
   };
@@ -420,6 +425,7 @@ function sendMockCampaign(campaignId: string, input: PushSendRequest): DeliveryS
 
   return {
     campaignId,
+    mode: "simulation",
     provider: "mock",
     requested: memberships.length,
     sent: deliveries.filter((delivery) => delivery.status === "sent").length,
@@ -440,6 +446,7 @@ function getMockDeliveryLog(campaignId: string, query: PushDeliveryQuery): PushD
 
   return {
     campaignId,
+    mode: "simulation",
     summary: summarizeDeliveryItems(deliveries),
     deliveries
   };

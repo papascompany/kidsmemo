@@ -23,8 +23,8 @@ export async function sendMessageWithFallback({ event }: { event: EventSchedule 
       jobId: `job-${event.id}`,
       recipientProfileId: recipient.id,
       channel,
-      status: "sent",
-      providerMessageId: `${channel}_${Date.now()}_${index}`
+      status: "fallback",
+      failureReason: "message_provider_not_configured"
     });
   });
 
