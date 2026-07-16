@@ -12,6 +12,7 @@
     "bootstrap:admin-membership": "node scripts/bootstrap-admin-membership.mjs",
     "qa:admin-browser": "node scripts/admin-browser-qa.mjs",
     "qa:production-guards": "node scripts/production-guard-smoke.mjs",
+    "qa:release-preflight": "node scripts/release-preflight.mjs",
     "qa:admin-browser-auth": "node scripts/admin-browser-auth-smoke.mjs",
     "smoke:admin-live": "node scripts/admin-live-smoke.mjs",
     "smoke:admin-operations-live": "node scripts/admin-operations-live-smoke.mjs",

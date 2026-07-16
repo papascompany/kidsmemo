@@ -26,6 +26,18 @@ npm run dev
 
 현재 구현은 외부 API 키가 없어도 모의 응답으로 동작합니다.
 
+live smoke 전에는 provider와 무관한 환경 사전 점검을 실행합니다. 대상과 smoke URL을 명시하고, 선택한 smoke에 필요한 환경변수 이름의 존재와 target 분리만 확인합니다. 값이나 credential 유효성은 출력하거나 확인하지 않습니다.
+
+```bash
+KIDSMEMO_RELEASE_TARGET=production \
+KIDSMEMO_RELEASE_BASE_URL=https://kidsmemo.vercel.app \
+NEXT_PUBLIC_APP_URL=https://kidsmemo.vercel.app \
+KIDSMEMO_ADMIN_SMOKE_BASE_URL=https://kidsmemo.vercel.app \
+npm run qa:release-preflight -- --profile admin-live
+```
+
+자세한 profile별 필수 변수와 preview/production 규칙은 `docs/live-release-runbook.md`를 참고합니다.
+
 ## Supabase
 
 `supabase/schema.sql`에 기본 테이블, enum, RLS 초안이 들어 있습니다.

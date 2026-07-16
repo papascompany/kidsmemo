@@ -129,6 +129,25 @@ bootstrap 작업을 할 때만 추가로 `KIDSMEMO_BOOTSTRAP_EMAIL`, `KIDSMEMO_B
 
 모든 smoke는 실행 전에 target env와 테스트 계정, QA organization 범위를 확인한다. 실패 시 다음 단계로 넘어가지 않고 실패 endpoint·오류 코드·정리 결과만 기록한다.
 
+### 5.1 환경 사전 점검
+
+각 live smoke 직전에 먼저 `qa:release-preflight`를 같은 셸에서 실행한다. 이 명령은 네트워크 요청이나 로그인을 하지 않고, 선택한 profile에 필요한 **환경변수 이름의 존재**와 target 분리만 확인한다. 값, 토큰, 비밀번호, key material은 읽어서 출력하지 않으며, 이 점검의 통과는 credential 유효성이나 provider 연동 완료를 의미하지 않는다.
+
+```bash
+KIDSMEMO_RELEASE_TARGET=production \
+KIDSMEMO_RELEASE_BASE_URL=https://kidsmemo.vercel.app \
+NEXT_PUBLIC_APP_URL=https://kidsmemo.vercel.app \
+KIDSMEMO_ADMIN_SMOKE_BASE_URL=https://kidsmemo.vercel.app \
+npm run qa:release-preflight -- --profile admin-live
+```
+
+Profiles: `guards`, `admin-live`, `admin-operations`, `organization-cms`, `onboarding-invite`, `staff-coupon`, `browser-auth`.
+
+- `local`은 localhost와 HTTP를 허용한다. `preview`와 `production`은 HTTPS와 비-localhost target만 허용한다.
+- `KIDSMEMO_RELEASE_BASE_URL`, `NEXT_PUBLIC_APP_URL`, 선택한 smoke의 target override는 같은 origin이어야 한다.
+- `production`은 `KIDSMEMO_RELEASE_PRODUCTION_URL`과 같은 origin이어야 하며, `preview`는 달라야 한다. canonical production URL을 바꿔야 하면 해당 환경변수에 URL을 설정한다.
+- provider 변수는 profile 필수가 아니며, 이름이 존재해도 provider credential 보유나 실발송 성공을 주장하지 않는다.
+
 1. `npm run lint`
 2. `npx tsc --noEmit`
 3. `npm run build`
