@@ -294,6 +294,9 @@ export function AiWorkbench({ organizationId }: { organizationId?: string }) {
                 <span className="text-xs font-semibold text-muted">
                   {record.kind === "event_assistant" ? "행사 도우미" : "문구 생성기"}
                 </span>
+                <span className="mt-1 block text-xs font-semibold text-muted">
+                  {getProviderLabel(record.output.providerMode)}
+                </span>
                 <span className="mt-1 block text-sm font-semibold text-ink">{getHistoryTitle(record)}</span>
                 <span className="mt-2 line-clamp-2 block text-sm leading-6 text-muted">
                   {getHistorySummary(record)}

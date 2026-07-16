@@ -19,7 +19,7 @@ export type PushDeliveryMode = "live" | "simulation";
 
 const retryDelayMs = 5 * 60 * 1000;
 
-const sendableCampaignStatuses: PushCampaignStatus[] = ["draft", "scheduled"];
+const sendableCampaignStatuses: PushCampaignStatus[] = ["draft"];
 const mockMemberships = [
   {
     organization_id: "00000000-0000-0000-0000-000000000001",
@@ -202,7 +202,8 @@ export async function sendPushCampaign(
   const sentCount = insertedRows.filter((row) => row.status === "sent").length;
   const skippedCount = insertedRows.filter((row) => row.status === "skipped").length;
   const failedCount = insertedRows.filter((row) => row.status === "failed").length;
-  const nextStatus: PushCampaignStatus = sentCount === 0 && failedCount > 0 ? "failed" : "sent";
+  const nextStatus: PushCampaignStatus =
+    sentCount > 0 ? "sent" : failedCount > 0 ? "failed" : "cancelled";
   const { error: updateError } = await supabase
     .from("push_campaigns")
     .update({ status: nextStatus, sent_at: now })
@@ -219,7 +220,7 @@ export async function sendPushCampaign(
 
   return {
     campaignId: campaign.id,
-    mode: "live",
+    mode: provider.name === "mock" ? "simulation" : "live",
     provider: provider.name,
     requested: memberships.length,
     sent: sentCount,
@@ -259,10 +260,13 @@ export async function getPushDeliveryLog(
 
   const deliveries = ((deliveryRows ?? []) as Row[]).map(mapDelivery);
   const summary = summarizeDeliveryRows((summaryRows ?? []) as Row[]);
+  const mode: PushDeliveryMode = deliveries.length > 0 && deliveries.every((delivery) => delivery.provider === "mock")
+    ? "simulation"
+    : "live";
 
   return {
     campaignId: campaign.id,
-    mode: "live",
+    mode,
     summary,
     deliveries
   };
@@ -438,17 +442,11 @@ function sendMockCampaign(campaignId: string, input: PushSendRequest): DeliveryS
 }
 
 function getMockDeliveryLog(campaignId: string, query: PushDeliveryQuery): PushDeliveryLog {
-  const deliveries = sendMockCampaign(campaignId, {
-    providerMode: "mock",
-    mockResult: "mixed",
-    limit: query.limit
-  }).deliveries;
-
   return {
     campaignId,
     mode: "simulation",
-    summary: summarizeDeliveryItems(deliveries),
-    deliveries
+    summary: { total: 0, sent: 0, skipped: 0, failed: 0 },
+    deliveries: []
   };
 }
 

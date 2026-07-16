@@ -826,20 +826,48 @@ function PushPanel({
       return;
     }
 
-    const result = unwrapData<{ mode?: "live" | "simulation"; sent: number; skipped: number }>(await response.json());
+    const result = unwrapData<{
+      mode?: "live" | "simulation";
+      campaignId: string;
+      requested: number;
+      sent: number;
+      skipped: number;
+      failed: number;
+      campaignStatus: string;
+      deliveries: PushDeliveryLog["deliveries"];
+    }>(await response.json());
     setSendState((current) => ({ ...current, [campaign.id]: "saved" }));
     setSendMessage(
       result.mode === "simulation"
         ? `시뮬레이션 완료: 실제 발송 아님 · 대상 ${result.sent + result.skipped}건`
-        : `발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`
+        : result.sent > 0
+          ? `발송 요청 완료: 전송 ${result.sent}건, 제외 ${result.skipped}건`
+          : result.failed > 0
+            ? `발송 실패: 실패 ${result.failed}건, 제외 ${result.skipped}건`
+            : `발송 취소: 전달 가능한 대상이 없어 ${result.skipped}건을 제외했습니다.`
     );
-    await loadDeliveryLog(campaign);
+    if (result.mode === "simulation") {
+      setDeliveryLog({
+        campaignId: result.campaignId,
+        mode: "simulation",
+        summary: {
+          total: result.requested,
+          sent: result.sent,
+          skipped: result.skipped,
+          failed: result.failed
+        },
+        deliveries: result.deliveries
+      });
+      setDeliveryLogState("saved");
+    } else {
+      await loadDeliveryLog(campaign);
+    }
   }
 
   return (
     <EditorLayout
       title="푸시알림/운영 메시지"
-      description="대상 기관/역할, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다. 예약 시각은 provider와 자동 발송 worker가 연결되기 전까지 기록으로만 보관됩니다."
+      description="대상 기관/역할, 제목과 본문을 지정해 운영 알림 캠페인을 준비합니다. 실제 provider가 없으면 발송 요청은 503으로 중단되며, 예약 시각은 자동 발송 worker가 연결되기 전까지 기록으로만 보관됩니다."
       onSave={onSave}
       saveState={saveState}
       list={
@@ -1031,7 +1059,7 @@ function PushCampaignList({
         {campaigns.length > 0 ? (
           campaigns.map((campaign) => {
             const state = sendState[campaign.id] ?? "idle";
-            const canSend = campaign.status === "draft" || campaign.status === "scheduled";
+            const canSend = campaign.status === "draft";
             return (
               <div key={campaign.id} className="rounded border border-line bg-surface p-3">
                 <p className="font-semibold text-ink">{campaign.title}</p>
@@ -1045,7 +1073,7 @@ function PushCampaignList({
                   className="mt-3 inline-flex min-h-9 items-center justify-center gap-2 rounded border border-line bg-white px-3 text-xs font-semibold text-muted hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:text-muted"
                 >
                   {state === "saving" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Send size={15} aria-hidden />}
-                  {canSend ? "발송 요청" : "발송 불가"}
+                  {canSend ? "발송 요청" : campaign.status === "scheduled" ? "자동 발송 대기" : "발송 불가"}
                 </button>
                 <button
                   type="button"
@@ -1122,11 +1150,16 @@ function PushDeliveryLogPanel({ log, state }: { log: PushDeliveryLog | null; sta
                   {delivery.skippedReason ?? delivery.failureReason}
                 </p>
               ) : null}
+              {delivery.retryCount > 0 || delivery.nextRetryAt ? (
+                <p className="mt-1 text-xs font-semibold text-amber-700">
+                  재시도 {delivery.retryCount}회{delivery.nextRetryAt ? ` · 다음 ${formatDateTime(delivery.nextRetryAt)}` : ""}
+                </p>
+              ) : null}
             </div>
           ))
         ) : (
           <p className="rounded border border-dashed border-line bg-white p-4 text-sm text-muted">
-            아직 저장된 발송 이력이 없습니다.
+            {log.mode === "simulation" ? "시뮬레이션 결과는 저장되지 않습니다." : "아직 저장된 발송 이력이 없습니다."}
           </p>
         )}
       </div>

@@ -85,6 +85,14 @@ const mutationSchemaBase = z.discriminatedUnion("resource", [
 ]);
 
 const mutationSchema = mutationSchemaBase.superRefine((value, context) => {
+  if (value.resource === "pushCampaigns" && value.payload.status === "scheduled" && !value.payload.scheduledFor) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["payload", "scheduledFor"],
+      message: "예약 정보 저장에는 예약 시각이 필요합니다. 자동 발송은 provider 연결 후 지원됩니다."
+    });
+  }
+
   if (value.resource !== "contentBlocks" && value.resource !== "mediaAssets") {
     return;
   }
