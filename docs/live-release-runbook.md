@@ -164,6 +164,8 @@ bootstrap 작업을 할 때만 추가로 `KIDSMEMO_BOOTSTRAP_EMAIL`, `KIDSMEMO_B
 
 현재 live mode의 `auto` 발송은 실제 provider가 연결되지 않으면 `503 provider_not_configured`로 종료한다. 관리자 화면도 mock provider를 직접 요청하지 않는다. `KIDSMEMO_ALLOW_MOCK_PUSH=true`는 격리된 개발/QA 환경에서만 임시로 사용하며 Production에서는 허용하지 않는다.
 
+개발/QA mock push 결과에는 `mode: "simulation"`이 붙고 관리자 화면은 이를 실제 전송이 아닌 시뮬레이션으로 표시한다. 관리자가 캠페인 상태를 직접 `sent`로 저장하는 mutation은 허용하지 않으며, `scheduled` 상태는 자동 발송이 아니라 예약 정보 기록으로만 취급한다.
+
 메시지 리마인더도 실제 provider가 없으면 `503 message_provider_not_configured`로 종료한다. AI 결과는 `providerMode: "openai"` 또는 `providerMode: "fallback"`을 포함해 출처를 구분한다.
 
 결정이 필요한 항목:
