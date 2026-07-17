@@ -40,7 +40,7 @@ Required live-smoke env:
 - Supabase Storage public bucket `admin-media`와 platform admin write 정책 추가
 - 푸시 발송 요청 API 추가: `POST /api/admin/push/campaigns/:campaignId/send`
 - 푸시 발송 이력 조회 API 추가: `GET /api/admin/push/campaigns/:campaignId/deliveries?limit=20`
-- 푸시 탭에서 draft/scheduled 캠페인 mock 발송 요청 가능
+- 푸시 탭에서 `draft` 캠페인만 mock 발송 요청 가능하며 `scheduled`는 자동 발송이 아닌 예약 정보 기록으로만 저장한다.
 - 푸시 탭에서 캠페인별 delivery log 요약과 최근 목록 조회 가능
 - 푸시 delivery log는 `push_deliveries`에 저장되며 실제 외부 provider 발송은 아직 하지 않는다.
 - 푸시 provider abstraction은 현재 `mock` 구현체만 활성화되어 있으며 외부 provider 호출은 없다.
@@ -55,7 +55,7 @@ Push delivery API contract:
 - `POST /api/admin/push/campaigns/:campaignId/send`
   - Auth: `Authorization: Bearer <platform-admin-token>` required.
   - Body: `{ "providerMode": "auto" | "mock", "mockResult": "sent" | "skipped" | "failed" | "mixed", "limit"?: number }`.
-  - Response: `{ ok: true, data: { campaignId, provider, requested, sent, skipped, failed, campaignStatus, deliveries } }`.
+  - Response: `{ ok: true, data: { campaignId, mode, provider, requested, sent, skipped, failed, campaignStatus, deliveries } }`.
 - `GET /api/admin/push/campaigns/:campaignId/deliveries?limit=20`
   - Auth: `Authorization: Bearer <platform-admin-token>` required.
   - Query: `limit` is optional, positive, and capped at 100.

@@ -15,7 +15,7 @@ export type PushCampaignStatus = "draft" | "scheduled" | "sent" | "failed" | "ca
 export type MockResult = "sent" | "skipped" | "failed" | "mixed";
 export type PushDeliveryProviderName = "mock";
 export type PushDeliveryStatus = "sent" | "skipped" | "failed";
-export type PushDeliveryMode = "live" | "simulation";
+export type PushDeliveryMode = "live" | "simulation" | "unavailable";
 
 const retryDelayMs = 5 * 60 * 1000;
 
@@ -260,9 +260,12 @@ export async function getPushDeliveryLog(
 
   const deliveries = ((deliveryRows ?? []) as Row[]).map(mapDelivery);
   const summary = summarizeDeliveryRows((summaryRows ?? []) as Row[]);
-  const mode: PushDeliveryMode = deliveries.length > 0 && deliveries.every((delivery) => delivery.provider === "mock")
-    ? "simulation"
-    : "live";
+  const mode: PushDeliveryMode =
+    deliveries.length === 0
+      ? "unavailable"
+      : deliveries.every((delivery) => delivery.provider === "mock")
+        ? "simulation"
+        : "live";
 
   return {
     campaignId: campaign.id,

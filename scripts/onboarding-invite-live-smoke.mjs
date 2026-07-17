@@ -10,9 +10,9 @@ const config = {
   supabaseAnonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
   ownerEmail: readEnv("KIDSMEMO_ONBOARDING_OWNER_EMAIL", "kidsmemo.onboarding.owner@storige.co.kr"),
-  ownerPassword: readEnv("KIDSMEMO_ONBOARDING_OWNER_PASSWORD", "KidsmemoOwner!2026"),
+  ownerPassword: readEnv("KIDSMEMO_ONBOARDING_OWNER_PASSWORD"),
   joinerEmail: readEnv("KIDSMEMO_ONBOARDING_JOINER_EMAIL", "kidsmemo.onboarding.joiner@storige.co.kr"),
-  joinerPassword: readEnv("KIDSMEMO_ONBOARDING_JOINER_PASSWORD", "KidsmemoJoiner!2026"),
+  joinerPassword: readEnv("KIDSMEMO_ONBOARDING_JOINER_PASSWORD"),
   keepRecord: readEnv("KIDSMEMO_ONBOARDING_SMOKE_KEEP_RECORD").toLowerCase() === "true"
 };
 

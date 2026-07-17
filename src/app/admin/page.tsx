@@ -1137,11 +1137,11 @@ function PushDeliveryLogPanel({ log, state }: { log: PushDeliveryLog | null; sta
   return (
     <section className="rounded border border-line bg-surface p-4">
       <div className="flex flex-wrap gap-2">
-        <Badge tone={log.mode === "simulation" ? "amber" : "green"}>
-          {log.mode === "simulation" ? "시뮬레이션 · 실제 발송 아님" : "실제 provider"}
+        <Badge tone={log.mode === "simulation" ? "amber" : log.mode === "unavailable" ? "gray" : "green"}>
+          {log.mode === "simulation" ? "시뮬레이션 · 실제 발송 아님" : log.mode === "unavailable" ? "발송 이력 없음" : "실제 provider"}
         </Badge>
         <Badge tone="blue">총 {log.summary.total}건</Badge>
-        <Badge tone={log.mode === "simulation" ? "amber" : "green"}>
+        <Badge tone={log.mode === "simulation" ? "amber" : log.mode === "unavailable" ? "gray" : "green"}>
           {log.mode === "simulation" ? "시뮬레이션" : "전송"} {log.summary.sent}건
         </Badge>
         <Badge tone="amber">제외 {log.summary.skipped}건</Badge>

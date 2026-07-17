@@ -192,17 +192,43 @@ async function launchBrowserOrFallback(chromium) {
 
 function capturePageDiagnostics(page) {
   const pageErrors = [];
+  const consoleErrors = [];
+  const requestFailures = [];
+  const serverResponses = [];
   page.on("pageerror", (error) => {
     pageErrors.push(errorMessage(error));
   });
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("requestfailed", (request) => {
+    requestFailures.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText ?? "request failed"}`);
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 500) {
+      serverResponses.push(`${response.status()} ${response.request().method()} ${response.url()}`);
+    }
+  });
 
-  return { pageErrors };
+  return { pageErrors, consoleErrors, requestFailures, serverResponses };
 }
 
 function assertNoPageErrors(diagnostics, label) {
   assert(
     diagnostics.pageErrors.length === 0,
     `${label} emitted page errors: ${diagnostics.pageErrors.map(redact).join(" | ")}`
+  );
+  assert(
+    diagnostics.consoleErrors.length === 0,
+    `${label} emitted console errors: ${diagnostics.consoleErrors.map(redact).join(" | ")}`
+  );
+  assert(
+    diagnostics.requestFailures.length === 0,
+    `${label} had failed requests: ${diagnostics.requestFailures.map(redact).join(" | ")}`
+  );
+  assert(
+    diagnostics.serverResponses.length === 0,
+    `${label} received server errors: ${diagnostics.serverResponses.map(redact).join(" | ")}`
   );
 }
 
@@ -324,12 +350,24 @@ function resolveBaseUrl() {
     return readEnv("KIDSMEMO_ADMIN_BROWSER_QA_PRODUCTION_BASE_URL", DEFAULT_PRODUCTION_BASE_URL);
   }
 
+  if (config.target === "preview") {
+    const preview = readEnv("KIDSMEMO_ADMIN_BROWSER_QA_PREVIEW_BASE_URL");
+    if (!preview) {
+      throw new Error("KIDSMEMO_ADMIN_BROWSER_QA_PREVIEW_BASE_URL is required for preview target.");
+    }
+    return preview;
+  }
+
   return readEnv("KIDSMEMO_ADMIN_BROWSER_QA_LOCAL_BASE_URL", DEFAULT_LOCAL_BASE_URL);
 }
 
 function validateConfig() {
   if (!["auto", "dom", "playwright"].includes(config.mode)) {
     throw new Error("KIDSMEMO_ADMIN_BROWSER_QA_MODE must be auto, dom, or playwright.");
+  }
+
+  if (!["local", "preview", "production", "prod"].includes(config.target)) {
+    throw new Error("KIDSMEMO_ADMIN_BROWSER_QA_TARGET must be local, preview, or production.");
   }
 
   validateUrl(resolveBaseUrl(), "admin browser QA base URL");

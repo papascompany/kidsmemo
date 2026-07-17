@@ -251,7 +251,7 @@ function getCapabilities() {
         : { mode: "unavailable" as const, detail: "실제 메시지 provider 미연결" }
       : { mode: "simulation" as const, detail: "개발/QA 시뮬레이션" },
     ai: process.env.OPENAI_API_KEY
-      ? { mode: "configured" as const, detail: "운영 AI provider 키 설정됨" }
+      ? { mode: "configured" as const, detail: "운영 AI provider 키 설정됨 · 실제 호출 성공 여부는 생성 시 확인" }
       : { mode: "fallback" as const, detail: "운영 AI 키 미설정" }
   };
 }

@@ -40,6 +40,7 @@ const PROFILES = {
   "staff-coupon": {
     targetEnv: "KIDSMEMO_E2E_BASE_URL",
     requiredEnv: [
+      "SUPABASE_SERVICE_ROLE_KEY",
       "KIDSMEMO_E2E_ADMIN_EMAIL",
       "KIDSMEMO_E2E_ADMIN_PASSWORD",
       "KIDSMEMO_E2E_STAFF_EMAIL",

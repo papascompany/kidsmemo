@@ -4,7 +4,7 @@ const config = {
   url: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
   serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
   email: readEnv("KIDSMEMO_BOOTSTRAP_EMAIL", "kidsmemo.owner.test@storige.co.kr"),
-  password: readEnv("KIDSMEMO_BOOTSTRAP_PASSWORD", "KidsmemoTest!2026"),
+  password: readEnv("KIDSMEMO_BOOTSTRAP_PASSWORD"),
   profileName: readEnv("KIDSMEMO_BOOTSTRAP_PROFILE_NAME", "키즈메모 테스트 원장"),
   phone: readEnv("KIDSMEMO_BOOTSTRAP_PHONE", ""),
   organizationName: readEnv("KIDSMEMO_BOOTSTRAP_ORG_NAME", "키즈메모 테스트 어린이집"),
@@ -217,6 +217,7 @@ function validateConfig() {
   const missing = [];
   if (!config.url) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!config.serviceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!config.password) missing.push("KIDSMEMO_BOOTSTRAP_PASSWORD");
 
   if (missing.length > 0) {
     throw new Error(`Missing required env: ${missing.join(", ")}`);

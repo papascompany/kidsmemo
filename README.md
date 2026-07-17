@@ -24,7 +24,7 @@ npm run dev
 
 `.env.example`을 참고해 Supabase, OpenAI, 네이버 쇼핑 검색, 점보키즈 API, 발송사 API 값을 설정합니다.
 
-현재 구현은 외부 API 키가 없어도 모의 응답으로 동작합니다.
+개발/QA mock 모드에서는 외부 API 키 없이도 모의 응답을 사용할 수 있습니다. Production live 모드의 push·메시지 provider가 미연결이면 실제 발송을 하지 않고 `503`으로 차단하며, AI는 결과에 fallback 출처를 표시합니다.
 
 live smoke 전에는 provider와 무관한 환경 사전 점검을 실행합니다. 대상과 smoke URL을 명시하고, 선택한 smoke에 필요한 환경변수 이름의 존재와 target 분리만 확인합니다. 값이나 credential 유효성은 출력하거나 확인하지 않습니다.
 

@@ -87,6 +87,10 @@ function validateConfig() {
     throw new Error(`Missing required env: ${missing.join(", ")}`);
   }
 
+  if (!["local", "preview", "production", "prod"].includes(config.target.toLowerCase())) {
+    throw new Error("KIDSMEMO_ADMIN_BROWSER_QA_TARGET must be local, preview, or production.");
+  }
+
   validateUrl(config.supabaseUrl, "NEXT_PUBLIC_SUPABASE_URL");
   if (config.baseUrl) {
     validateUrl(config.baseUrl, "KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL");

@@ -19,6 +19,10 @@ async function main() {
 
   await assertUnauthorized("GET", "/api/events");
   checks.push("events_get_401");
+  await assertUnauthorized("GET", "/api/session/context");
+  checks.push("session_context_get_401");
+  await assertUnauthorized("GET", "/api/staff-coupons");
+  checks.push("staff_coupons_get_401");
   await assertUnauthorized("GET", "/api/admin/organizations?limit=1");
   checks.push("admin_organizations_get_401");
   await assertUnauthorized("POST", "/api/events", {
@@ -53,6 +57,14 @@ async function main() {
   checks.push("onboarding_post_401");
   await assertUnauthorized("POST", "/api/admin/operations", { resource: "pushCampaigns", payload: {} });
   checks.push("admin_operations_post_401");
+  await assertUnauthorized("POST", "/api/admin/invites", {});
+  checks.push("admin_invites_post_401");
+  await assertUnauthorized("POST", "/api/admin/media-upload", {});
+  checks.push("admin_media_upload_post_401");
+  await assertUnauthorized("POST", "/api/admin/push/campaigns/00000000-0000-0000-0000-000000000000/send", {});
+  checks.push("admin_push_send_post_401");
+  await assertUnauthorized("GET", "/api/admin/push/campaigns/00000000-0000-0000-0000-000000000000/deliveries");
+  checks.push("admin_push_deliveries_get_401");
   await assertUnauthorized("POST", "/api/jobs/send-reminders", {});
   checks.push("reminder_job_post_401");
   await assertUnauthorized("POST", "/api/ai/event-assistant", {

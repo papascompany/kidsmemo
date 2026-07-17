@@ -5,11 +5,13 @@ const config = {
   baseUrl: readEnv("KIDSMEMO_E2E_BASE_URL", "http://127.0.0.1:3000"),
   supabaseUrl: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
   supabaseAnonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
   admin: readCredentials("KIDSMEMO_E2E_ADMIN"),
   staff: readCredentials("KIDSMEMO_E2E_STAFF"),
   otherStaff: readCredentials("KIDSMEMO_E2E_OTHER_STAFF"),
   staffOrganizationId: readEnv("KIDSMEMO_E2E_STAFF_ORGANIZATION_ID"),
-  otherStaffOrganizationId: readEnv("KIDSMEMO_E2E_OTHER_STAFF_ORGANIZATION_ID")
+  otherStaffOrganizationId: readEnv("KIDSMEMO_E2E_OTHER_STAFF_ORGANIZATION_ID"),
+  keepRecord: readEnv("KIDSMEMO_E2E_KEEP_RECORD").toLowerCase() === "true"
 };
 
 main().catch((error) => {
@@ -46,13 +48,15 @@ async function main() {
   );
   console.log("[PASS] resolved distinct staff organizations");
 
-  const createdCoupon = await createCoupon({
-    accessToken: adminSession.accessToken,
-    organizationId: staffContext.organization.id,
-    qaPrefix,
-    validUntil
-  });
-  console.log(`[PASS] admin saved QA coupon (${createdCoupon.id})`);
+  let createdCoupon = null;
+  try {
+    createdCoupon = await createCoupon({
+      accessToken: adminSession.accessToken,
+      organizationId: staffContext.organization.id,
+      qaPrefix,
+      validUntil
+    });
+    console.log(`[PASS] admin saved QA coupon (${createdCoupon.id})`);
 
   const staffCoupons = await listCoupons(staffSession.accessToken, staffContext.organization.id);
   const visibleCoupon = staffCoupons.find((coupon) => coupon.id === createdCoupon.id);
@@ -97,7 +101,21 @@ async function main() {
   );
   console.log("[PASS] cross-organization download was rejected");
 
-  console.log(`[DONE] staff coupon E2E passed (${runId})`);
+    console.log(`[DONE] staff coupon E2E passed (${runId})`);
+  } finally {
+    if (createdCoupon && !config.keepRecord) {
+      await cleanupCoupon(createdCoupon.id);
+      console.log(`[PASS] removed QA coupon (${createdCoupon.id})`);
+    }
+  }
+}
+
+async function cleanupCoupon(couponId) {
+  const service = createClient(config.supabaseUrl, config.serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  const { error } = await service.from("staff_coupons").delete().eq("id", couponId);
+  if (error) throw new Error(`QA coupon cleanup failed: ${error.message}`);
 }
 
 async function signIn(label, credentials) {
@@ -253,6 +271,7 @@ function validateConfig() {
   const missing = [];
   if (!config.supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!config.supabaseAnonKey) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  if (!config.serviceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
   collectMissingCredentials(missing, "KIDSMEMO_E2E_ADMIN", config.admin);
   collectMissingCredentials(missing, "KIDSMEMO_E2E_STAFF", config.staff);
   collectMissingCredentials(missing, "KIDSMEMO_E2E_OTHER_STAFF", config.otherStaff);
@@ -305,6 +324,7 @@ function sanitizeErrorMessage(error) {
   let message = error.message;
   const secrets = [
     config.supabaseAnonKey,
+    config.serviceRoleKey,
     config.admin.password,
     config.staff.password,
     config.otherStaff.password

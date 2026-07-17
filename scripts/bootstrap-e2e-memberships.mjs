@@ -6,7 +6,7 @@ const config = {
   accounts: [
     readAccountConfig("KIDSMEMO_E2E_ADMIN", {
       email: "kidsmemo.e2e.admin@storige.co.kr",
-      password: "KidsmemoE2EAdmin!2026",
+      password: "",
       profileName: "Kidsmemo E2E Admin",
       organizationName: "Kidsmemo E2E Platform",
       organizationRegion: "Platform",
@@ -14,7 +14,7 @@ const config = {
     }),
     readAccountConfig("KIDSMEMO_E2E_STAFF", {
       email: "kidsmemo.e2e.staff.a@storige.co.kr",
-      password: "KidsmemoE2EStaffA!2026",
+      password: "",
       profileName: "Kidsmemo E2E Staff A",
       organizationName: "Kidsmemo E2E Organization A",
       organizationRegion: "QA-A",
@@ -22,7 +22,7 @@ const config = {
     }),
     readAccountConfig("KIDSMEMO_E2E_OTHER_STAFF", {
       email: "kidsmemo.e2e.staff.b@storige.co.kr",
-      password: "KidsmemoE2EStaffB!2026",
+      password: "",
       profileName: "Kidsmemo E2E Staff B",
       organizationName: "Kidsmemo E2E Organization B",
       organizationRegion: "QA-B",
