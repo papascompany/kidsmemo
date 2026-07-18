@@ -32,6 +32,7 @@
 - [x] production guard smoke 13개 통과: `/login`, `/signup` 200 및 행사·연간계획·온보딩·관리자·AI·웹훅 보호 API 비인증 401 확인.
 - [x] Supabase linked migration 목록이 로컬·원격 모두 `20260716100000`까지 일치하고 `supabase db lint --linked`가 schema 오류 없이 통과함.
 - [x] 최신 Vercel production env 이름 확인 결과 Supabase 연결 변수만 존재하며, push·메시지·OpenAI·Naver provider 변수는 아직 설정되지 않음.
+- [x] production live `/app`은 비로그인 상태에서 mock 기관·쿠폰·행사 데이터를 렌더링하지 않고 로그인/기관 연결 안내를 표시한다.
 
 근거 문서: `docs/deployment-env-inventory.md`, `docs/project-handoff-plan.md`, `docs/qa-sprint-1.md`, `docs/sprint-1-board.md`.
 

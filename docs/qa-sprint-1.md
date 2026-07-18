@@ -167,7 +167,7 @@ Static findings:
 
 - `/` is a public landing page and links to `/signup`, `/login`, `/signup/jumbokids`, and `/app`.
 - `/` does not import mock institution data, coupon codes, member lists, runtime state, or admin details.
-- `/app` still renders the mock/fallback dashboard through `KidsmemoDashboard` and preserves the `dashboard`, `calendar`, `coupons`, and `ai-helper` anchors.
+- `/app` preserves the `dashboard`, `calendar`, `coupons`, and `ai-helper` anchors. Mock/QA mode may render the demo fallback, while production live mode renders organization-scoped Supabase data only after authentication and membership checks.
 - `next.config.ts` keeps transitional redirects from legacy intent routes to `/app` anchors.
 - `/admin` is visually and structurally separate from the teacher/director dashboard and requires a live platform admin session before operational data is shown.
 - `/admin` includes content, image, gift-code, push-campaign, and audit-log management tabs.
