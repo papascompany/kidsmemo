@@ -2,12 +2,15 @@
 
 import {
   ArrowRight,
+  Building2,
   CalendarDays,
   ClipboardCheck,
   Gift,
+  LogIn,
   Sparkles,
   type LucideIcon
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AiWorkbench } from "@/components/ai-workbench";
 import { AppShell } from "@/components/app-shell";
@@ -25,9 +28,11 @@ import type { EventSchedule } from "@/lib/types";
 const dashboardPhoto =
   "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1600&q=85";
 
-export function KidsmemoDashboard() {
+export function KidsmemoDashboard({ liveBackend = false }: { liveBackend?: boolean }) {
   const [liveContext, setLiveContext] = useState<OrganizationContext | null>(null);
-  const [liveStatus, setLiveStatus] = useState<"loading" | "ready" | "fallback">("loading");
+  const [liveStatus, setLiveStatus] = useState<
+    "loading" | "ready" | "fallback" | "auth-required" | "membership-required" | "error"
+  >("loading");
   const queuedJobs = messageJobs.filter((job) => job.status === "queued");
   const health = getReminderHealth();
   const liveOrganizations = useMemo(
@@ -63,7 +68,15 @@ export function KidsmemoDashboard() {
         const response = await authenticatedFetch("/api/session/context");
         if (!response.ok) {
           if (isMounted) {
-            setLiveStatus("fallback");
+            setLiveStatus(
+              liveBackend && response.status === 401
+                ? "auth-required"
+                : liveBackend && response.status === 403
+                  ? "membership-required"
+                  : liveBackend
+                    ? "error"
+                    : "fallback"
+            );
           }
           return;
         }
@@ -75,7 +88,7 @@ export function KidsmemoDashboard() {
         }
       } catch {
         if (isMounted) {
-          setLiveStatus("fallback");
+          setLiveStatus(liveBackend ? "error" : "fallback");
         }
       }
     }
@@ -85,7 +98,23 @@ export function KidsmemoDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [liveBackend]);
+
+  if (liveBackend && liveStatus === "loading") {
+    return <AccessGate title="기관 운영 화면을 준비하고 있습니다." description="로그인 상태와 기관 권한을 확인하고 있습니다." />;
+  }
+
+  if (liveBackend && liveStatus === "auth-required") {
+    return <AccessGate title="로그인 후 기관 운영을 시작하세요." description="기관 일정, 쿠폰함, AI 도움은 로그인한 구성원에게만 표시됩니다." actionHref="/login" actionLabel="로그인하기" icon={LogIn} />;
+  }
+
+  if (liveBackend && liveStatus === "membership-required") {
+    return <AccessGate title="기관 연결이 필요합니다." description="가입을 완료한 뒤 기관을 만들거나 초대 코드로 참여하면 운영 화면을 사용할 수 있습니다." actionHref="/onboarding" actionLabel="기관 연결하기" icon={Building2} />;
+  }
+
+  if (liveBackend && liveStatus === "error") {
+    return <AccessGate title="운영 화면을 불러오지 못했습니다." description="잠시 후 다시 시도하거나 관리자에게 Supabase 연결 상태를 확인해 주세요." actionHref="/login" actionLabel="로그인 화면으로" icon={ArrowRight} />;
+  }
 
   return (
     <AppShell>
@@ -213,6 +242,41 @@ export function KidsmemoDashboard() {
       </Section>
 
       <div className="no-print h-10" />
+    </AppShell>
+  );
+}
+
+function AccessGate({
+  title,
+  description,
+  actionHref,
+  actionLabel,
+  icon: Icon = Sparkles
+}: {
+  title: string;
+  description: string;
+  actionHref?: string;
+  actionLabel?: string;
+  icon?: LucideIcon;
+}) {
+  return (
+    <AppShell>
+      <section className="mx-auto grid min-h-[65vh] max-w-2xl place-items-center py-12 text-center">
+        <div className="w-full rounded-2xl border border-line bg-[#fffefa] p-6 shadow-soft sm:p-10">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-brand">
+            <Icon size={26} aria-hidden />
+          </div>
+          <p className="mt-5 text-sm font-semibold text-brand">키즈메모 운영실</p>
+          <h1 className="mt-2 text-2xl font-semibold leading-tight text-ink sm:text-3xl">{title}</h1>
+          <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-muted">{description}</p>
+          {actionHref && actionLabel ? (
+            <Link href={actionHref} className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white shadow-soft">
+              {actionLabel}
+              <ArrowRight size={16} aria-hidden />
+            </Link>
+          ) : null}
+        </div>
+      </section>
     </AppShell>
   );
 }
