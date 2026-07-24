@@ -1,6 +1,15 @@
 import type { AdminContentBlock } from "./admin-operations";
+import {
+  LANDING_BRAND_DEFAULTS,
+  LANDING_CARD_DEFAULTS,
+  type LandingBrand,
+  type LandingCard
+} from "./landing-defaults";
 import { isLiveSupabaseMode } from "./env-flags";
 import { createSupabaseServiceClient } from "./supabase";
+
+export { LANDING_BRAND_DEFAULTS, LANDING_CARD_DEFAULTS };
+export type { LandingBrand, LandingCard };
 
 type Row = Record<string, unknown>;
 
@@ -37,6 +46,35 @@ export type LandingAppearance = {
   titleSize: "standard" | "large";
   overlayTone: "dark" | "calm" | "strong";
 };
+
+export function getLandingBrand(blocks: AdminContentBlock[]): LandingBrand {
+  const brand = findLandingBlock(blocks, "landing-brand");
+  let parsed: Partial<LandingBrand> = {};
+  try {
+    parsed = JSON.parse(brand?.body || "{}") as Partial<LandingBrand>;
+  } catch {
+    parsed = {};
+  }
+
+  return {
+    logo: brand?.title?.trim() || LANDING_BRAND_DEFAULTS.logo,
+    loginLabel: brand?.ctaLabel?.trim() || LANDING_BRAND_DEFAULTS.loginLabel,
+    eyebrow: parsed.eyebrow?.trim() || LANDING_BRAND_DEFAULTS.eyebrow,
+    footer: parsed.footer?.trim() || LANDING_BRAND_DEFAULTS.footer
+  };
+}
+
+export function getLandingCards(blocks: AdminContentBlock[]): LandingCard[] {
+  return LANDING_CARD_DEFAULTS.map((fallback) => {
+    const block = findLandingBlock(blocks, fallback.slot);
+    return {
+      slot: fallback.slot,
+      icon: block?.ctaLabel?.trim() || fallback.icon,
+      title: block?.title?.trim() || fallback.title,
+      body: block?.body?.trim() || fallback.body
+    };
+  });
+}
 
 export function getLandingAppearance(blocks: AdminContentBlock[]): LandingAppearance {
   const appearance = findLandingBlock(blocks, "landing-appearance");

@@ -4,6 +4,7 @@ import {
   Bell,
   FileText,
   Gift,
+  Globe,
   Image as ImageIcon,
   Loader2,
   LockKeyhole,
@@ -20,6 +21,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminOrganizationSelect } from "@/components/admin-organization-select";
 import { Badge } from "@/components/badge";
 import { authenticatedFetch } from "@/lib/auth-fetch";
+import {
+  LANDING_BRAND_DEFAULTS,
+  LANDING_CARD_DEFAULTS
+} from "@/lib/landing-defaults";
+import { LANDING_ICON_KEYS, landingIconLabels, resolveLandingIcon } from "@/lib/landing-icons";
 import type {
   AdminContentBlock,
   AdminGiftCode,
@@ -32,10 +38,11 @@ import type {
 import type { AdminInvite, AdminInviteRemovalResult } from "@/lib/admin-invites";
 import type { PushDeliveryLog } from "@/lib/push-operations";
 
-type AdminTab = "content" | "media" | "invites" | "gifts" | "push" | "audit";
+type AdminTab = "site" | "content" | "media" | "invites" | "gifts" | "push" | "audit";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 const tabs: Array<{ id: AdminTab; label: string; icon: typeof FileText }> = [
+  { id: "site", label: "사이트관리", icon: Globe },
   { id: "content", label: "콘텐츠", icon: FileText },
   { id: "media", label: "이미지", icon: ImageIcon },
   { id: "invites", label: "초대", icon: UserPlus },
@@ -66,17 +73,39 @@ const defaultContentForm = {
   status: "draft"
 };
 
-const defaultLandingSettings = {
+const defaultSiteSettings = {
   heroId: "",
   appearanceId: "",
-  title: "행사는 놓치지 않고, 안내문은 더 따뜻하게.",
-  body: "키즈메모는 원장님이 행사 일정을 정리하고, 학부모님께 보낼 안내문 초안을 바로 준비할 수 있도록 돕습니다.",
-  imageUrl: "",
-  ctaLabel: "내 기관 시작하기",
-  ctaUrl: "/signup",
+  brandId: "",
+  card1Id: "",
+  card2Id: "",
+  card3Id: "",
+  // 헤더 / 브랜드
+  logo: LANDING_BRAND_DEFAULTS.logo,
+  loginLabel: LANDING_BRAND_DEFAULTS.loginLabel,
+  eyebrow: LANDING_BRAND_DEFAULTS.eyebrow,
+  footer: LANDING_BRAND_DEFAULTS.footer,
+  // 히어로
+  heroTitle: "행사 준비, 학부모 안내까지 한 번에.",
+  heroBody:
+    "키즈메모는 원장님이 행사 일정을 정리하고, 학부모님께 보낼 안내문 초안을 바로 준비할 수 있도록 돕습니다.",
+  heroImageUrl: "",
+  heroCtaLabel: "내 기관 시작하기",
+  heroCtaUrl: "/signup",
+  // 타이포그래피
   titleStyle: "soft",
   titleSize: "large",
-  overlayTone: "dark"
+  overlayTone: "dark",
+  // 카드
+  card1Icon: LANDING_CARD_DEFAULTS[0].icon,
+  card1Title: LANDING_CARD_DEFAULTS[0].title,
+  card1Body: LANDING_CARD_DEFAULTS[0].body,
+  card2Icon: LANDING_CARD_DEFAULTS[1].icon,
+  card2Title: LANDING_CARD_DEFAULTS[1].title,
+  card2Body: LANDING_CARD_DEFAULTS[1].body,
+  card3Icon: LANDING_CARD_DEFAULTS[2].icon,
+  card3Title: LANDING_CARD_DEFAULTS[2].title,
+  card3Body: LANDING_CARD_DEFAULTS[2].body
 };
 
 const defaultMediaForm = {
@@ -141,7 +170,7 @@ export default function AdminPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [inviteState, setInviteState] = useState<SaveState>("idle");
   const [contentForm, setContentForm] = useState(defaultContentForm);
-  const [landingSettings, setLandingSettings] = useState(defaultLandingSettings);
+  const [siteSettings, setSiteSettings] = useState(defaultSiteSettings);
   const [mediaForm, setMediaForm] = useState(defaultMediaForm);
   const [giftForm, setGiftForm] = useState(defaultGiftForm);
   const [staffCouponForm, setStaffCouponForm] = useState(defaultStaffCouponForm);
@@ -169,7 +198,7 @@ export default function AdminPage() {
 
     const data = unwrapData<AdminOperationsPayload>(await response.json());
     setPayload(data);
-    setLandingSettings(toLandingSettings(data.contentBlocks));
+    setSiteSettings(toSiteSettings(data.contentBlocks));
     setLoadState("ready");
     setMessage("운영 콘솔이 live 관리자 세션으로 연결되었습니다.");
     await loadInvites();
@@ -197,37 +226,89 @@ export default function AdminPage() {
     await loadOperations();
   }
 
-  async function saveLandingSettings() {
+  async function saveSiteSettings() {
     setSaveState("saving");
+
+    const brandPayload = {
+      id: siteSettings.brandId || undefined,
+      scope: "landing",
+      organizationId: null,
+      slot: "landing-brand",
+      title: siteSettings.logo,
+      body: JSON.stringify({ eyebrow: siteSettings.eyebrow, footer: siteSettings.footer }),
+      imageUrl: "",
+      ctaLabel: siteSettings.loginLabel,
+      ctaUrl: "",
+      sortOrder: 2,
+      status: "published"
+    };
+    const heroPayload = {
+      id: siteSettings.heroId || undefined,
+      scope: "landing",
+      organizationId: null,
+      slot: "hero",
+      title: siteSettings.heroTitle,
+      body: siteSettings.heroBody,
+      imageUrl: siteSettings.heroImageUrl,
+      ctaLabel: siteSettings.heroCtaLabel,
+      ctaUrl: siteSettings.heroCtaUrl,
+      sortOrder: 0,
+      status: "published"
+    };
     const appearancePayload = {
-      id: landingSettings.appearanceId || undefined,
+      id: siteSettings.appearanceId || undefined,
       scope: "landing",
       organizationId: null,
       slot: "landing-appearance",
-      title: landingSettings.titleStyle,
-      body: JSON.stringify({ titleSize: landingSettings.titleSize, overlayTone: landingSettings.overlayTone }),
+      title: siteSettings.titleStyle,
+      body: JSON.stringify({ titleSize: siteSettings.titleSize, overlayTone: siteSettings.overlayTone }),
       imageUrl: "",
       ctaLabel: "",
       ctaUrl: "",
       sortOrder: 1,
       status: "published"
     };
-    const heroPayload = {
-      id: landingSettings.heroId || undefined,
+    const cardPayloads = [
+      {
+        id: siteSettings.card1Id || undefined,
+        slot: LANDING_CARD_DEFAULTS[0].slot,
+        title: siteSettings.card1Title,
+        body: siteSettings.card1Body,
+        ctaLabel: siteSettings.card1Icon,
+        sortOrder: 10
+      },
+      {
+        id: siteSettings.card2Id || undefined,
+        slot: LANDING_CARD_DEFAULTS[1].slot,
+        title: siteSettings.card2Title,
+        body: siteSettings.card2Body,
+        ctaLabel: siteSettings.card2Icon,
+        sortOrder: 11
+      },
+      {
+        id: siteSettings.card3Id || undefined,
+        slot: LANDING_CARD_DEFAULTS[2].slot,
+        title: siteSettings.card3Title,
+        body: siteSettings.card3Body,
+        ctaLabel: siteSettings.card3Icon,
+        sortOrder: 12
+      }
+    ].map((card) => ({
+      id: card.id,
       scope: "landing",
       organizationId: null,
-      slot: "hero",
-      title: landingSettings.title,
-      body: landingSettings.body,
-      imageUrl: landingSettings.imageUrl,
-      ctaLabel: landingSettings.ctaLabel,
-      ctaUrl: landingSettings.ctaUrl,
-      sortOrder: 0,
+      slot: card.slot,
+      title: card.title,
+      body: card.body,
+      imageUrl: "",
+      ctaLabel: card.ctaLabel,
+      ctaUrl: "",
+      sortOrder: card.sortOrder,
       status: "published"
-    };
+    }));
 
     const responses = await Promise.all(
-      [heroPayload, appearancePayload].map((payload) =>
+      [brandPayload, heroPayload, appearancePayload, ...cardPayloads].map((payload) =>
         authenticatedFetch("/api/admin/operations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -238,12 +319,12 @@ export default function AdminPage() {
 
     if (responses.some((response) => !response.ok)) {
       setSaveState("error");
-      setMessage("랜딩 설정 저장에 실패했습니다. 관리자 권한과 입력값을 확인해 주세요.");
+      setMessage("사이트 설정 저장에 실패했습니다. 관리자 권한과 입력값을 확인해 주세요.");
       return;
     }
 
     setSaveState("saved");
-    setMessage("랜딩 사진, 문구, 타이포그래피 설정을 게시했습니다.");
+    setMessage("랜딩 사이트 콘텐츠(이미지·문구·타이포그래피·카드)를 게시했습니다.");
     await loadOperations();
   }
 
@@ -362,15 +443,20 @@ export default function AdminPage() {
                 <LoadingPanel />
               ) : (
                 <>
+                  {activeTab === "site" ? (
+                    <SiteManagementPanel
+                      settings={siteSettings}
+                      onChange={setSiteSettings}
+                      onSave={() => void saveSiteSettings()}
+                      saveState={saveState}
+                    />
+                  ) : null}
                   {activeTab === "content" ? (
                     <ContentPanel
                       blocks={payload.contentBlocks}
                       form={contentForm}
                       onChange={setContentForm}
                       onSave={() => saveResource("contentBlocks", contentForm)}
-                      landingSettings={landingSettings}
-                      onLandingSettingsChange={setLandingSettings}
-                      onLandingSave={() => void saveLandingSettings()}
                       saveState={saveState}
                     />
                   ) : null}
@@ -428,36 +514,243 @@ export default function AdminPage() {
   );
 }
 
+function SiteManagementPanel({
+  settings,
+  onChange,
+  onSave,
+  saveState
+}: {
+  settings: typeof defaultSiteSettings;
+  onChange: (settings: typeof defaultSiteSettings) => void;
+  onSave: () => void;
+  saveState: SaveState;
+}) {
+  const set = (patch: Partial<typeof defaultSiteSettings>) => onChange({ ...settings, ...patch });
+  const cards = [
+    {
+      label: "카드 1",
+      icon: settings.card1Icon,
+      title: settings.card1Title,
+      body: settings.card1Body,
+      onIcon: (card1Icon: string) => set({ card1Icon }),
+      onTitle: (card1Title: string) => set({ card1Title }),
+      onBody: (card1Body: string) => set({ card1Body })
+    },
+    {
+      label: "카드 2",
+      icon: settings.card2Icon,
+      title: settings.card2Title,
+      body: settings.card2Body,
+      onIcon: (card2Icon: string) => set({ card2Icon }),
+      onTitle: (card2Title: string) => set({ card2Title }),
+      onBody: (card2Body: string) => set({ card2Body })
+    },
+    {
+      label: "카드 3",
+      icon: settings.card3Icon,
+      title: settings.card3Title,
+      body: settings.card3Body,
+      onIcon: (card3Icon: string) => set({ card3Icon }),
+      onTitle: (card3Title: string) => set({ card3Title }),
+      onBody: (card3Body: string) => set({ card3Body })
+    }
+  ];
+
+  const previewCards = [
+    { icon: settings.card1Icon, title: settings.card1Title, body: settings.card1Body },
+    { icon: settings.card2Icon, title: settings.card2Title, body: settings.card2Body },
+    { icon: settings.card3Icon, title: settings.card3Title, body: settings.card3Body }
+  ];
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-5">
+        <section className="rounded border border-line bg-white p-5 shadow-soft">
+          <h2 className="text-2xl font-semibold tracking-normal">사이트관리 · 랜딩페이지</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            랜딩페이지에 쓰이는 이미지, 타이포그래피, 소개 문구, 카드 문구를 한 곳에서 편집하고 게시합니다.
+            저장하면 즉시 홈 화면에 반영됩니다.
+          </p>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saveState === "saving"}
+            className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {saveState === "saving" ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <Save size={17} aria-hidden />}
+            {saveState === "saving" ? "게시 중" : "전체 저장 및 게시"}
+          </button>
+        </section>
+
+        <SiteSection title="헤더 / 브랜드" description="상단 로고 문구, 로그인 버튼, 히어로 상단 뱃지, 하단 안내 문구입니다.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="로고 문구" value={settings.logo} onChange={(logo) => set({ logo })} placeholder="키즈메모" />
+            <Field label="로그인 버튼 문구" value={settings.loginLabel} onChange={(loginLabel) => set({ loginLabel })} placeholder="로그인" />
+            <Field label="히어로 상단 뱃지" value={settings.eyebrow} onChange={(eyebrow) => set({ eyebrow })} placeholder="우리 원의 사진 운영 노트" />
+            <Field label="하단 안내 문구" value={settings.footer} onChange={(footer) => set({ footer })} placeholder="점보키즈 연동 기관을 위한 키즈메모" />
+          </div>
+        </SiteSection>
+
+        <SiteSection title="히어로 (첫 화면)" description="대표 이미지, 제목, 소개 문구, 시작 버튼을 편집합니다.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="대표 이미지 URL" value={settings.heroImageUrl} onChange={(heroImageUrl) => set({ heroImageUrl })} placeholder="이미지 탭에서 업로드한 URL" />
+            <Field label="메인 제목" value={settings.heroTitle} onChange={(heroTitle) => set({ heroTitle })} placeholder="행사 준비, 학부모 안내까지 한 번에." />
+            <Field label="버튼 문구" value={settings.heroCtaLabel} onChange={(heroCtaLabel) => set({ heroCtaLabel })} placeholder="내 기관 시작하기" />
+            <Field label="버튼 링크" value={settings.heroCtaUrl} onChange={(heroCtaUrl) => set({ heroCtaUrl })} placeholder="/signup" />
+          </div>
+          <TextArea label="소개 문구" value={settings.heroBody} onChange={(heroBody) => set({ heroBody })} placeholder="메인 제목 아래에 보일 소개 문구" />
+        </SiteSection>
+
+        <SiteSection title="타이포그래피" description="제목 글꼴 스타일과 크기, 사진 위 글자 대비를 조절합니다.">
+          <div className="grid gap-3 md:grid-cols-3">
+            <SelectField label="제목 스타일" value={settings.titleStyle} onChange={(titleStyle) => set({ titleStyle })} options={["soft", "clear", "editorial"]} />
+            <SelectField label="제목 크기" value={settings.titleSize} onChange={(titleSize) => set({ titleSize })} options={["standard", "large"]} />
+            <SelectField label="사진 위 글자 대비" value={settings.overlayTone} onChange={(overlayTone) => set({ overlayTone })} options={["dark", "calm", "strong"]} />
+          </div>
+        </SiteSection>
+
+        <SiteSection title="소개 카드" description="히어로 아래 3개의 카드 아이콘과 제목, 설명 문구입니다.">
+          <div className="grid gap-4">
+            {cards.map((card) => (
+              <div key={card.label} className="rounded-xl border border-line bg-surface p-4">
+                <p className="text-sm font-semibold text-brand">{card.label}</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-[160px_1fr]">
+                  <IconSelectField label="아이콘" value={card.icon} onChange={card.onIcon} />
+                  <Field label="제목" value={card.title} onChange={card.onTitle} placeholder="카드 제목" />
+                </div>
+                <div className="mt-3">
+                  <TextArea label="설명" value={card.body} onChange={card.onBody} placeholder="카드 설명 문구" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SiteSection>
+
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saveState === "saving"}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {saveState === "saving" ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <Save size={17} aria-hidden />}
+          {saveState === "saving" ? "게시 중" : "전체 저장 및 게시"}
+        </button>
+      </div>
+
+      <aside className="grid gap-4">
+        <section className="overflow-hidden rounded-2xl border border-line bg-white shadow-soft">
+          <p className="border-b border-line px-4 py-3 text-xs font-semibold text-brand">실시간 미리보기</p>
+          <div className="relative min-h-52 bg-ink p-4 text-white">
+            {settings.heroImageUrl ? (
+              <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${settings.heroImageUrl})` }} />
+            ) : null}
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-ink">{settings.logo || "로고"}</span>
+                <span className="rounded-full border border-white/60 px-3 py-1 text-xs font-semibold text-white">{settings.loginLabel || "로그인"}</span>
+              </div>
+              <p className="mt-6 inline-flex rounded-full border border-white/45 bg-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/90">{settings.eyebrow || "상단 뱃지"}</p>
+              <p className={`mt-2 leading-tight ${settings.titleSize === "standard" ? "text-lg" : "text-xl"} ${settings.titleStyle === "clear" ? "font-semibold" : "font-medium"}`}>
+                {settings.heroTitle || "메인 제목"}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-white/85">{settings.heroBody || "소개 문구"}</p>
+              <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-ink">{settings.heroCtaLabel || "버튼 문구"}</span>
+            </div>
+          </div>
+          <div className="grid gap-2 p-4">
+            {previewCards.map((card, index) => {
+              const Icon = resolveLandingIcon(card.icon);
+              return (
+                <div key={index} className="rounded-xl border border-line bg-[#fffefa] p-3">
+                  <div className="grid h-8 w-8 place-items-center rounded-full bg-brand/10 text-brand">
+                    <Icon size={16} aria-hidden />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-ink">{card.title || "카드 제목"}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted">{card.body || "카드 설명"}</p>
+                </div>
+              );
+            })}
+            <p className="mt-1 text-center text-xs text-muted">{settings.footer || "하단 안내 문구"}</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function SiteSection({
+  title,
+  description,
+  children
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded border border-line bg-white p-5 shadow-soft">
+      <h3 className="text-lg font-semibold text-ink">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
+      <div className="mt-4 grid gap-3">{children}</div>
+    </section>
+  );
+}
+
+function IconSelectField({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const Icon = resolveLandingIcon(value);
+  return (
+    <label className="grid gap-2 text-sm font-semibold text-ink">
+      {label}
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand/10 text-brand">
+          <Icon size={17} aria-hidden />
+        </span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+        >
+          {LANDING_ICON_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {landingIconLabels[key]}
+            </option>
+          ))}
+        </select>
+      </div>
+    </label>
+  );
+}
+
 function ContentPanel({
   blocks,
   form,
   onChange,
   onSave,
-  landingSettings,
-  onLandingSettingsChange,
-  onLandingSave,
   saveState
 }: {
   blocks: AdminContentBlock[];
   form: typeof defaultContentForm;
   onChange: (form: typeof defaultContentForm) => void;
   onSave: () => void;
-  landingSettings: typeof defaultLandingSettings;
-  onLandingSettingsChange: (settings: typeof defaultLandingSettings) => void;
-  onLandingSave: () => void;
   saveState: SaveState;
 }) {
   return (
     <div className="grid gap-5">
-      <LandingSettingsPanel
-        settings={landingSettings}
-        onChange={onLandingSettingsChange}
-        onSave={onLandingSave}
-        saveState={saveState}
-      />
+      <p className="rounded border border-line bg-surface px-4 py-3 text-sm leading-6 text-muted">
+        랜딩페이지의 이미지·문구·타이포그래피·카드 편집은 <span className="font-semibold text-ink">사이트관리</span> 탭으로 이동했습니다.
+        이 화면은 기관별 소개 문구나 임의 슬롯 등 추가 콘텐츠 블록을 직접 관리합니다.
+      </p>
       <EditorLayout
         title="기타 사이트/기관 콘텐츠"
-        description="랜딩의 기능 카드, 기관별 소개 문구 등 추가 콘텐츠 슬롯을 관리합니다."
+        description="기관별 소개 문구 등 추가 콘텐츠 슬롯을 직접 관리합니다. 랜딩 기본 편집은 사이트관리 탭을 사용하세요."
         onSave={onSave}
         saveState={saveState}
         list={<ContentList blocks={blocks} />}
@@ -486,48 +779,6 @@ function ContentPanel({
         <TextArea label="본문" value={form.body} onChange={(body) => onChange({ ...form, body })} placeholder="콘텐츠 본문" />
       </EditorLayout>
     </div>
-  );
-}
-
-function LandingSettingsPanel({
-  settings,
-  onChange,
-  onSave,
-  saveState
-}: {
-  settings: typeof defaultLandingSettings;
-  onChange: (settings: typeof defaultLandingSettings) => void;
-  onSave: () => void;
-  saveState: SaveState;
-}) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-[#fffefa] shadow-soft">
-      <div className="relative min-h-44 overflow-hidden bg-ink p-5 text-white sm:p-6">
-        {settings.imageUrl ? <div className="absolute inset-0 bg-cover bg-center opacity-35" style={{ backgroundImage: `url(${settings.imageUrl})` }} /> : null}
-        <div className="relative max-w-2xl">
-          <p className="text-sm font-semibold text-white/82">랜딩 첫 화면 설정</p>
-          <h2 className="mt-1 text-2xl font-semibold">사진, 문구, 타이포그래피를 한 번에 편집합니다.</h2>
-          <p className="mt-2 text-sm leading-6 text-white/84">이미지 탭에서 업로드한 사진의 URL을 붙여 넣고 게시하면 즉시 랜딩 히어로에 반영됩니다.</p>
-        </div>
-      </div>
-      <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_280px] sm:p-6">
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label="메인 제목" value={settings.title} onChange={(title) => onChange({ ...settings, title })} placeholder="랜딩 메인 제목" />
-          <Field label="대표 사진 URL" value={settings.imageUrl} onChange={(imageUrl) => onChange({ ...settings, imageUrl })} placeholder="이미지 탭에서 업로드한 URL" />
-          <Field label="버튼 문구" value={settings.ctaLabel} onChange={(ctaLabel) => onChange({ ...settings, ctaLabel })} placeholder="내 기관 시작하기" />
-          <Field label="버튼 링크" value={settings.ctaUrl} onChange={(ctaUrl) => onChange({ ...settings, ctaUrl })} placeholder="/signup" />
-          <SelectField label="제목 스타일" value={settings.titleStyle} onChange={(titleStyle) => onChange({ ...settings, titleStyle })} options={["soft", "clear", "editorial"]} />
-          <SelectField label="제목 크기" value={settings.titleSize} onChange={(titleSize) => onChange({ ...settings, titleSize })} options={["standard", "large"]} />
-          <SelectField label="사진 위 글자 대비" value={settings.overlayTone} onChange={(overlayTone) => onChange({ ...settings, overlayTone })} options={["dark", "calm", "strong"]} />
-          <div className="flex items-end"><button type="button" onClick={onSave} disabled={saveState === "saving"} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"><Save size={17} aria-hidden />{saveState === "saving" ? "게시 중" : "랜딩 설정 게시"}</button></div>
-          <div className="md:col-span-2"><TextArea label="소개 문구" value={settings.body} onChange={(body) => onChange({ ...settings, body })} placeholder="메인 제목 아래에 보일 소개 문구" /></div>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-line bg-surface">
-          <div className="h-36 bg-ink bg-cover bg-center" style={settings.imageUrl ? { backgroundImage: `url(${settings.imageUrl})` } : undefined} />
-          <div className="p-4"><p className="text-xs font-semibold text-brand">미리보기</p><p className="mt-2 font-semibold text-ink">{settings.title || "메인 제목"}</p><p className="mt-2 text-sm leading-6 text-muted">{settings.body || "소개 문구가 이 위치에 표시됩니다."}</p><span className="mt-3 inline-flex rounded-full bg-brand px-3 py-2 text-xs font-semibold text-white">{settings.ctaLabel || "버튼 문구"}</span></div>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -1386,22 +1637,51 @@ function normalizePayload(payload: Record<string, unknown>) {
   );
 }
 
-function toLandingSettings(blocks: AdminContentBlock[]): typeof defaultLandingSettings {
-  const hero = blocks.find((block) => block.scope === "landing" && block.slot === "hero");
-  const appearance = blocks.find((block) => block.scope === "landing" && block.slot === "landing-appearance");
+function toSiteSettings(blocks: AdminContentBlock[]): typeof defaultSiteSettings {
+  const find = (slot: string) => blocks.find((block) => block.scope === "landing" && block.slot === slot);
+  const hero = find("hero");
+  const appearance = find("landing-appearance");
+  const brand = find("landing-brand");
+  const card1 = find(LANDING_CARD_DEFAULTS[0].slot);
+  const card2 = find(LANDING_CARD_DEFAULTS[1].slot);
+  const card3 = find(LANDING_CARD_DEFAULTS[2].slot);
   const parsedAppearance = parseLandingAppearance(appearance?.body);
+
+  let brandMeta: { eyebrow?: string; footer?: string } = {};
+  try {
+    brandMeta = JSON.parse(brand?.body || "{}") as { eyebrow?: string; footer?: string };
+  } catch {
+    brandMeta = {};
+  }
 
   return {
     heroId: hero?.id ?? "",
     appearanceId: appearance?.id ?? "",
-    title: hero?.title || defaultLandingSettings.title,
-    body: hero?.body || defaultLandingSettings.body,
-    imageUrl: hero?.imageUrl || "",
-    ctaLabel: hero?.ctaLabel || defaultLandingSettings.ctaLabel,
-    ctaUrl: hero?.ctaUrl || defaultLandingSettings.ctaUrl,
-    titleStyle: appearance?.title || defaultLandingSettings.titleStyle,
+    brandId: brand?.id ?? "",
+    card1Id: card1?.id ?? "",
+    card2Id: card2?.id ?? "",
+    card3Id: card3?.id ?? "",
+    logo: brand?.title || defaultSiteSettings.logo,
+    loginLabel: brand?.ctaLabel || defaultSiteSettings.loginLabel,
+    eyebrow: brandMeta.eyebrow || defaultSiteSettings.eyebrow,
+    footer: brandMeta.footer || defaultSiteSettings.footer,
+    heroTitle: hero?.title || defaultSiteSettings.heroTitle,
+    heroBody: hero?.body || defaultSiteSettings.heroBody,
+    heroImageUrl: hero?.imageUrl || "",
+    heroCtaLabel: hero?.ctaLabel || defaultSiteSettings.heroCtaLabel,
+    heroCtaUrl: hero?.ctaUrl || defaultSiteSettings.heroCtaUrl,
+    titleStyle: appearance?.title || defaultSiteSettings.titleStyle,
     titleSize: parsedAppearance.titleSize,
-    overlayTone: parsedAppearance.overlayTone
+    overlayTone: parsedAppearance.overlayTone,
+    card1Icon: card1?.ctaLabel || defaultSiteSettings.card1Icon,
+    card1Title: card1?.title || defaultSiteSettings.card1Title,
+    card1Body: card1?.body || defaultSiteSettings.card1Body,
+    card2Icon: card2?.ctaLabel || defaultSiteSettings.card2Icon,
+    card2Title: card2?.title || defaultSiteSettings.card2Title,
+    card2Body: card2?.body || defaultSiteSettings.card2Body,
+    card3Icon: card3?.ctaLabel || defaultSiteSettings.card3Icon,
+    card3Title: card3?.title || defaultSiteSettings.card3Title,
+    card3Body: card3?.body || defaultSiteSettings.card3Body
   };
 }
 
