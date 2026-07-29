@@ -29,7 +29,7 @@ export default async function LandingPage() {
   const titleClass = appearance.titleStyle === "clear"
     ? "font-semibold"
     : appearance.titleStyle === "editorial"
-      ? "font-medium"
+      ? "font-normal italic"
       : "font-medium";
   const titleSizeClass = appearance.titleSize === "standard" ? "text-3xl sm:text-4xl" : "text-4xl sm:text-5xl";
   const overlayClass = appearance.overlayTone === "strong" ? "bg-ink/76" : appearance.overlayTone === "calm" ? "bg-ink/44" : "bg-ink/58";

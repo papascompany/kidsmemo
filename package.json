@@ -16,6 +16,7 @@
     "qa:admin-browser-auth": "node scripts/admin-browser-auth-smoke.mjs",
     "smoke:admin-live": "node scripts/admin-live-smoke.mjs",
     "smoke:admin-operations-live": "node scripts/admin-operations-live-smoke.mjs",
+    "smoke:landing-cms-live": "node scripts/landing-cms-live-smoke.mjs",
     "smoke:organization-cms-live": "node scripts/organization-cms-live-smoke.mjs",
     "smoke:onboarding-invite-live": "node scripts/onboarding-invite-live-smoke.mjs",
     "test:staff-coupon-e2e": "node scripts/staff-coupon-e2e.mjs"

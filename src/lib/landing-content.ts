@@ -6,7 +6,7 @@ import {
   type LandingCard
 } from "./landing-defaults";
 import { isLiveSupabaseMode } from "./env-flags";
-import { createSupabaseServiceClient } from "./supabase";
+import { createSupabasePublicClient } from "./supabase";
 
 export { LANDING_BRAND_DEFAULTS, LANDING_CARD_DEFAULTS };
 export type { LandingBrand, LandingCard };
@@ -18,7 +18,7 @@ export async function getPublishedLandingBlocks(): Promise<AdminContentBlock[]> 
     return [];
   }
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = createSupabasePublicClient();
   if (!supabase) {
     return [];
   }
