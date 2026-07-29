@@ -1,6 +1,6 @@
 # 키즈메모 라이브 출시 운영 체크리스트
 
-> 기준일: 2026-07-16
+> 기준일: 2026-07-29
 >
 > 이 문서는 과거 QA·배포 문서를 대체하거나 삭제하지 않는다. 기존 기록은 각 문서에 보존하고, 출시 판단과 실행 순서는 이 문서의 현재 상태를 기준으로 한다. 비밀값과 실제 환경변수 값은 이 문서에 기록하지 않는다.
 
@@ -33,6 +33,11 @@
 - [x] Supabase linked migration 목록이 로컬·원격 모두 `20260716100000`까지 일치하고 `supabase db lint --linked`가 schema 오류 없이 통과함.
 - [x] 최신 Vercel production env 이름 확인 결과 Supabase 연결 변수만 존재하며, push·메시지·OpenAI·Naver provider 변수는 아직 설정되지 않음.
 - [x] production live `/app`은 비로그인 상태에서 mock 기관·쿠폰·행사 데이터를 렌더링하지 않고 로그인/기관 연결 안내를 표시한다.
+- [x] `main` 커밋 `1520779`를 Vercel Production에 배포하고 `https://kidsmemo.vercel.app` alias를 확인했다.
+- [x] 공개 랜딩 조회를 service-role이 아닌 anon/RLS public client로 전환했다. Production `/api/content/landing`은 HTTP 200으로 응답했다.
+- [x] Production guard 19개와 관리자 DOM QA를 새 배포에서 재실행해 통과했다.
+- [x] Production 랜딩 SSR HTML이 200으로 응답하고 기본 hero·브랜드·카드 fallback을 렌더링하는 것을 확인했다. 현재 published landing block은 0건이다.
+- [x] `npm run smoke:landing-cms-live`를 추가했다. 관리자 Bearer 저장 → 익명 landing API → 실제 `/` HTML 반영 → 원상복구를 한 번에 검증한다.
 
 근거 문서: `docs/deployment-env-inventory.md`, `docs/project-handoff-plan.md`, `docs/qa-sprint-1.md`, `docs/sprint-1-board.md`.
 
@@ -46,6 +51,7 @@
 - [ ] **live API smoke 재실행:** 아래 순서를 지키고 각 결과와 실행 target을 기록한다.
 - [ ] **비인증 guard smoke:** 공개 로그인/가입 route와 주요 GET/POST 보호 API의 `401 authentication_required`를 확인한다.
 - [ ] **브라우저 QA:** `/`, `/login`, `/signup`, `/onboarding`, `/app`, `/admin`을 확인한다. 데스크톱과 모바일에서 auth 오류, organization 전환, CMS 반영, 쿠폰 조회·다운로드, admin 탭·테이블, AI 영역을 확인한다.
+- [ ] **랜딩 CMS live smoke:** `npm run smoke:landing-cms-live`를 관리자 계정 환경변수와 Production target으로 실행하고 marker 반영·복구를 확인한다. 현재 세션에는 관리자 계정 환경변수가 없어 아직 실행하지 못했다.
 - [ ] **print preview:** `/app#ai-helper`에서 인쇄 미리보기, 긴 문구, 페이지 잘림을 확인한다.
 - [ ] **격리·정리 확인:** smoke가 만든 QA organization, invite, campaign, coupon, CMS marker가 의도한 정책에 따라 정리되었는지 확인한다.
 - [ ] **production sign-off:** 담당자, 시각, 배포 식별자, smoke 결과, known limitation, rollback 담당자를 기록한다.
@@ -104,6 +110,7 @@
 | `KIDSMEMO_ONBOARDING_SMOKE_BASE_URL` | onboarding target override |
 | `KIDSMEMO_E2E_BASE_URL` | staff coupon E2E target override |
 | `KIDSMEMO_ADMIN_BROWSER_QA_BASE_URL` | browser QA target override |
+| `KIDSMEMO_LANDING_CMS_SMOKE_BASE_URL` | landing CMS save/reflection smoke target override |
 | `KIDSMEMO_ADMIN_BROWSER_QA_TARGET` | browser QA target 구분 |
 | `KIDSMEMO_ADMIN_BROWSER_QA_MODE` | browser QA 실행 모드 |
 | `KIDSMEMO_ADMIN_BROWSER_QA_TIMEOUT_MS` | browser QA 요청 timeout |
